@@ -2,8 +2,6 @@
 pragma solidity 0.8.21;
 
 interface ILoanManager {
-
-
     function deposit(address _asset, uint256 _amount) external;
     /*//////////////////////////////////////////////////////////////
                                  VIEWS

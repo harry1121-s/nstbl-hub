@@ -12,23 +12,19 @@ contract ChainlinkPriceFeed {
         dataFeed = AggregatorV3Interface(_dataFeed);
     }
 
-    function getLatestPrice(address _dataFeed) external view returns(int256 price) {
-
+    function getLatestPrice(address _dataFeed) external view returns (int256 price) {
         (, price,,,) = AggregatorV3Interface(_dataFeed).latestRoundData();
-        return(price);
+        return (price);
     }
 
     function getDecimals() external view returns (uint256 decimals) {
         decimals = dataFeed.decimals();
     }
 
-
     function getAverageAssetsPrice() external view returns (int256 price) {
-
-        (, int price1,,,) = AggregatorV3Interface(USDT_FEED).latestRoundData();
-        (, int price2,,,) = AggregatorV3Interface(USDC_FEED).latestRoundData();
-        (, int price3,,,) = AggregatorV3Interface(DAI_FEED).latestRoundData();
+        (, int256 price1,,,) = AggregatorV3Interface(USDT_FEED).latestRoundData();
+        (, int256 price2,,,) = AggregatorV3Interface(USDC_FEED).latestRoundData();
+        (, int256 price3,,,) = AggregatorV3Interface(DAI_FEED).latestRoundData();
         price = (price1 + price2 + price3) / 3;
-
     }
 }
