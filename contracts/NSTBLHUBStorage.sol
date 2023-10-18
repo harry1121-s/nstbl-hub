@@ -3,6 +3,7 @@ pragma solidity ^0.8.21;
 import "./interfaces/IERC20Helper.sol";
 import "./interfaces/IChainlinkPriceFeed.sol";
 import "./interfaces/ILoanManager.sol";
+import "./interfaces/IStakePool.sol";
 
 contract NSTBLHUBStorage {
     address public admin;
@@ -24,7 +25,6 @@ contract NSTBLHUBStorage {
         0x3E7d1eAB13ad0104d2750B8863b489D65364e32D,
         0xAed0c38402a5d19df6E4c03F4E2DceD6e29c1ee9
     ];
-    uint256 public minDeposit;
     uint256 public dt;
     uint256 public ub;
     uint256 public lb;
@@ -33,4 +33,7 @@ contract NSTBLHUBStorage {
     uint256 public liquidPercent;
     uint256 public tBillPercent;
     uint256 public marginPercent;
+
+    /////////temporary storage variables//////////
+    uint256 public atvlBurnAmount;
 }
