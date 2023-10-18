@@ -1,27 +1,20 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.21;
 
-import { Test, console } from "forge-std/Test.sol";
-import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+// import { Test, console } from "forge-std/Test.sol";
 import { StakePoolMock } from "../../contracts/mocks/StakePool/StakePoolMock.sol";
 import { NSTBLTokenMock } from "../../contracts/mocks/NSTBLTokenMock.sol";
 import { ChainLinkPriceFeed } from "../../contracts/chainlink/ChainlinkPriceFeed.sol";
-import { NSTBLHub, IERC20Helper } from "../../contracts/NSTBLHub.sol";
+import { NSTBLHub } from "../../contracts/NSTBLHub.sol";
+import { Utils } from "./utils.sol"; 
 // import { IERC20Helper } from "../../contracts/interfaces/IERC20Helper.sol";
 
-contract BaseTest is Test {
-    using SafeERC20 for IERC20Helper;
+contract BaseTest is Utils {
 
     StakePoolMock public stakePool;
     ChainLinkPriceFeed public priceFeed;
     NSTBLTokenMock public nstblToken;
     NSTBLHub public nstblHub;
-
-    address public admin = address(123);
-    address public nealthyAddr = address(456);
-    address public user1 = address(1);
-    address public user2 = address(2);
-    address public user3 = address(3);
 
 
     function setUp() public virtual {
@@ -45,7 +38,13 @@ contract BaseTest is Test {
         );
         nstblToken.setStakePool(address(stakePool));
         stakePool.init(address(nstblHub));
+        stakePool.configurePool(250, 30 days, 100);
+        stakePool.configurePool(350, 60 days, 100);
+        stakePool.configurePool(400, 90 days, 100);
+        nstblHub.setSystemParams(dt, ub, lb);
         vm.stopPrank();
+
+
     }
 
 }

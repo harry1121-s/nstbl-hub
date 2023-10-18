@@ -31,7 +31,7 @@ contract NSTBLTokenMock is ERC20 {
     constructor(string memory _name, string memory _symbol, address _admin) ERC20(_name, _symbol) {
         require(_admin != address(0), "LP: invalid Address");
         admin = _admin;
-        _mint(admin, 1e6 * 1e18);
+        _mint(admin, 1e8 * 1e18);
         emit AdminChanged(address(0), admin);
     }
 

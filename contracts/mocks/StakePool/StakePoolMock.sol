@@ -45,6 +45,7 @@ contract StakePoolMock is StakePoolStorage{
 
     function init(address _nstblvault) external onlyAdmin {
         nstblVault = _nstblvault;
+        authorizedCallers[nstblVault] = true;
     }
 
     function setAuthorizedCaller(address _caller, bool _isAuthorized) external onlyAdmin {

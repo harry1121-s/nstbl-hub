@@ -102,6 +102,7 @@ contract NSTBLHub is NSTBLHUBStorage{
         (uint256 p1, uint256 p2, uint256 p3) = IChainlinkPriceFeed(chainLinkPriceFeed).getLatestPrice();
         require(p1>dt && p2>dt && p3>dt, "VAULT:STAKING_SUSPENDED");
         IERC20Helper(nstblToken).safeTransferFrom(msg.sender, address(this), _amount);
+        IERC20Helper(nstblToken).safeIncreaseAllowance(stakePool, _amount);
         IStakePool(stakePool).stake(_amount, user, _poolId);
     }
 
@@ -511,11 +512,10 @@ contract NSTBLHub is NSTBLHUBStorage{
         admin = _admin;
     }
 
-    function setSystemParams(uint256[] memory params) public onlyAdmin {
-        require(params.length == 3, "HUB::INVALID_PARAMS");
-        dt = params[0];
-        ub = params[1];
-        lb = params[2];
+    function setSystemParams(uint256 _dt, uint256 _ub, uint256 _lb) public onlyAdmin {
+        dt = _dt;
+        ub = _ub;
+        lb = _lb;
     }
     
     
