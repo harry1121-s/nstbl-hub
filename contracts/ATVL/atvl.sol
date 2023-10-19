@@ -9,8 +9,6 @@ contract Atvl {
     address public _admin;
     uint256 public atvlThreshold;
     address public nstblToken;
-    // address public nstblHub;
-    // address public stakePool;
     uint256 public totalNstblReceived;
     uint256 public totalNstblBurned;
     uint256 public pendingNstblBurn;
@@ -31,12 +29,7 @@ contract Atvl {
 
     function init(address _nstblToken, uint256 _atvlThreshold) external onlyAdmin {
         nstblToken = _nstblToken;
-        // nstblHub = _nstblHub;
-        // stakePool = _stakePool;
         atvlThreshold = _atvlThreshold;
-
-        authorizedCallers[nstblHub] = true;
-        authorizedCallers[stakePool] = true;
     }
 
     function setAuthorizedCaller(address _caller, bool _isAuthorized) external onlyAdmin {

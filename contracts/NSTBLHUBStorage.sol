@@ -14,6 +14,10 @@ contract NSTBLHUBStorage {
     address public stakePool;
     address public nstblToken;
     address public chainLinkPriceFeed;
+    uint256 public atvlBurnAmount;
+
+    mapping(address=>uint256) public assetAllocation;
+
     //usdc, usdt, dai
     address[3] public assets = [
         0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48,
@@ -37,6 +41,4 @@ contract NSTBLHUBStorage {
     uint256 public tBillPercent;
     uint256 public marginPercent;
 
-    /////////temporary storage variables//////////
-    uint256 public atvlBurnAmount;
 }

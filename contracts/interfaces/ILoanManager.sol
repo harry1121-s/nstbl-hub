@@ -7,7 +7,6 @@ interface ILoanManager {
                                  VIEWS
     //////////////////////////////////////////////////////////////*/
 
-    function getAssets(address _asset, uint256 _lpTokens) external view returns (uint256);
-    function getAssetsWithUnrealisedLosses(address _asset, uint256 _lpTokens) external view returns (uint256);
-    function getInvestedAssets() external view returns (uint256);
+    function getInvestedAssets(address _assets) external view returns (uint256);
+    function getMaturedAssets(address _assets) external view returns (uint256);
 }
