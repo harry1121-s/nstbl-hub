@@ -1,4 +1,5 @@
 pragma solidity 0.8.21;
+
 import "../../interfaces/IERC20Helper.sol";
 
 contract StakePoolStorage {
@@ -57,6 +58,4 @@ contract StakePoolStorage {
     uint256 public usdcInvestedAmount;
     uint256 public usdcMaturityAmount;
     uint256 public precision = 1e27;
-
-
 }

@@ -2,13 +2,17 @@ pragma solidity 0.8.21;
 
 import "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
 
-contract ChainLinkPriceFeed {
+contract ChainLinkPriceFeedMock {
     AggregatorV3Interface public dataFeed;
-    address public USDT_FEED = 0x3E7d1eAB13ad0104d2750B8863b489D65364e32D;
-    address public USDC_FEED = 0x8fFfFfd4AfB6115b954Bd326cbe7B4BA576818f6;
-    address public DAI_FEED = 0xAed0c38402a5d19df6E4c03F4E2DceD6e29c1ee9;
+    address public USDC_FEED;
+    address public USDT_FEED;
+    address public DAI_FEED;
 
-    constructor() { }
+    constructor(address _usdcFeed, address _usdtFeed, address _daiFeed) {
+        USDC_FEED = _usdcFeed;
+        USDT_FEED = _usdtFeed;
+        DAI_FEED = _daiFeed;
+    }
 
     function getLatestPrice() external view returns (uint256, uint256, uint256) {
         (, int256 p1,,,) = AggregatorV3Interface(USDC_FEED).latestRoundData();

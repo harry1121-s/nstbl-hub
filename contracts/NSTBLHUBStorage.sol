@@ -4,6 +4,7 @@ import "./interfaces/IERC20Helper.sol";
 import "./interfaces/IChainlinkPriceFeed.sol";
 import "./interfaces/ILoanManager.sol";
 import "./interfaces/IStakePool.sol";
+import "./interfaces/IATVL.sol";
 
 contract NSTBLHUBStorage {
     address public admin;
@@ -20,11 +21,13 @@ contract NSTBLHUBStorage {
         0x6B175474E89094C44Da98b954EedeAC495271d0F
     ];
     //usdc, usdt, dai
-    address[3] public assetFeeds = [
-        0x8fFfFfd4AfB6115b954Bd326cbe7B4BA576818f6,
-        0x3E7d1eAB13ad0104d2750B8863b489D65364e32D,
-        0xAed0c38402a5d19df6E4c03F4E2DceD6e29c1ee9
-    ];
+    // address[3] public assetFeeds = [
+    //     0x8fFfFfd4AfB6115b954Bd326cbe7B4BA576818f6,
+    //     0x3E7d1eAB13ad0104d2750B8863b489D65364e32D,
+    //     0xAed0c38402a5d19df6E4c03F4E2DceD6e29c1ee9
+    // ];
+
+    address[3] public assetFeeds;
     uint256 public dt;
     uint256 public ub;
     uint256 public lb;

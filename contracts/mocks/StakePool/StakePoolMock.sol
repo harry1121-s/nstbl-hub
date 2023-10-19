@@ -5,7 +5,7 @@ pragma solidity 0.8.21;
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "./StakePoolStorage.sol";
 
-contract StakePoolMock is StakePoolStorage{
+contract StakePoolMock is StakePoolStorage {
     using SafeERC20 for IERC20Helper;
 
     uint256 private _locked = 1;
@@ -35,10 +35,7 @@ contract StakePoolMock is StakePoolStorage{
         _;
     }
 
-    constructor(
-        address _admin,
-        address _nstbl
-    ) {
+    constructor(address _admin, address _nstbl) {
         admin = _admin;
         nstbl = _nstbl;
     }
@@ -51,27 +48,32 @@ contract StakePoolMock is StakePoolStorage{
     function setAuthorizedCaller(address _caller, bool _isAuthorized) external onlyAdmin {
         authorizedCallers[_caller] = _isAuthorized;
     }
-   
+
     function setAdmin(address _admin) external onlyAdmin {
         admin = _admin;
     }
 
-     function poolLength() public view returns (uint256 _pools) {
+    function poolLength() public view returns (uint256 _pools) {
         _pools = poolInfo.length;
     }
 
-    function configurePool(uint256 _allocPoint, uint256 _stakeTimePeriod, uint256 _earlyUnstakeFee) external onlyAdmin {
+    function configurePool(uint256 _allocPoint, uint256 _stakeTimePeriod, uint256 _earlyUnstakeFee)
+        external
+        onlyAdmin
+    {
         totalAllocPoint += _allocPoint;
-        poolInfo.push(PoolInfo({
-            accNSTBLPerShare: 0,
-            allocPoint: uint64(_allocPoint),
-            stakeTimePeriod: uint64(_stakeTimePeriod),
-            earlyUnstakeFee: uint64(_earlyUnstakeFee)
-        }));
+        poolInfo.push(
+            PoolInfo({
+                accNSTBLPerShare: 0,
+                allocPoint: uint64(_allocPoint),
+                stakeTimePeriod: uint64(_stakeTimePeriod),
+                earlyUnstakeFee: uint64(_earlyUnstakeFee)
+            })
+        );
     }
 
-    function getUserStakedAmount(address _user, uint256 _poolId)external view returns(uint256 _stakedAmount) {
-        StakerInfo memory staker = stakerInfo[_poolId][_user];   
+    function getUserStakedAmount(address _user, uint256 _poolId) external view returns (uint256 _stakedAmount) {
+        StakerInfo memory staker = stakerInfo[_poolId][_user];
         _stakedAmount = staker.amount;
     }
 
@@ -86,7 +88,6 @@ contract StakePoolMock is StakePoolStorage{
 
         IERC20Helper(nstbl).safeTransferFrom(msg.sender, address(this), _amount);
 
-       
         staker.amount += _amount;
         staker.stakeTimeStamp = block.timestamp;
         totalStakedAmount += _amount;
@@ -102,7 +103,6 @@ contract StakePoolMock is StakePoolStorage{
 
         require(_amount <= staker.amount, "SP::INVALID AMOUNT");
 
-       
         staker.amount -= _amount;
         totalStakedAmount -= _amount;
         IERC20Helper(nstbl).safeTransfer(msg.sender, _amount);
