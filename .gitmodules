@@ -7,3 +7,6 @@
 [submodule "modules/chainlink"]
 	path = modules/chainlink
 	url = https://github.com/smartcontractkit/chainlink.git
+[submodule "modules/solidity-examples"]
+	path = modules/solidity-examples
+	url = https://github.com/LayerZero-Labs/solidity-examples.git

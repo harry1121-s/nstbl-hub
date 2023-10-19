@@ -2,8 +2,8 @@
 
 pragma solidity ^0.8.0;
 
-import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
-import "@layerzerolabs/solidity-examples/contracts/token/oft/v2/OFTV2.sol";
+import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import "solidity-examples/contracts/token/oft/v2/OFTV2.sol";
 
 contract nSTBL is OFTV2, ReentrancyGuard {
 

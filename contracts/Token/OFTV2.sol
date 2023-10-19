@@ -3,7 +3,7 @@
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import "@layerzerolabs/solidity-examples/contracts/token/oft/v2/BaseOFTV2.sol";
+import "solidity-examples/contracts/token/oft/v2/BaseOFTV2.sol";
 
 contract OFTV2 is BaseOFTV2, ERC20 {
 
