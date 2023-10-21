@@ -252,8 +252,7 @@ contract NSTBLHub is NSTBLHUBStorage {
                     // assetsLeft -= assetBalance;
                     remainingNstbl = assetRequired - assetBalance;
                 }
-            }
-            else{
+            } else {
                 assetProportion = assetAllocation[sortedAssets[i]] * precisionAmount / 1e5 + remainingNstbl;
                 assetRequired = assetProportion * dt / sortedAssetsPrice[i];
                 if (assetRequired <= assetBalance) {
@@ -373,9 +372,9 @@ contract NSTBLHub is NSTBLHUBStorage {
         lb = _lb;
     }
 
-    function addToWithdrawalQueue(address _user, uint256 _amount) internal {}
+    function addToWithdrawalQueue(address _user, uint256 _amount) internal { }
 
-    function _burnNstblFromStakePool(uint256 _amount) internal {}
+    function _burnNstblFromStakePool(uint256 _amount) internal { }
 
-    function processTBillWithdraw(uint256 _amount) internal {}
+    function processTBillWithdraw(uint256 _amount) internal { }
 }

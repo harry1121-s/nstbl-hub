@@ -16,7 +16,7 @@ contract NSTBLHUBStorage {
     address public chainLinkPriceFeed;
     uint256 public atvlBurnAmount;
 
-    mapping(address=>uint256) public assetAllocation;
+    mapping(address => uint256) public assetAllocation;
 
     //usdc, usdt, dai
     address[3] public assets = [
@@ -40,5 +40,4 @@ contract NSTBLHUBStorage {
     uint256 public liquidPercent;
     uint256 public tBillPercent;
     uint256 public marginPercent;
-
 }

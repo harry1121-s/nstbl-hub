@@ -285,7 +285,12 @@ contract LoanManager is LoanManagerStorage {
      * @param _lpTokens The amount of LP tokens to convert.
      * @return The total assets represented by the LP tokens, adjusted to the contract's decimals, or an error code if the asset is not supported.
      */
-    function getAssets(address _asset, uint256 _lpTokens) external view validInput(_asset, _lpTokens) returns (uint256) {
+    function getAssets(address _asset, uint256 _lpTokens)
+        external
+        view
+        validInput(_asset, _lpTokens)
+        returns (uint256)
+    {
         if (_asset == usdc) {
             return IPool(mapleUSDCPool).convertToAssets(_lpTokens / 10 ** adjustedDecimals);
         } else if (_asset == usdt) {
@@ -335,7 +340,12 @@ contract LoanManager is LoanManagerStorage {
      * @param _amount The amount of the asset to convert.
      * @return The number of exit shares represented by the amount of the asset, or an error code if the asset is not supported.
      */
-    function getExitShares(address _asset, uint256 _amount) external view validInput(_asset, _amount) returns (uint256) {
+    function getExitShares(address _asset, uint256 _amount)
+        external
+        view
+        validInput(_asset, _amount)
+        returns (uint256)
+    {
         if (_asset == usdc) {
             return IPool(mapleUSDCPool).convertToExitShares(_amount);
         } else if (_asset == usdt) {

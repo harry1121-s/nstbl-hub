@@ -143,8 +143,6 @@ contract NSTBLStakePool is StakePoolStorage {
         _rewardDebt = staker.rewardDebt;
     }
 
-
-
     function updatePools() internal {
         uint256 nstblYield;
         (usdcInvestedAmount, usdcMaturityAmount, nstblYield) = getUpdatedYieldParams();
