@@ -2,7 +2,7 @@
 pragma solidity ^0.8.13;
 
 import { Test, console } from "forge-std/Test.sol";
-import { IERC20Helper } from "../../contracts/interfaces/IERC20Helper.sol";
+import { IERC20, IERC20Helper } from "../../contracts/interfaces/IERC20Helper.sol";
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 contract Utils is Test {

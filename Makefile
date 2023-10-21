@@ -8,8 +8,8 @@ build:
 test:
 	forge test
 
-testToken:
-	forge test --match-path ./tests/unit/Token.t.sol
+testEqLogic:
+	forge test --match-path ./tests/unit/eqLogic.t.sol -vvvvv --via-ir
 
 testHub:
 	forge test --match-path ./tests/unit/NSTBLHub.t.sol -vvvvv --via-ir

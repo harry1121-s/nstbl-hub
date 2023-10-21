@@ -8,7 +8,9 @@ import { NSTBLTokenMock } from "../../contracts/mocks/NSTBLTokenMock.sol";
 import { ChainLinkPriceFeedMock } from "../../contracts/mocks/chainlink/ChainlinkPriceFeedMock.sol";
 import { NSTBLHub } from "../../contracts/NSTBLHub.sol";
 import { Atvl } from "../../contracts/ATVL/atvl.sol";
-import { Utils, IERC20Helper } from "./utils.sol";
+import { eqLogic } from "../../contracts/equilibriumLogic.sol";
+import { LoanManagerMock } from "../../contracts/mocks/LoanManagerMock.sol";
+import { Utils, IERC20Helper, IERC20 } from "./utils.sol";
 // import { IERC20Helper } from "../../contracts/interfaces/IERC20Helper.sol";
 
 contract BaseTest is Utils {
@@ -17,6 +19,8 @@ contract BaseTest is Utils {
     NSTBLTokenMock public nstblToken;
     NSTBLHub public nstblHub;
     Atvl public atvl;
+    eqLogic public eqlogic;
+    LoanManagerMock public loanManager;
 
     MockV3Aggregator public usdcPriceFeedMock;
     MockV3Aggregator public usdtPriceFeedMock;
@@ -42,6 +46,14 @@ contract BaseTest is Utils {
         atvl = new Atvl(
             admin
         );
+        loanManager = new LoanManagerMock(admin);
+        eqlogic = new eqLogic(
+            address(priceFeed),
+            address(loanManager),
+            address(nstblToken),
+            98e6,
+            1e18
+        );
         nstblHub = new NSTBLHub(
             nealthyAddr,
             address(nstblToken),
@@ -53,6 +65,7 @@ contract BaseTest is Utils {
         nstblToken.setAuthorizedCaller(address(nstblHub), true);
         nstblToken.setAuthorizedCaller(address(stakePool), true);
         nstblToken.setAuthorizedCaller(address(atvl), true);
+        nstblToken.setAuthorizedCaller(address(eqlogic), true);
 
         atvl.init(address(nstblToken), 120);
         stakePool.init(address(nstblHub));
