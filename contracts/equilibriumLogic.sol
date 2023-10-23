@@ -85,7 +85,7 @@ contract eqLogic {
         //Deposit required Tokens
         IERC20Helper(USDC).safeTransferFrom(msg.sender, address(this), _usdcAmt);
         if(a2!=0){
-            IERC20(USDT).safeTransferFrom(msg.sender, address(this), _usdtAmt);
+            IERC20Helper(USDT).safeTransferFrom(msg.sender, address(this), _usdtAmt);
         }
         if(a3!=0){
             IERC20Helper(DAI).safeTransferFrom(msg.sender, address(this), _daiAmt);

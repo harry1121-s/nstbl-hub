@@ -22,7 +22,7 @@ contract EqLogicTest is BaseTest {
         console.log("USDC bal: ", IERC20Helper(USDC).balanceOf(address(eqlogic)));
         //nodepeg
         usdcPriceFeedMock.updateAnswer(982e5);
-        usdtPriceFeedMock.updateAnswer(97e6);
+        usdtPriceFeedMock.updateAnswer(99e6);
         daiPriceFeedMock.updateAnswer(985e5);
 
 
@@ -38,7 +38,6 @@ contract EqLogicTest is BaseTest {
         console.log("usdtAmt: ", usdtAmt);
         console.log("daiAmt: ", daiAmt);
 
-        //deposit 1e5 stables
 
         deal(USDC, user1, usdcAmt);
         deal(USDT, user1, usdtAmt);
@@ -47,14 +46,14 @@ contract EqLogicTest is BaseTest {
         
         vm.startPrank(user1);
         IERC20Helper(USDC).safeIncreaseAllowance(address(eqlogic), usdcAmt);
-        IERC20(USDT).safeIncreaseAllowance(address(eqlogic), usdtAmt);
+        IERC20Helper(USDT).safeIncreaseAllowance(address(eqlogic), usdtAmt);
         IERC20Helper(DAI).safeIncreaseAllowance(address(eqlogic), daiAmt);
         eqlogic.deposit(usdcAmt, usdtAmt, daiAmt);
         vm.stopPrank();
 
         assertEq(usdcAmt-tBillAmt, IERC20Helper(USDC).balanceOf(address(eqlogic)));
         assertEq(tBillAmt, IERC20Helper(USDC).balanceOf(address(loanManager)));
-        assertEq(usdtAmt, IERC20(USDT).balanceOf(address(eqlogic)));
+        assertEq(usdtAmt, IERC20Helper(USDT).balanceOf(address(eqlogic)));
         assertEq(daiAmt, IERC20Helper(DAI).balanceOf(address(eqlogic)));
 
         assertEq(usdcAmt+usdtAmt+daiAmt, nstblToken.balanceOf(user1));
