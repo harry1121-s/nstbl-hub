@@ -22,4 +22,7 @@ contract eqLogicInternal is eqLogic {
     function getAssetBalances() external view returns(uint256[] memory) {
         return _getAssetBalances();
     }
+    function modSub(uint256 a) external view returns(uint256) {
+        return _modSub(a);
+    }
 }

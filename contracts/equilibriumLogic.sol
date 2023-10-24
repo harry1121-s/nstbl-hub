@@ -50,7 +50,7 @@ contract eqLogic {
         uint256 tAlloc = a1 + a2 + a3;
         uint256[] memory balances = _getAssetBalances();
         uint256 tvlOld = balances[0] + balances[1] + balances[2];
-        uint256 tvlNew = tvlOld + _usdcAmt + _usdtAmt + _daiAmt;
+        uint256 tvlNew = tvlOld + (_usdcAmt + _usdtAmt)*1e12 + _daiAmt;
 
         uint256[] memory cr = new uint256[](3);
         uint256 oldEq;
@@ -153,8 +153,8 @@ contract eqLogic {
 
     function _getAssetBalances() internal view returns (uint256[] memory) {
         uint256[] memory balances = new uint256[](3);
-        balances[0] = ILoanManager(loanManager).getAssets(USDC) + IERC20Helper(USDC).balanceOf(address(this));
-        balances[1] = IERC20Helper(USDT).balanceOf(address(this));
+        balances[0] = (ILoanManager(loanManager).getAssets(USDC) + IERC20Helper(USDC).balanceOf(address(this)))*1e12;
+        balances[1] = IERC20Helper(USDT).balanceOf(address(this))*1e12;
         balances[2] = IERC20Helper(DAI).balanceOf(address(this));
 
         return balances;

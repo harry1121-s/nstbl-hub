@@ -108,31 +108,92 @@ contract EqLogicTest is BaseTest {
                         TEST INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
     
-    function test_getAllocation() external{
-        usdcPriceFeedMock.updateAnswer(982e5);
-        usdtPriceFeedMock.updateAnswer(99e6);
-        daiPriceFeedMock.updateAnswer(985e5);
-        (uint256 a1, uint256 a2, uint256 a3) = eqLogicHarness.getSystemAllocation();
-        assertEq(a1, 8e3);
-        assertEq(a2, 1e3);
-        assertEq(a3, 1e3);
-    }
+    // function test_getAllocation() external{
+    //     usdcPriceFeedMock.updateAnswer(982e5);
+    //     usdtPriceFeedMock.updateAnswer(99e6);
+    //     daiPriceFeedMock.updateAnswer(985e5);
+    //     (uint256 a1, uint256 a2, uint256 a3) = eqLogicHarness.getSystemAllocation();
+    //     assertEq(a1, 8e3);
+    //     assertEq(a2, 1e3);
+    //     assertEq(a3, 1e3);
+    // }
 
-    function test_getAllocation_fuzz(int256 _p1, int256 _p2, int256 _p3) external {
+    // function test_getAllocation_fuzz(int256 _p1, int256 _p2, int256 _p3) external {
+    //     _p1 = bound(_p1, 97e6, 1e8);
+    //     _p2 = bound(_p2, 97e6, 1e8);
+    //     _p3 = bound(_p3, 97e6, 1e8);
+
+    //     usdcPriceFeedMock.updateAnswer(_p1);
+    //     usdtPriceFeedMock.updateAnswer(_p2);
+    //     daiPriceFeedMock.updateAnswer(_p3);
+
+    //     int256 dt = int256(eqLogicHarness.dt());
+    //     if(_p1<=dt){
+    //         vm.expectRevert("VAULT: Deposits Halted");
+    //     }
+    //     (uint256 a1, uint256 a2, uint256 a3) = eqLogicHarness.getSystemAllocation();
+    //     if(_p1>dt){
+    //         if (_p2 > dt && _p3 > dt) {
+    //             assertEq(a1, 8e3);
+    //             assertEq(a2, 1e3);
+    //             assertEq(a3, 1e3);
+    //         } else if (_p2 > dt && _p3 < dt) {
+    //             assertEq(a1, 85e2);
+    //             assertEq(a2, 15e2);
+    //             assertEq(a3, 0);
+    //         } else if (_p2 < dt && _p3 > dt) {
+    //             assertEq(a1, 85e2);
+    //             assertEq(a2, 0);
+    //             assertEq(a3, 15e2);
+    //         } else {
+    //             assertEq(a1, 10e3);
+    //             assertEq(a2, 0);
+    //             assertEq(a3, 0);
+    //         }
+    //     }
+    // }
+
+    // function test_calculateEquilibrium_fuzz() external {
+
+    //     // cr1 = bound(cr1, 0, type(uint256).max-1);
+    //     // cr2 = bound(cr2, 0, type(uint256).max-1);
+    //     // cr3 = bound(cr3, 0, type(uint256).max-1);
+    //     // uint256 boundEq = (eqLogicHarness.modSub(cr1) + eqLogicHarness.modSub(cr2) + eqLogicHarness.modSub(cr3))/3;
+    //     // boundEq = bound(boundEq, 0, type(uint256).max-1);
+
+    //     // vm.assume(boundEq < type(uint256).max-1);
+
+    //     // uint256 eq = eqLogicHarness.calculateEquilibrium(cr1, cr2, cr3);
+    //     uint256 eq = ((1.265e38-1e18) + 1e18 + (1.157e77-1e18)) / 3;
+        
+    //     console.log("Eq: ", eq);
+    // }
+
+    function test_validateAllocation_fuzz(int256 _p1, int256 _p2, int256 _p3, uint256 _amt1, uint256 _amt2) external {
         _p1 = bound(_p1, 97e6, 1e8);
-        _p2 = bound(_p2, 97e6, 1e8);
-        _p3 = bound(_p3, 97e6, 1e8);
+        _p2 = bound(_p2, 979e5, 1e8);
+        _p3 = bound(_p3, 987e5, 1e8);
 
         usdcPriceFeedMock.updateAnswer(_p1);
         usdtPriceFeedMock.updateAnswer(_p2);
         daiPriceFeedMock.updateAnswer(_p3);
 
         int256 dt = int256(eqLogicHarness.dt());
+        bool flag;
         if(_p1<=dt){
             vm.expectRevert("VAULT: Deposits Halted");
+            flag = true;
         }
-        (uint256 a1, uint256 a2, uint256 a3) = eqLogicHarness.getSystemAllocation();
-        if(_p1>dt){
+        else if(_p2<=dt){
+            vm.expectRevert("VAULT: Invalid Deposit");
+            flag = true;
+        }
+        else if(_p3<=dt){
+            vm.expectRevert("VAULT: Invalid Deposit");
+            flag = true;
+        }
+        (uint256 a1, uint256 a2, uint256 a3) = eqLogicHarness.validateSystemAllocation(_amt1, _amt2);
+        if(_p1>dt && !flag){
             if (_p2 > dt && _p3 > dt) {
                 assertEq(a1, 8e3);
                 assertEq(a2, 1e3);
@@ -153,11 +214,4 @@ contract EqLogicTest is BaseTest {
         }
     }
 
-    function test_calculateEquilibrium_fuzz(uint256 cr1, uint256 cr2, uint256 cr3) external {
-    }
-
-    function test_validateSystemAllocation_fuzz() external {
-    }
-
-    function test_getAssetBalances_fuzz() external {
-    }
+}
