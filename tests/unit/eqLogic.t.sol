@@ -103,8 +103,12 @@ contract EqLogicTest is BaseTest {
     //     IERC20Helper(USDT).safeTransferFrom(user1, address(this), 1e6 * 1e6);
     // }
 
-    function test_getAllocation() external{
 
+    /*//////////////////////////////////////////////////////////////
+                        TEST INTERNAL FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
+    
+    function test_getAllocation() external{
         usdcPriceFeedMock.updateAnswer(982e5);
         usdtPriceFeedMock.updateAnswer(99e6);
         daiPriceFeedMock.updateAnswer(985e5);
@@ -147,7 +151,13 @@ contract EqLogicTest is BaseTest {
                 assertEq(a3, 0);
             }
         }
-        
-        
     }
-}
+
+    function test_calculateEquilibrium_fuzz(uint256 cr1, uint256 cr2, uint256 cr3) external {
+    }
+
+    function test_validateSystemAllocation_fuzz() external {
+    }
+
+    function test_getAssetBalances_fuzz() external {
+    }

@@ -105,7 +105,7 @@ contract eqLogic {
     }
 
     function _calcEq(uint256 cr1, uint256 cr2, uint256 cr3) internal view returns (uint256 _eq) {
-        _eq = (modSub(cr1) + modSub(cr2) + modSub(cr3)) / 3;
+        _eq = (_modSub(cr1) + _modSub(cr2) + _modSub(cr3)) / 3;
     }
 
     function _validateSystemAllocation(uint256 _usdtAmt, uint256 _daiAmt)
@@ -143,7 +143,7 @@ contract eqLogic {
         }
     }
 
-    function modSub(uint256 _a) internal view returns (uint256) {
+    function _modSub(uint256 _a) internal view returns (uint256) {
         if (_a != 0) {
             return _a > precision ? _a - precision : precision - _a;
         } else {

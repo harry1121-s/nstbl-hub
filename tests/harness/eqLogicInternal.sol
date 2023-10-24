@@ -11,11 +11,15 @@ contract eqLogicInternal is eqLogic {
         _eq = _calcEq(cr1, cr2, cr3);
     }
 
+    function validateSystemAllocation(uint256 _usdtAmt, uint256 daiAmt) external view returns(uint256 _a1, uint256 _a2, uint256 _a3) {
+        (_a1, _a2, _a3) = _validateSystemAllocation(_usdtAmt, daiAmt);
+    }
+
     function getSystemAllocation() external view returns (uint256 _a1, uint256 _a2, uint256 _a3) {
         (_a1, _a2, _a3) = _getSystemAllocation();
     }
 
-    function validateSystemAllocation(uint256 _usdtAmt, uint256 daiAmt) external view returns(uint256 _a1, uint256 _a2, uint256 _a3) {
-        (_a1, _a2, _a3) = _validateSystemAllocation(_usdtAmt, daiAmt);
+    function getAssetBalances() external view returns(uint256[] memory) {
+        return _getAssetBalances();
     }
 }
