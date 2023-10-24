@@ -10,4 +10,5 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 interface IERC20Helper is IERC20 {
     function mint(address _user, uint256 _amount) external;
     function burn(address _user, uint256 _amount) external;
+    function decimals() external view returns (uint256);
 }

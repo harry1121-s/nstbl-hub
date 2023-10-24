@@ -9,6 +9,7 @@ import { ChainLinkPriceFeedMock } from "../../contracts/mocks/chainlink/Chainlin
 import { NSTBLHub } from "../../contracts/NSTBLHub.sol";
 import { Atvl } from "../../contracts/ATVL/atvl.sol";
 import { eqLogic } from "../../contracts/equilibriumLogic.sol";
+import { eqLogicInternal } from "../harness/eqLogicInternal.sol";
 import { LoanManagerMock } from "../../contracts/mocks/LoanManagerMock.sol";
 import { Utils, IERC20Helper, IERC20 } from "./utils.sol";
 // import { IERC20Helper } from "../../contracts/interfaces/IERC20Helper.sol";
@@ -21,6 +22,7 @@ contract BaseTest is Utils {
     Atvl public atvl;
     eqLogic public eqlogic;
     LoanManagerMock public loanManager;
+    eqLogicInternal public eqLogicHarness;
 
     MockV3Aggregator public usdcPriceFeedMock;
     MockV3Aggregator public usdtPriceFeedMock;
@@ -54,6 +56,15 @@ contract BaseTest is Utils {
             98e6,
             1e18
         );
+
+        eqLogicHarness = new eqLogicInternal(
+            address(priceFeed),
+            address(loanManager),
+            address(nstblToken),
+            98e6,
+            1e18
+        );
+        
         nstblHub = new NSTBLHub(
             nealthyAddr,
             address(nstblToken),
