@@ -10,3 +10,9 @@
 [submodule "modules/solidity-examples"]
 	path = modules/solidity-examples
 	url = https://github.com/LayerZero-Labs/solidity-examples.git
+[submodule "modules/nstbl-loan-manager"]
+	path = modules/nstbl-loan-manager
+	url = https://github.com/harry1121-s/nstbl-loan-manager.git
+[submodule "modules/nstbl-stake-pool"]
+	path = modules/nstbl-stake-pool
+	url = https://github.com/harry1121-s/nstbl-stake-pool.git

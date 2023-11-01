@@ -1,6 +1,7 @@
 pragma solidity 0.8.21;
 
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import { console } from "forge-std/Test.sol";
 import "./NSTBLHUBStorage.sol";
 
 contract NSTBLHub is NSTBLHUBStorage {
@@ -31,7 +32,9 @@ contract NSTBLHub is NSTBLHUBStorage {
         address _stakePool,
         address _chainLinkPriceFeed,
         address _atvl,
-        address _admin
+        address _admin,
+        address _loanManager,
+        uint256 _eqTh
     ) {
         nealthyAddr = _nealthyAddr;
         nstblToken = _nstblToken;
@@ -39,39 +42,148 @@ contract NSTBLHub is NSTBLHUBStorage {
         chainLinkPriceFeed = _chainLinkPriceFeed;
         atvl = _atvl;
         admin = _admin;
+        loanManager = _loanManager;
+        eqTh = _eqTh;
     }
 
-    function deposit(uint256 _amount1, uint256 _amount2, uint256 _amount3) external authorizedCaller {
-        _checkValidDepositEvent();
-        _validateEquilibrium(_amount1, _amount2, _amount3);
-
-        IERC20Helper(assets[0]).safeTransferFrom(msg.sender, address(this), _amount1);
-        IERC20Helper(assets[1]).safeTransferFrom(msg.sender, address(this), _amount2);
-        IERC20Helper(assets[2]).safeTransferFrom(msg.sender, address(this), _amount3);
-
-        uint256 nstblTokenAmount = _amount1 + _amount2 + _amount3;
-
-        IERC20Helper(nstblToken).mint(msg.sender, nstblTokenAmount);
-        _reinvestAssets(_amount1 * 7 / 8);
+    ///////////////////////////     DEPOSIT Functions ////////////////////////
+    function previewDeposit(uint256 _depositAmount)
+        external
+        view
+        returns (uint256 _amt1, uint256 _amt2, uint256 _amt3, uint256 _tBillAmt)
+    {
+        (uint256 _a1, uint256 _a2, uint256 _a3) = _getSystemAllocation();
+        console.log(_a1, _a2, _a3);
+        uint256 tAlloc = _a1 + _a2 + _a3;
+        _amt1 = _a1 * _depositAmount * 10 ** IERC20Helper(USDC).decimals() / tAlloc;
+        _amt2 = _a2 * _depositAmount * 10 ** IERC20Helper(USDT).decimals() / tAlloc;
+        _amt3 = _a3 * _depositAmount * 10 ** IERC20Helper(DAI).decimals() / tAlloc;
+        console.log(_amt1, _amt2, _amt3);
+        _tBillAmt = 7e3 * _amt1 / _a1;
     }
 
-    function _checkValidDepositEvent() internal {
-        for (uint256 i = 0; i < assetFeeds.length; i++) {
-            uint256 price = IChainlinkPriceFeed(chainLinkPriceFeed).getLatestPrice(assetFeeds[i]);
-            require(price > dt, "HUB::INVALID_DEPOSIT_EVENT");
+    function deposit(uint256 _usdcAmt, uint256 _usdtAmt, uint256 _daiAmt) external authorizedCaller {
+        console.log("Deposit Called");
+        console.log(_usdcAmt, _usdtAmt, _daiAmt);
+
+        (uint256 _a1, uint256 _a2, uint256 _a3) = _validateSystemAllocation(_usdcAmt, _usdtAmt, _daiAmt);
+        _checkEquilibrium(_a1, _a2, _a3, _usdcAmt, _usdtAmt, _daiAmt);
+
+        //Deposit required Tokens
+        IERC20Helper(USDC).safeTransferFrom(msg.sender, address(this), _usdcAmt);
+        usdcDeposited += _usdcAmt;
+        if (_a2 != 0) {
+            IERC20Helper(USDT).safeTransferFrom(msg.sender, address(this), _usdtAmt);
+            usdtDeposited += _usdtAmt;
         }
-        // require(true);
+        if (_a3 != 0) {
+            IERC20Helper(DAI).safeTransferFrom(msg.sender, address(this), _daiAmt);
+            daiDeposited += _daiAmt;
+        }
+
+        _investUSDC(7e3 * _usdcAmt / _a1);
+        IERC20Helper(nstblToken).mint(msg.sender, (_usdcAmt + _usdtAmt) * 1e12 + _daiAmt);
     }
 
-    function _validateEquilibrium(uint256 _amount1, uint256 _amount2, uint256 _amount3) internal {
-        //TODO: check equilibrium
-        require(true);
+    function _validateSystemAllocation(uint256 _usdcAmt, uint256 _usdtAmt, uint256 _daiAmt)
+        internal
+        view
+        returns (uint256 _a1, uint256 _a2, uint256 _a3)
+    {
+        (_a1, _a2, _a3) = _getSystemAllocation();
+        console.log(_a1, _a2, _a3);
+        require(_a2 == 0 ? _usdtAmt == 0 : true, "HUB: Invalid Deposit");
+        require(_a3 == 0 ? _daiAmt == 0 : true, "HUB: Invalid Deposit");
+        require(_usdcAmt + _usdtAmt + _daiAmt != 0, "HUB: Invalid Deposit");
     }
 
-    function _reinvestAssets(uint256 _amount) internal {
-        IERC20Helper(assets[0]).approve(loanManager, _amount);
-        ILoanManager(loanManager).deposit(assets[0], _amount);
+    function _getSystemAllocation() internal view returns (uint256 _a1, uint256 _a2, uint256 _a3) {
+        (uint256 p1, uint256 p2, uint256 p3) = IChainlinkPriceFeed(chainLinkPriceFeed).getLatestPrice();
+
+        require(p1 > dt, "HUB: Invalid Deposit");
+
+        if (p2 > dt && p3 > dt) {
+            _a1 = 8e3;
+            _a2 = 1e3;
+            _a3 = 1e3;
+        } else if (p2 > dt && p3 <= dt) {
+            _a1 = 85e2;
+            _a2 = 15e2;
+            _a3 = 0;
+        } else if (p2 <= dt && p3 > dt) {
+            _a1 = 85e2;
+            _a2 = 0;
+            _a3 = 15e2;
+        } else {
+            _a1 = 10e3;
+            _a2 = 0;
+            _a3 = 0;
+        }
     }
+
+    function _checkEquilibrium(
+        uint256 _a1,
+        uint256 _a2,
+        uint256 _a3,
+        uint256 _usdcAmt,
+        uint256 _usdtAmt,
+        uint256 _daiAmt
+    ) internal {
+        uint256 tAlloc = _a1 + _a2 + _a3;
+        uint256[] memory balances = _getAssetBalances();
+        uint256 tvlOld = balances[0] + balances[1] + balances[2];
+        uint256 tvlNew = tvlOld + (_usdcAmt + _usdtAmt) * 1e12 + _daiAmt;
+
+        uint256[] memory cr = new uint256[](3);
+        uint256 oldEq;
+        if (tvlOld != 0) {
+            cr[0] = _a1 != 0 ? (balances[0] * 1e12 * tAlloc * precision) / (_a1 * tvlOld) : 0;
+            cr[1] = _a2 != 0 ? (balances[1] * 1e12 * tAlloc * precision) / (_a2 * tvlOld) : 0;
+            cr[2] = _a3 != 0 ? (balances[2] * tAlloc * precision) / (_a3 * tvlOld) : 0;
+            oldEq = _calcEq(cr[0], cr[1], cr[2]);
+        }
+
+        cr[0] = _a1 != 0 ? ((balances[0] + _usdcAmt) * 1e12 * tAlloc * precision) / (_a1 * tvlNew) : 0;
+        cr[1] = _a2 != 0 ? ((balances[1] + _usdtAmt) * 1e12 * tAlloc * precision) / (_a2 * tvlNew) : 0;
+        cr[2] = _a3 != 0 ? ((balances[2] + _daiAmt) * tAlloc * precision) / (_a3 * tvlNew) : 0;
+
+        uint256 newEq = _calcEq(cr[0], cr[1], cr[2]);
+
+        if (oldEq == 0) {
+            require(newEq < eqTh, "HUB::Deposit Not Allowed");
+        } else {
+            require(newEq <= oldEq || newEq < eqTh, "HUB::Deposit Not Allowed");
+        }
+    }
+
+    function _calcEq(uint256 cr1, uint256 cr2, uint256 cr3) internal view returns (uint256 _eq) {
+        _eq = (_modSub(cr1) + _modSub(cr2) + _modSub(cr3)) / 3;
+    }
+
+    function _modSub(uint256 _a) internal view returns (uint256) {
+        if (_a != 0) {
+            return _a > precision ? _a - precision : precision - _a;
+        } else {
+            return 0;
+        }
+    }
+
+    function _getAssetBalances() internal view returns (uint256[] memory) {
+        uint256[] memory balances = new uint256[](3);
+        balances[0] = ILoanManager(loanManager).getAssets(USDC) + usdcDeposited * 1e12;
+        balances[1] = usdtDeposited * 1e12;
+        balances[2] = daiDeposited;
+
+        return balances;
+    }
+
+    function _investUSDC(uint256 _amt) internal {
+        usdcInvested += _amt;
+        IERC20Helper(USDC).safeIncreaseAllowance(loanManager, _amt);
+        ILoanManager(loanManager).deposit(USDC, _amt);
+    }
+
+
 
     function redeem(uint256 _amount, address _user) external authorizedCaller nonReentrant {
         (uint256 p1, uint256 p2, uint256 p3) = IChainlinkPriceFeed(chainLinkPriceFeed).getLatestPrice(); //usdc
@@ -102,22 +214,32 @@ contract NSTBLHub is NSTBLHUBStorage {
     }
 
     function redeemNormal(uint256 _amount, address _user) public authorizedCaller {
-        uint256 liquidTokens = liquidPercent * _amount / 1e5;
-        uint256 tBillTokens = tBillPercent * _amount / 1e5;
+
+        uint256 liquidTokens = liquidPercent * _amount / 1e4;
+        uint256 tBillTokens = tBillPercent * _amount / 1e4;
         uint256 availAssets;
         uint256 assetsLeft = _amount;
-
+        uint256 adjustedDecimals;
+        console.log("AMOUNTS", _amount, liquidTokens, tBillTokens);
+        console.log("REDEEM NORMAL");
+        IERC20Helper(nstblToken).safeTransferFrom(msg.sender, address(this), _amount);
         for (uint256 i = 0; i < assets.length; i++) {
+            adjustedDecimals = IERC20Helper(nstblToken).decimals() - IERC20Helper(assets[i]).decimals();
             if (i == 0) {
-                availAssets = liquidTokens + tBillTokens <= IERC20Helper(assets[i]).balanceOf(address(this))
+                console.log("Token Balance: ", IERC20Helper(assets[i]).balanceOf(address(this)));
+                console.log("Assets Requirement", (liquidTokens+tBillTokens)/10**adjustedDecimals);
+                availAssets = (liquidTokens + tBillTokens)/10**adjustedDecimals <= IERC20Helper(assets[i]).balanceOf(address(this))
                     ? liquidTokens + tBillTokens
                     : IERC20Helper(assets[i]).balanceOf(address(this));
             } else {
-                availAssets = liquidTokens <= IERC20Helper(assets[i]).balanceOf(address(this))
+                console.log("Token Balance: ", IERC20Helper(assets[i]).balanceOf(address(this)));
+                console.log("Assets Requirement", (liquidTokens)/10**adjustedDecimals);
+                availAssets = liquidTokens/10**adjustedDecimals <= IERC20Helper(assets[i]).balanceOf(address(this))
                     ? liquidTokens
                     : IERC20Helper(assets[i]).balanceOf(address(this));
             }
-            IERC20Helper(assets[i]).safeTransfer(_user, availAssets);
+            console.log("Assets Available: ", availAssets, availAssets/10**adjustedDecimals);
+            IERC20Helper(assets[i]).safeTransfer(msg.sender, availAssets/10**adjustedDecimals);
             assetsLeft -= availAssets;
         }
         if (assetsLeft > 0) {
@@ -225,12 +347,14 @@ contract NSTBLHub is NSTBLHUBStorage {
         uint256 remainingNstbl;
         uint256 burnAmount;
         uint256 stakePoolBurnAmount;
+        uint256 adjustedDecimals;
 
+        console.log("Redeem For Non-Staker");
         (address[] memory sortedAssets, uint256[] memory sortedAssetsPrice) = _getSortedAssetsWithPrice();
         for (uint256 i = 0; i < sortedAssets.length; i++) {
-            if (sortedAssetsPrice[i] < dt) {
+            if (sortedAssetsPrice[i] <= dt) {
                 belowDT = true;
-                if (sortedAssetsPrice[i] < lb) {
+                if (sortedAssetsPrice[i] <= lb) {
                     burnFromStakePool = true;
                 } else {
                     burnFromStakePool = false;
@@ -240,33 +364,62 @@ contract NSTBLHub is NSTBLHUBStorage {
             }
 
             assetBalance = IERC20Helper(sortedAssets[i]).balanceOf(address(this)) * precision;
-
+            console.log("asset ", sortedAssets[i]);
+            adjustedDecimals = IERC20Helper(nstblToken).decimals() - IERC20Helper(sortedAssets[i]).decimals();
+            console.log("HERE1");
             if (!belowDT) {
-                assetRequired = assetAllocation[sortedAssets[i]] * precisionAmount / 1e5 + remainingNstbl;
-                if (assetRequired <= assetBalance) {
-                    IERC20Helper(sortedAssets[i]).safeTransfer(_user, assetRequired / precision);
+                assetRequired = (assetAllocation[sortedAssets[i]] * precisionAmount / 1e5) + remainingNstbl*precision;
+                console.log("HERE2");
+                console.log(assetRequired, assetBalance);
+                if (assetRequired <= assetBalance*10**adjustedDecimals) {
+                    IERC20Helper(sortedAssets[i]).safeTransfer(_user, assetRequired / (precision * 10**adjustedDecimals));
                     // assetsLeft -= assetRequired;
                     remainingNstbl = 0;
+                    console.log("HERE3");
+
                 } else {
                     IERC20Helper(sortedAssets[i]).safeTransfer(_user, assetBalance / precision);
-                    // assetsLeft -= assetBalance;
-                    remainingNstbl = assetRequired - assetBalance;
+                    
+                    remainingNstbl = (assetRequired - assetBalance*10**adjustedDecimals)/precision;
+                    console.log("Remaining NSTBL: ", remainingNstbl);
+                    console.log("HERE4");
                 }
             } else {
-                assetProportion = assetAllocation[sortedAssets[i]] * precisionAmount / 1e5 + remainingNstbl;
+                console.log("HERE5");
+
+                assetProportion = ((assetAllocation[sortedAssets[i]] * precisionAmount / 1e5) + remainingNstbl*precision)/10**adjustedDecimals;
+                console.log("HERE6");
+                console.log("Asset Proportion withour remNSTBL", (assetAllocation[sortedAssets[i]] * precisionAmount / 1e5)/10**adjustedDecimals);
+                console.log("Asset Proportion: ", assetProportion);
                 assetRequired = assetProportion * dt / sortedAssetsPrice[i];
+                console.log("Asset Required: ", assetRequired);
+                console.log("Asset Balance: ", assetBalance);
+                console.log("HERE7");
+
                 if (assetRequired <= assetBalance) {
+                    
+                    
                     IERC20Helper(sortedAssets[i]).safeTransfer(_user, assetRequired / precision);
+                    console.log("HERE8");
+
                     remainingNstbl = 0;
-                    burnAmount += assetRequired - assetProportion;
+                    burnAmount += (assetRequired - assetProportion)*10**adjustedDecimals/precision;
+                    console.log("Burn AMount: ", burnAmount);
                     // assetsLeft -= assetRequired;
                 } else {
+                    console.log("Asset Balance: ", assetBalance/precision);
                     redeemableNstbl = assetBalance * sortedAssetsPrice[i] / dt;
-                    burnAmount += assetBalance - redeemableNstbl;
-                    remainingNstbl = assetProportion - redeemableNstbl;
-                    IERC20Helper(sortedAssets[i]).safeTransfer(_user, assetBalance / precision);
+                    console.log("Redeemable NSTBL: ", redeemableNstbl);
+                    burnAmount += (assetBalance - redeemableNstbl)*10**adjustedDecimals/precision;
+                    console.log("Burn AMount: ", burnAmount);
+                    // assetsLeft -= assetBalance;
+                    remainingNstbl = (assetProportion - redeemableNstbl)*10**adjustedDecimals/precision;
+                    console.log("Remaining NSTBL: ", remainingNstbl);
+                    IERC20Helper(sortedAssets[i]).safeTransfer(_user, assetBalance/precision);
+                    console.log("HERE9");
                 }
                 if (burnFromStakePool) {
+                    console.log("Burning from stakePool");
                     if (remainingNstbl == 0) {
                         stakePoolBurnAmount +=
                             (assetRequired - assetProportion) - (assetProportion * dt / ub - assetProportion);
@@ -277,10 +430,19 @@ contract NSTBLHub is NSTBLHUBStorage {
                 }
             }
         }
+        stakePoolBurnAmount /= precision;
+        console.log("Final burn Amount: ", burnAmount);
+        console.log("Final stakePoolBurnAmount: ", stakePoolBurnAmount);
+        console.log("Final remainingNstbl: ", remainingNstbl);
+
         _burnNstblFromAtvl((burnAmount - stakePoolBurnAmount) / precision);
         _burnNstblFromStakePool(stakePoolBurnAmount / precision);
-        addToWithdrawalQueue(_user, remainingNstbl / precision);
-        processTBillWithdraw(_amount * tBillPercent / 1e5);
+        addToWithdrawalQueue(_user, remainingNstbl);
+        processTBillWithdraw(_amount * 7e4 / 1e5);
+    }
+
+    function updateAssetAllocation(address _asset, uint256 _allocation) external onlyAdmin {
+        assetAllocation[_asset] = _allocation;
     }
 
     function updateAssetFeeds(address[3] memory _assetFeeds) external onlyAdmin {
@@ -296,7 +458,7 @@ contract NSTBLHub is NSTBLHUBStorage {
         uint256 price;
         for (uint256 i = 0; i < assetFeeds.length; i++) {
             price = IChainlinkPriceFeed(chainLinkPriceFeed).getLatestPrice(assetFeeds[i]);
-            if (price < dt) {
+            if (price <= dt) {
                 _assetsList[count] = (assets[i]);
                 _assetsPrice[count] = (price);
                 count += 1;
@@ -328,8 +490,10 @@ contract NSTBLHub is NSTBLHUBStorage {
     function _getSortedAssetsWithPrice()
         internal
         view
-        returns (address[] memory _assets, uint256[] memory _assetsPrice)
+        returns (address[] memory, uint256[] memory)
     {
+        address[] memory _assets = new address[](assets.length);
+        uint256[] memory _assetsPrice = new uint256[](assets.length);
         for (uint256 i = 0; i < assets.length; i++) {
             _assets[i] = assets[i];
             _assetsPrice[i] = IChainlinkPriceFeed(chainLinkPriceFeed).getLatestPrice(assetFeeds[i]);
@@ -346,17 +510,19 @@ contract NSTBLHub is NSTBLHUBStorage {
             (_assets[0], _assets[1]) = (_assets[1], _assets[0]);
             (_assetsPrice[0], _assetsPrice[1]) = (_assetsPrice[1], _assetsPrice[0]);
         }
+        return(_assets, _assetsPrice);
     }
 
     function _getStakedAmount(address _user, uint256 _poolId) internal view returns (uint256 _amount) {
         _amount = IStakePool(stakePool).getUserStakedAmount(_user, _poolId);
     }
 
-    function totalLiquidAssets() public view returns (uint256 _assets) {
-        for (uint256 i = 0; i < assets.length; i++) {
-            _assets += IERC20Helper(assets[i]).balanceOf(address(this));
-        }
-    }
+    // //TODO: update this function
+    // function totalLiquidAssets() public view returns (uint256 _assets) {
+    //     for (uint256 i = 0; i < assets.length; i++) {
+    //         _assets += IERC20Helper(assets[i]).balanceOf(address(this));
+    //     }
+    // }
 
     function updateAuthorizedCaller(address _caller) external onlyAdmin {
         nealthyAddr = _caller;
@@ -366,10 +532,12 @@ contract NSTBLHub is NSTBLHUBStorage {
         admin = _admin;
     }
 
-    function setSystemParams(uint256 _dt, uint256 _ub, uint256 _lb) external onlyAdmin {
+    function setSystemParams(uint256 _dt, uint256 _ub, uint256 _lb, uint256 _liquidPercent, uint256 _tBillPercent) external onlyAdmin {
         dt = _dt;
         ub = _ub;
         lb = _lb;
+        liquidPercent = _liquidPercent;
+        tBillPercent = _tBillPercent;
     }
 
     function addToWithdrawalQueue(address _user, uint256 _amount) internal { }

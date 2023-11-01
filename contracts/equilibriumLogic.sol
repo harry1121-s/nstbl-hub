@@ -13,9 +13,13 @@ contract eqLogic {
     address public priceFeed;
     address public loanManager;
     uint256 public dt;
-    uint256 public precision = 1e18;
+    uint256 public precision = 1e24;
     uint256 public eqTh;
     address public nstblToken;
+
+    uint256 public usdcDeposited;
+    uint256 public usdtDeposited;
+    uint256 public daiDeposited;
 
     address USDC = address(0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48);
     address USDT = address(0xdAC17F958D2ee523a2206206994597C13D831ec7);
@@ -34,81 +38,38 @@ contract eqLogic {
         view
         returns (uint256 _amt1, uint256 _amt2, uint256 _amt3, uint256 _tBillAmt)
     {
-        (uint256 a1, uint256 a2, uint256 a3) = _getSystemAllocation();
-        uint256 tAlloc = a1 + a2 + a3;
-        _amt1 = a1 * _depositAmount * IERC20Helper(USDC).decimals() / tAlloc;
-        _amt2 = a2 * _depositAmount * IERC20Helper(USDT).decimals() / tAlloc;
-        _amt3 = a3 * _depositAmount * IERC20Helper(DAI).decimals() / tAlloc;
-        _tBillAmt = 7e3 * _amt1 / a1;
+        (uint256 _a1, uint256 _a2, uint256 _a3) = _getSystemAllocation();
+        uint256 tAlloc = _a1 + _a2 + _a3;
+        _amt1 = _a1 * _depositAmount * 10 ** IERC20Helper(USDC).decimals() / tAlloc;
+        _amt2 = _a2 * _depositAmount * 10 ** IERC20Helper(USDT).decimals() / tAlloc;
+        _amt3 = _a3 * _depositAmount * 10 ** IERC20Helper(DAI).decimals() / tAlloc;
+        _tBillAmt = 7e3 * _amt1 / _a1;
     }
 
     function deposit(uint256 _usdcAmt, uint256 _usdtAmt, uint256 _daiAmt) external {
         console.log("Deposit Called");
         console.log(_usdcAmt, _usdtAmt, _daiAmt);
-        require(_usdcAmt + _usdtAmt + _daiAmt != 0, "HUB::Invalid Deposit");
-        (uint256 a1, uint256 a2, uint256 a3) = _validateSystemAllocation(_usdtAmt, _daiAmt);
-        uint256 tAlloc = a1 + a2 + a3;
-        uint256[] memory balances = _getAssetBalances();
-        uint256 tvlOld = balances[0] + balances[1] + balances[2];
-        uint256 tvlNew = tvlOld + (_usdcAmt + _usdtAmt)*1e12 + _daiAmt;
 
-        uint256[] memory cr = new uint256[](3);
-        uint256 oldEq;
-        if (tvlOld != 0) {
-            cr[0] = a1 != 0 ? (balances[0] * tAlloc * precision) / (a1 * tvlOld) : 0;
-            cr[1] = a2 != 0 ? (balances[1] * tAlloc * precision) / (a2 * tvlOld) : 0;
-            cr[2] = a3 != 0 ? (balances[2] * tAlloc * precision) / (a3 * tvlOld) : 0;
-            oldEq = _calcEq(cr[0], cr[1], cr[2]);
-        }
-
-        console.log("Old Balances");
-        console.log(balances[0], balances[1], balances[2]);
-
-        console.log("Old Eq params");
-        console.log(cr[0], cr[1], cr[2]);
-        console.log(oldEq);
-        cr[0] = a1 != 0 ? ((balances[0] + _usdcAmt) * tAlloc * precision) / (a1 * tvlNew) : 0;
-        cr[1] = a2 != 0 ? ((balances[1] + _usdtAmt) * tAlloc * precision) / (a2 * tvlNew) : 0;
-        cr[2] = a3 != 0 ? ((balances[2] + _daiAmt) * tAlloc * precision) / (a3 * tvlNew) : 0;
-
-        uint256 newEq = _calcEq(cr[0], cr[1], cr[2]);
-
-        console.log("New Eq params");
-        console.log(cr[0], cr[1], cr[2]);
-        console.log(newEq);
-
-        if (oldEq == 0) {
-            require(newEq < eqTh, "HUB::Deposit Not Allowed");
-        } else {
-            require(newEq <= oldEq || newEq < eqTh, "HUB::Deposit Not Allowed");
-        }
+        (uint256 _a1, uint256 _a2, uint256 _a3) = _validateSystemAllocation(_usdcAmt, _usdtAmt, _daiAmt);
+        _checkEquilibrium(_a1, _a2, _a3, _usdcAmt, _usdtAmt, _daiAmt);
 
         //Deposit required Tokens
         IERC20Helper(USDC).safeTransferFrom(msg.sender, address(this), _usdcAmt);
-        if (a2 != 0) {
+        usdcDeposited += _usdcAmt;
+        if (_a2 != 0) {
             IERC20(USDT).safeTransferFrom(msg.sender, address(this), _usdtAmt);
+            usdtDeposited += _usdtAmt;
         }
-        if (a3 != 0) {
+        if (_a3 != 0) {
             IERC20Helper(DAI).safeTransferFrom(msg.sender, address(this), _daiAmt);
+            daiDeposited += _daiAmt;
         }
 
-        balances[0] = ILoanManager(loanManager).getAssets(USDC) + IERC20Helper(USDC).balanceOf(address(this));
-        balances[1] = IERC20Helper(USDT).balanceOf(address(this));
-        balances[2] = IERC20Helper(DAI).balanceOf(address(this));
-
-        console.log("New Balances");
-        console.log(balances[0], balances[1], balances[2]);
-
-        console.log("Invested Amount: ", 7e3 * _usdcAmt / a1);
-        _investUSDC(7e3 * _usdcAmt / a1);
-        IERC20Helper(nstblToken).mint(msg.sender, _usdcAmt + _usdtAmt + _daiAmt);
+        _investUSDC(7e3 * _usdcAmt / _a1);
+        IERC20Helper(nstblToken).mint(msg.sender, (_usdcAmt + _usdtAmt) * 1e12 + _daiAmt);
     }
 
-    function _calcEq(uint256 cr1, uint256 cr2, uint256 cr3) internal view returns (uint256 _eq) {
-        _eq = (_modSub(cr1) + _modSub(cr2) + _modSub(cr3)) / 3;
-    }
-
-    function _validateSystemAllocation(uint256 _usdtAmt, uint256 _daiAmt)
+    function _validateSystemAllocation(uint256 _usdcAmt, uint256 _usdtAmt, uint256 _daiAmt)
         internal
         view
         returns (uint256 _a1, uint256 _a2, uint256 _a3)
@@ -117,6 +78,7 @@ contract eqLogic {
         console.log(_a1, _a2, _a3);
         require(_a2 == 0 ? _usdtAmt == 0 : true, "VAULT: Invalid Deposit");
         require(_a3 == 0 ? _daiAmt == 0 : true, "VAULT: Invalid Deposit");
+        require(_usdcAmt + _usdtAmt + _daiAmt != 0, "HUB::Invalid Deposit");
     }
 
     function _getSystemAllocation() internal view returns (uint256 _a1, uint256 _a2, uint256 _a3) {
@@ -143,6 +105,45 @@ contract eqLogic {
         }
     }
 
+    function _checkEquilibrium(
+        uint256 _a1,
+        uint256 _a2,
+        uint256 _a3,
+        uint256 _usdcAmt,
+        uint256 _usdtAmt,
+        uint256 _daiAmt
+    ) internal {
+        uint256 tAlloc = _a1 + _a2 + _a3;
+        uint256[] memory balances = _getAssetBalances();
+        uint256 tvlOld = balances[0] + balances[1] + balances[2];
+        uint256 tvlNew = tvlOld + (_usdcAmt + _usdtAmt) * 1e12 + _daiAmt;
+
+        uint256[] memory cr = new uint256[](3);
+        uint256 oldEq;
+        if (tvlOld != 0) {
+            cr[0] = _a1 != 0 ? (balances[0] * 1e12 * tAlloc * precision) / (_a1 * tvlOld) : 0;
+            cr[1] = _a2 != 0 ? (balances[1] * 1e12 * tAlloc * precision) / (_a2 * tvlOld) : 0;
+            cr[2] = _a3 != 0 ? (balances[2] * tAlloc * precision) / (_a3 * tvlOld) : 0;
+            oldEq = _calcEq(cr[0], cr[1], cr[2]);
+        }
+
+        cr[0] = _a1 != 0 ? ((balances[0] + _usdcAmt) * 1e12 * tAlloc * precision) / (_a1 * tvlNew) : 0;
+        cr[1] = _a2 != 0 ? ((balances[1] + _usdtAmt) * 1e12 * tAlloc * precision) / (_a2 * tvlNew) : 0;
+        cr[2] = _a3 != 0 ? ((balances[2] + _daiAmt) * tAlloc * precision) / (_a3 * tvlNew) : 0;
+
+        uint256 newEq = _calcEq(cr[0], cr[1], cr[2]);
+
+        if (oldEq == 0) {
+            require(newEq < eqTh, "HUB::Deposit Not Allowed");
+        } else {
+            require(newEq <= oldEq || newEq < eqTh, "HUB::Deposit Not Allowed");
+        }
+    }
+
+    function _calcEq(uint256 cr1, uint256 cr2, uint256 cr3) internal view returns (uint256 _eq) {
+        _eq = (_modSub(cr1) + _modSub(cr2) + _modSub(cr3)) / 3;
+    }
+
     function _modSub(uint256 _a) internal view returns (uint256) {
         if (_a != 0) {
             return _a > precision ? _a - precision : precision - _a;
@@ -153,9 +154,9 @@ contract eqLogic {
 
     function _getAssetBalances() internal view returns (uint256[] memory) {
         uint256[] memory balances = new uint256[](3);
-        balances[0] = (ILoanManager(loanManager).getAssets(USDC) + IERC20Helper(USDC).balanceOf(address(this)))*1e12;
-        balances[1] = IERC20Helper(USDT).balanceOf(address(this))*1e12;
-        balances[2] = IERC20Helper(DAI).balanceOf(address(this));
+        balances[0] = ILoanManager(loanManager).getAssets(USDC) + usdcDeposited * 1e12;
+        balances[1] = usdtDeposited * 1e12;
+        balances[2] = daiDeposited;
 
         return balances;
     }

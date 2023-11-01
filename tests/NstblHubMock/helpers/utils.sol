@@ -2,7 +2,7 @@
 pragma solidity ^0.8.13;
 
 import { Test, console } from "forge-std/Test.sol";
-import { IERC20, IERC20Helper } from "../../contracts/interfaces/IERC20Helper.sol";
+import { IERC20, IERC20Helper } from "../../../contracts/interfaces/IERC20Helper.sol";
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 contract Utils is Test {
@@ -14,8 +14,8 @@ contract Utils is Test {
 
     address public admin = address(123);
     address public nealthyAddr = address(456);
-    address public user1 = address(1);
-    address public user2 = address(2);
+    address public user1 = address(0xb3DD7E7F21Be44FC53c8d9857a71474A40BE64f7);
+    address public user2 = address(0x63bFB5b6F8785A61d547D62614F6A873B1111A6B);
     address public user3 = address(3);
 
     uint256 public dt = 98 * 1e6;

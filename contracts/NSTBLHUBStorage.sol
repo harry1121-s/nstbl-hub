@@ -16,7 +16,16 @@ contract NSTBLHUBStorage {
     address public chainLinkPriceFeed;
     uint256 public atvlBurnAmount;
 
+    uint256 public usdcDeposited;
+    uint256 public usdtDeposited;
+    uint256 public daiDeposited;
+    uint256 public usdcInvested;
+
     mapping(address => uint256) public assetAllocation;
+
+    address USDC = address(0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48);
+    address USDT = address(0xdAC17F958D2ee523a2206206994597C13D831ec7);
+    address DAI = address(0x6B175474E89094C44Da98b954EedeAC495271d0F);
 
     //usdc, usdt, dai
     address[3] public assets = [
@@ -35,7 +44,8 @@ contract NSTBLHUBStorage {
     uint256 public dt;
     uint256 public ub;
     uint256 public lb;
-    uint256 public precision = 1e12;
+    uint256 public eqTh;
+    uint256 public precision = 1e24;
 
     uint256 public liquidPercent;
     uint256 public tBillPercent;
