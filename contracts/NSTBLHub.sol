@@ -341,7 +341,6 @@ contract NSTBLHub is NSTBLHUBStorage {
         uint256 assetBalance;
         uint256 assetProportion;
         uint256 assetRequired;
-        uint256 redeemableNstbl;
         uint256 remainingNstbl;
         uint256 burnAmount;
         uint256 stakePoolBurnAmount;
@@ -367,22 +366,7 @@ contract NSTBLHub is NSTBLHUBStorage {
             console.log("HERE1");
             if (!belowDT) {
                 assetRequired = (assetAllocation[sortedAssets[i]] * precisionAmount / 1e5) + remainingNstbl * precision;
-                console.log("HERE2");
-                console.log(assetRequired, assetBalance);
-                if (assetRequired <= assetBalance * 10 ** adjustedDecimals) {
-                    IERC20Helper(sortedAssets[i]).safeTransfer(
-                        _user, assetRequired / (precision * 10 ** adjustedDecimals)
-                    );
-                    // assetsLeft -= assetRequired;
-                    remainingNstbl = 0;
-                    console.log("HERE3");
-                } else {
-                    IERC20Helper(sortedAssets[i]).safeTransfer(_user, assetBalance / precision);
-
-                    remainingNstbl = (assetRequired - assetBalance * 10 ** adjustedDecimals) / precision;
-                    console.log("Remaining NSTBL: ", remainingNstbl);
-                    console.log("HERE4");
-                }
+                remainingNstbl = _transferNormal(_user, sortedAssets[i], assetRequired, assetBalance, adjustedDecimals);
             } else {
                 console.log("HERE5");
 
@@ -400,27 +384,17 @@ contract NSTBLHub is NSTBLHUBStorage {
                 console.log("Asset Balance: ", assetBalance);
                 console.log("HERE7");
 
-                if (assetRequired <= assetBalance) {
-                    IERC20Helper(sortedAssets[i]).safeTransfer(_user, assetRequired / precision);
-                    console.log("HERE8");
-
-                    remainingNstbl = 0;
-                    burnAmount += (assetRequired - assetProportion) * 10 ** adjustedDecimals / precision;
-                    console.log("Burn AMount: ", burnAmount);
-                    // assetsLeft -= assetRequired;
-                } else {
-                    // console.log("Asset Balance: ", assetBalance/precision);
-                    redeemableNstbl = assetBalance * sortedAssetsPrice[i] / dt;
-                    // console.log("Redeemable NSTBL: ", redeemableNstbl);
-                    burnAmount += (assetBalance - redeemableNstbl) * 10 ** adjustedDecimals / precision;
-                    // console.log("Burn AMount: ", burnAmount);
-                    // assetsLeft -= assetBalance;
-                    remainingNstbl = (assetProportion - redeemableNstbl) * 10 ** adjustedDecimals / precision;
-                    // console.log("Remaining NSTBL: ", remainingNstbl);
-                    IERC20Helper(sortedAssets[i]).safeTransfer(_user, assetBalance / precision);
-                    // console.log("HERE9");
-                }
-
+                (remainingNstbl, burnAmount) = _transferBelowDepeg(
+                    _user,
+                    sortedAssets[i],
+                    assetProportion,
+                    assetRequired,
+                    assetBalance,
+                    adjustedDecimals,
+                    burnAmount,
+                    sortedAssetsPrice[i]
+                );
+                
                 stakePoolBurnAmount +=
                     burnFromStakePool ? _stakePoolBurnAmount(remainingNstbl, assetRequired, assetProportion) : 0;
             }
@@ -436,22 +410,62 @@ contract NSTBLHub is NSTBLHUBStorage {
         processTBillWithdraw(_amount * 7e4 / 1e5);
     }
 
-    function _transferForNonStakers(uint256 _assetRequired) internal {
-        assetRequired = (assetAllocation[sortedAssets[i]] * precisionAmount / 1e5) + remainingNstbl * precision;
+    function _transferNormal(
+        address _user,
+        address _asset,
+        uint256 _assetRequired,
+        uint256 _assetBalance,
+        uint256 _adjustedDecimals
+    ) internal returns (uint256 _remainingNstbl) {
         console.log("HERE2");
-        console.log(assetRequired, assetBalance);
-        if (assetRequired <= assetBalance * 10 ** adjustedDecimals) {
-            IERC20Helper(sortedAssets[i]).safeTransfer(_user, assetRequired / (precision * 10 ** adjustedDecimals));
-            // assetsLeft -= assetRequired;
-            remainingNstbl = 0;
+        console.log(_assetRequired, _assetBalance);
+        if (_assetRequired <= _assetBalance * 10 ** _adjustedDecimals) {
+            IERC20Helper(_asset).safeTransfer(_user, _assetRequired / (precision * 10 ** _adjustedDecimals));
+            _remainingNstbl = 0;
             console.log("HERE3");
         } else {
-            IERC20Helper(sortedAssets[i]).safeTransfer(_user, assetBalance / precision);
+            IERC20Helper(_asset).safeTransfer(_user, _assetBalance / precision);
 
-            remainingNstbl = (assetRequired - assetBalance * 10 ** adjustedDecimals) / precision;
-            console.log("Remaining NSTBL: ", remainingNstbl);
+            _remainingNstbl = (_assetRequired - _assetBalance * 10 ** _adjustedDecimals) / precision;
+            console.log("Remaining NSTBL: ", _remainingNstbl);
             console.log("HERE4");
         }
+    }
+
+    function _transferBelowDepeg(
+        address _user,
+        address _asset,
+        uint256 _assetProportion,
+        uint256 _assetRequired,
+        uint256 _assetBalance,
+        uint256 _adjustedDecimals,
+        uint256 _burnAmount,
+        uint256 _assetPrice
+    ) internal returns (uint256, uint256) {
+        // console.log("HERE7");
+        uint256 _remainingNstbl;
+        uint256 redeemableNstbl;
+        if (_assetRequired <= _assetBalance) {
+            IERC20Helper(_asset).safeTransfer(_user, _assetRequired / precision);
+            console.log("HERE8");
+
+            _remainingNstbl = 0;
+            _burnAmount += (_assetRequired - _assetProportion) * 10 ** _adjustedDecimals / precision;
+            console.log("Burn AMount: ", _burnAmount);
+            // assetsLeft -= assetRequired;
+        } else {
+            // console.log("Asset Balance: ", assetBalance/precision);
+            redeemableNstbl = _assetBalance * _assetPrice / dt;
+            // console.log("Redeemable NSTBL: ", redeemableNstbl);
+            _burnAmount += (_assetBalance - redeemableNstbl) * 10 ** _adjustedDecimals / precision;
+            // console.log("Burn AMount: ", burnAmount);
+            // assetsLeft -= assetBalance;
+            _remainingNstbl = (_assetProportion - redeemableNstbl) * 10 ** _adjustedDecimals / precision;
+            // console.log("Remaining NSTBL: ", remainingNstbl);
+            IERC20Helper(_asset).safeTransfer(_user, _assetBalance / precision);
+            // console.log("HERE9");
+        }
+        return(_remainingNstbl, _burnAmount);
     }
 
     function _stakePoolBurnAmount(uint256 _remNSTBL, uint256 _assetRequired, uint256 _assetProportion)
