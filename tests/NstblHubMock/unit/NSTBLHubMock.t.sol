@@ -86,7 +86,7 @@ import { IERC20Helper, BaseTest } from "../helpers/BaseTest.t.sol";
 //         IERC20Helper(DAI).safeIncreaseAllowance(address(nstblHub), daiAmt);
 //         vm.expectRevert("HUB: Invalid Deposit");
 //         nstblHub.deposit(usdcAmt, usdtAmt, daiAmt);
-        
+
 //         vm.stopPrank();
 
 //     }
@@ -542,6 +542,7 @@ import { IERC20Helper, BaseTest } from "../helpers/BaseTest.t.sol";
 
 contract NSTBLHubTestRedeem is BaseTest {
     using SafeERC20 for IERC20Helper;
+
     function setUp() public override {
         super.setUp();
     }
@@ -577,14 +578,12 @@ contract NSTBLHubTestRedeem is BaseTest {
     //     assertEq((_amount*1/10), daiBalBefore - daiBalAfter);
     //     assertEq(nstblToken.balanceOf(address(nstblHub)), nstblBalBefore - nstblBalAfter);
 
-        
     // }
 
     // function test_redeem_noDepeg_suffLiquidity_fuzz(uint256 _amount) external {
-        
+
     //     _amount = bound(_amount, 1e13, nstblToken.totalSupply());
     //     erc20_transfer(address(nstblToken), admin, nealthyAddr, _amount);
-
 
     //     //noDepeg
     //     usdcPriceFeedMock.updateAnswer(982e5);
@@ -613,7 +612,6 @@ contract NSTBLHubTestRedeem is BaseTest {
     //     assertEq(_amount*1e4/1e5, daiBalBefore - daiBalAfter);
     //     assertEq(nstblToken.balanceOf(address(nstblHub)), nstblBalBefore - nstblBalAfter);
 
-        
     // }
 
     // function test_redeem_daiAtDepeg_suffLiquidity() external {
@@ -646,7 +644,6 @@ contract NSTBLHubTestRedeem is BaseTest {
     //     assertEq((_amount*1/10)/10**12, usdtBalBefore - usdtBalAfter);
     //     assertEq((_amount*1/10), daiBalBefore - daiBalAfter);
     //     assertEq(nstblToken.balanceOf(address(nstblHub)), nstblBalBefore - nstblBalAfter);
-
 
     // }
 
@@ -682,7 +679,6 @@ contract NSTBLHubTestRedeem is BaseTest {
     //     assertEq(finalDaiBal, daiBalBefore - daiBalAfter);
     //     assertEq(nstblToken.balanceOf(address(nstblHub)), nstblBalBefore - nstblBalAfter);
 
-
     // }
 
     // function test_redeem_daiUSDTDepeg_suffLiquidity() external {
@@ -717,7 +713,6 @@ contract NSTBLHubTestRedeem is BaseTest {
     //     uint256 finalDaiBal = (_amount*1/10)*nstblHub.dt()/97e6;
     //     assertEq(finalDaiBal, daiBalBefore - daiBalAfter);
     //     assertEq(nstblToken.balanceOf(address(nstblHub)), nstblBalBefore - nstblBalAfter);
-
 
     // }
 
@@ -755,7 +750,6 @@ contract NSTBLHubTestRedeem is BaseTest {
     //     assertEq(((_amount*1/10)/10**12), usdtBalBefore - usdtBalAfter);
     //     assertEq((_amount*1/10), daiBalBefore - daiBalAfter);
     //     assertEq(nstblToken.balanceOf(address(nstblHub)), nstblBalBefore - nstblBalAfter );
-
 
     // }
 
@@ -795,7 +789,6 @@ contract NSTBLHubTestRedeem is BaseTest {
     //     assertEq(nstblToken.balanceOf(address(nstblHub)), nstblBalBefore - nstblBalAfter );
     //     assertEq(nstblToken.balanceOf(address(nstblHub)), nstblHub.atvlBurnAmount());
 
-
     // }
 
     // function test_redeem_usdcDepeg_suffLiquidity() external {
@@ -830,12 +823,10 @@ contract NSTBLHubTestRedeem is BaseTest {
     //     assertEq((_amount*1/10), daiBalBefore - daiBalAfter);
     //     assertEq(nstblToken.balanceOf(address(nstblHub)), nstblBalBefore - nstblBalAfter);
 
-
     // }
 
     function test_redeem_daiUSDTDepeg_belowLB_suffLiquidity() external {
-
-        uint256 _amount = 1e6*1e18;
+        uint256 _amount = 1e6 * 1e18;
         erc20_transfer(address(nstblToken), admin, nealthyAddr, _amount);
 
         //daiDepeg
@@ -843,9 +834,9 @@ contract NSTBLHubTestRedeem is BaseTest {
         usdtPriceFeedMock.updateAnswer(955e5);
         daiPriceFeedMock.updateAnswer(950e5);
 
-        deal(USDC, address(nstblHub), (_amount*8/10)/10**12);
-        deal(USDT, address(nstblHub), (_amount*2/10)/10**12);
-        deal(DAI, address(nstblHub), (_amount*2/10));
+        deal(USDC, address(nstblHub), (_amount * 8 / 10) / 10 ** 12);
+        deal(USDT, address(nstblHub), (_amount * 2 / 10) / 10 ** 12);
+        deal(DAI, address(nstblHub), (_amount * 2 / 10));
 
         uint256 usdcBalBefore = IERC20Helper(USDC).balanceOf(address(nstblHub));
         uint256 usdtBalBefore = IERC20Helper(USDT).balanceOf(address(nstblHub));
@@ -860,16 +851,14 @@ contract NSTBLHubTestRedeem is BaseTest {
         uint256 daiBalAfter = IERC20Helper(DAI).balanceOf(address(nstblHub));
         uint256 nstblBalAfter = nstblToken.balanceOf(nealthyAddr);
 
-        uint256 daiRedeemableAmt = (_amount*1/10)*nstblHub.dt()/950e5;
-        uint256 usdtRedeemableAmt = ((_amount*1/10)/10**12)*nstblHub.dt()/955e5;
+        uint256 daiRedeemableAmt = (_amount * 1 / 10) * nstblHub.dt() / 950e5;
+        uint256 usdtRedeemableAmt = ((_amount * 1 / 10) / 10 ** 12) * nstblHub.dt() / 955e5;
 
-        assertEq((_amount*8/10)/10**12 , (usdcBalBefore - usdcBalAfter));
+        assertEq((_amount * 8 / 10) / 10 ** 12, (usdcBalBefore - usdcBalAfter));
         assertEq(usdtRedeemableAmt, usdtBalBefore - usdtBalAfter);
         assertEq(daiRedeemableAmt, daiBalBefore - daiBalAfter);
-        assertEq(nstblToken.balanceOf(address(nstblHub)), nstblBalBefore - nstblBalAfter );
+        assertEq(nstblToken.balanceOf(address(nstblHub)), nstblBalBefore - nstblBalAfter);
         assertEq(nstblToken.balanceOf(address(nstblHub)), nstblHub.atvlBurnAmount());
-
-
     }
 }
 
@@ -879,116 +868,116 @@ contract NSTBLHubTestRedeem is BaseTest {
 //         super.setUp();
 //     }
 
-    // function test_getAllocation() external {
-    //     usdcPriceFeedMock.updateAnswer(982e5);
-    //     usdtPriceFeedMock.updateAnswer(99e6);
-    //     daiPriceFeedMock.updateAnswer(985e5);
-    //     (uint256 a1, uint256 a2, uint256 a3) = nstblHubHarness.getSystemAllocation();
-    //     assertEq(a1, 8e3);
-    //     assertEq(a2, 1e3);
-    //     assertEq(a3, 1e3);
-    // }
+// function test_getAllocation() external {
+//     usdcPriceFeedMock.updateAnswer(982e5);
+//     usdtPriceFeedMock.updateAnswer(99e6);
+//     daiPriceFeedMock.updateAnswer(985e5);
+//     (uint256 a1, uint256 a2, uint256 a3) = nstblHubHarness.getSystemAllocation();
+//     assertEq(a1, 8e3);
+//     assertEq(a2, 1e3);
+//     assertEq(a3, 1e3);
+// }
 
-    // function test_getAllocation_fuzz(int256 _p1, int256 _p2, int256 _p3) external {
-    //     _p1 = bound(_p1, 97e6, 1e8);
-    //     _p2 = bound(_p2, 97e6, 1e8);
-    //     _p3 = bound(_p3, 97e6, 1e8);
+// function test_getAllocation_fuzz(int256 _p1, int256 _p2, int256 _p3) external {
+//     _p1 = bound(_p1, 97e6, 1e8);
+//     _p2 = bound(_p2, 97e6, 1e8);
+//     _p3 = bound(_p3, 97e6, 1e8);
 
-    //     usdcPriceFeedMock.updateAnswer(_p1);
-    //     usdtPriceFeedMock.updateAnswer(_p2);
-    //     daiPriceFeedMock.updateAnswer(_p3);
+//     usdcPriceFeedMock.updateAnswer(_p1);
+//     usdtPriceFeedMock.updateAnswer(_p2);
+//     daiPriceFeedMock.updateAnswer(_p3);
 
-    //     int256 dt = int256(nstblHubHarness.dt());
-    //     if (_p1 <= dt) {
-    //         vm.expectRevert("VAULT: Deposits Halted");
-    //     }
-    //     (uint256 a1, uint256 a2, uint256 a3) = nstblHubHarness.getSystemAllocation();
-    //     if (_p1 > dt) {
-    //         if (_p2 > dt && _p3 > dt) {
-    //             assertEq(a1, 8e3);
-    //             assertEq(a2, 1e3);
-    //             assertEq(a3, 1e3);
-    //         } else if (_p2 > dt && _p3 < dt) {
-    //             assertEq(a1, 85e2);
-    //             assertEq(a2, 15e2);
-    //             assertEq(a3, 0);
-    //         } else if (_p2 < dt && _p3 > dt) {
-    //             assertEq(a1, 85e2);
-    //             assertEq(a2, 0);
-    //             assertEq(a3, 15e2);
-    //         } else {
-    //             assertEq(a1, 10e3);
-    //             assertEq(a2, 0);
-    //             assertEq(a3, 0);
-    //         }
-    //     }
-    // }
+//     int256 dt = int256(nstblHubHarness.dt());
+//     if (_p1 <= dt) {
+//         vm.expectRevert("VAULT: Deposits Halted");
+//     }
+//     (uint256 a1, uint256 a2, uint256 a3) = nstblHubHarness.getSystemAllocation();
+//     if (_p1 > dt) {
+//         if (_p2 > dt && _p3 > dt) {
+//             assertEq(a1, 8e3);
+//             assertEq(a2, 1e3);
+//             assertEq(a3, 1e3);
+//         } else if (_p2 > dt && _p3 < dt) {
+//             assertEq(a1, 85e2);
+//             assertEq(a2, 15e2);
+//             assertEq(a3, 0);
+//         } else if (_p2 < dt && _p3 > dt) {
+//             assertEq(a1, 85e2);
+//             assertEq(a2, 0);
+//             assertEq(a3, 15e2);
+//         } else {
+//             assertEq(a1, 10e3);
+//             assertEq(a2, 0);
+//             assertEq(a3, 0);
+//         }
+//     }
+// }
 
-    // function test_validateAllocation_fuzz(
-    //     int256 _p1,
-    //     int256 _p2,
-    //     int256 _p3,
-    //     uint256 _amt1,
-    //     uint256 _amt2,
-    //     uint256 _amt3
-    // ) external {
-    //     _p1 = bound(_p1, 97e6, 1e8);
-    //     _p2 = bound(_p2, 979e5, 1e8);
-    //     _p3 = bound(_p3, 987e5, 1e8);
-    //     _amt1 = bound(_amt1, 0, (type(uint256).max - 1) / 3);
-    //     _amt2 = bound(_amt2, 0, (type(uint256).max - 1) / 3);
-    //     _amt3 = bound(_amt3, 0, (type(uint256).max - 1) / 3);
-    //     usdcPriceFeedMock.updateAnswer(_p1);
-    //     usdtPriceFeedMock.updateAnswer(_p2);
-    //     daiPriceFeedMock.updateAnswer(_p3);
+// function test_validateAllocation_fuzz(
+//     int256 _p1,
+//     int256 _p2,
+//     int256 _p3,
+//     uint256 _amt1,
+//     uint256 _amt2,
+//     uint256 _amt3
+// ) external {
+//     _p1 = bound(_p1, 97e6, 1e8);
+//     _p2 = bound(_p2, 979e5, 1e8);
+//     _p3 = bound(_p3, 987e5, 1e8);
+//     _amt1 = bound(_amt1, 0, (type(uint256).max - 1) / 3);
+//     _amt2 = bound(_amt2, 0, (type(uint256).max - 1) / 3);
+//     _amt3 = bound(_amt3, 0, (type(uint256).max - 1) / 3);
+//     usdcPriceFeedMock.updateAnswer(_p1);
+//     usdtPriceFeedMock.updateAnswer(_p2);
+//     daiPriceFeedMock.updateAnswer(_p3);
 
-    //     int256 dt = int256(nstblHubHarness.dt());
-    //     bool flag;
-    //     if (_p1 <= dt) {
-    //         vm.expectRevert("VAULT: Deposits Halted");
-    //         flag = true;
-    //     } else if (_p2 <= dt) {
-    //         vm.expectRevert("VAULT: Invalid Deposit");
-    //         flag = true;
-    //     } else if (_p3 <= dt) {
-    //         vm.expectRevert("VAULT: Invalid Deposit");
-    //         flag = true;
-    //     }
-    //     (uint256 a1, uint256 a2, uint256 a3) = nstblHubHarness.validateSystemAllocation(_amt1, _amt2, _amt3);
-    //     if (_p1 > dt && !flag) {
-    //         if (_p2 > dt && _p3 > dt) {
-    //             assertEq(a1, 8e3);
-    //             assertEq(a2, 1e3);
-    //             assertEq(a3, 1e3);
-    //         } else if (_p2 > dt && _p3 < dt) {
-    //             assertEq(a1, 85e2);
-    //             assertEq(a2, 15e2);
-    //             assertEq(a3, 0);
-    //         } else if (_p2 < dt && _p3 > dt) {
-    //             assertEq(a1, 85e2);
-    //             assertEq(a2, 0);
-    //             assertEq(a3, 15e2);
-    //         } else {
-    //             assertEq(a1, 10e3);
-    //             assertEq(a2, 0);
-    //             assertEq(a3, 0);
-    //         }
-    //     }
-    // }
+//     int256 dt = int256(nstblHubHarness.dt());
+//     bool flag;
+//     if (_p1 <= dt) {
+//         vm.expectRevert("VAULT: Deposits Halted");
+//         flag = true;
+//     } else if (_p2 <= dt) {
+//         vm.expectRevert("VAULT: Invalid Deposit");
+//         flag = true;
+//     } else if (_p3 <= dt) {
+//         vm.expectRevert("VAULT: Invalid Deposit");
+//         flag = true;
+//     }
+//     (uint256 a1, uint256 a2, uint256 a3) = nstblHubHarness.validateSystemAllocation(_amt1, _amt2, _amt3);
+//     if (_p1 > dt && !flag) {
+//         if (_p2 > dt && _p3 > dt) {
+//             assertEq(a1, 8e3);
+//             assertEq(a2, 1e3);
+//             assertEq(a3, 1e3);
+//         } else if (_p2 > dt && _p3 < dt) {
+//             assertEq(a1, 85e2);
+//             assertEq(a2, 15e2);
+//             assertEq(a3, 0);
+//         } else if (_p2 < dt && _p3 > dt) {
+//             assertEq(a1, 85e2);
+//             assertEq(a2, 0);
+//             assertEq(a3, 15e2);
+//         } else {
+//             assertEq(a1, 10e3);
+//             assertEq(a2, 0);
+//             assertEq(a3, 0);
+//         }
+//     }
+// }
 
-    // function test_getSortedAssetPrices() external {
+// function test_getSortedAssetPrices() external {
 
-    //     usdcPriceFeedMock.updateAnswer(999e5);
-    //     usdtPriceFeedMock.updateAnswer(99e6);
-    //     daiPriceFeedMock.updateAnswer(985e5);
+//     usdcPriceFeedMock.updateAnswer(999e5);
+//     usdtPriceFeedMock.updateAnswer(99e6);
+//     daiPriceFeedMock.updateAnswer(985e5);
 
-    //     (address[] memory assets, uint256[] memory prices) = nstblHubHarness.getSortedAssetsWithPrice();
-    //     assertTrue(assets[0] == DAI);
-    //     assertTrue(assets[1] == USDT);
-    //     assertTrue(assets[2] == USDC);
+//     (address[] memory assets, uint256[] memory prices) = nstblHubHarness.getSortedAssetsWithPrice();
+//     assertTrue(assets[0] == DAI);
+//     assertTrue(assets[1] == USDT);
+//     assertTrue(assets[2] == USDC);
 
-    //     assertEq(prices[0], 985e5);
-    //     assertEq(prices[1], 99e6);
-    //     assertEq(prices[2], 999e5);
-    // }
+//     assertEq(prices[0], 985e5);
+//     assertEq(prices[1], 99e6);
+//     assertEq(prices[2], 999e5);
+// }
 // }

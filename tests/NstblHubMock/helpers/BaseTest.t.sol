@@ -107,7 +107,9 @@ contract BaseTest is Utils {
         nstblHub.updateAssetAllocation(DAI, 1e4);
 
         nstblHubHarness.setSystemParams(dt, ub, lb, 1e3, 7e3);
-        nstblHubHarness.updateAssetFeeds([address(usdcPriceFeedMock), address(usdtPriceFeedMock), address(daiPriceFeedMock)]);
+        nstblHubHarness.updateAssetFeeds(
+            [address(usdcPriceFeedMock), address(usdtPriceFeedMock), address(daiPriceFeedMock)]
+        );
 
         vm.stopPrank();
     }
