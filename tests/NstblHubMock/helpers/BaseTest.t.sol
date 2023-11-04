@@ -6,6 +6,7 @@ import { MockV3Aggregator } from "../../../modules/chainlink/contracts/src/v0.8/
 import { StakePoolMock } from "../../../contracts/mocks/StakePool/StakePoolMock.sol";
 import { NSTBLTokenMock } from "../../../contracts/mocks/NSTBLTokenMock.sol";
 import { ChainLinkPriceFeedMock } from "../../../contracts/mocks/chainlink/ChainlinkPriceFeedMock.sol";
+import { ACLManager } from "@aclManager/contracts/ACLManager.sol";
 import { NSTBLHub } from "../../../contracts/NSTBLHub.sol";
 import { Atvl } from "../../../contracts/ATVL/atvl.sol";
 import { eqLogic } from "../../../contracts/equilibriumLogic.sol";
@@ -16,6 +17,7 @@ import { Utils, IERC20Helper, IERC20 } from "./utils.sol";
 // import { IERC20Helper } from "../../contracts/interfaces/IERC20Helper.sol";
 
 contract BaseTest is Utils {
+    ACLManager public aclManager;
     StakePoolMock public stakePool;
     ChainLinkPriceFeedMock public priceFeed;
     NSTBLTokenMock public nstblToken;
@@ -39,6 +41,8 @@ contract BaseTest is Utils {
         daiPriceFeedMock = new MockV3Aggregator(8, 1e8);
 
         vm.startPrank(admin);
+        aclManager = new ACLManager();
+
         priceFeed =
         new ChainLinkPriceFeedMock(address(usdcPriceFeedMock), address(usdtPriceFeedMock), address(daiPriceFeedMock));
         nstblToken = new NSTBLTokenMock("NSTBL Token", "NSTBL", admin);
@@ -68,24 +72,22 @@ contract BaseTest is Utils {
         );
 
         nstblHub = new NSTBLHub(
-            nealthyAddr,
             address(nstblToken),
             address(stakePool),
             address(priceFeed),
             address(atvl),
-            admin,
             address(loanManager),
+            address(aclManager),
             2*1e24
         );
 
         nstblHubHarness = new NSTBLHubInternal(
-            nealthyAddr,
             address(nstblToken),
             address(stakePool),
             address(priceFeed),
             address(atvl),
-            admin,
             address(loanManager),
+            address(aclManager),
             2*1e24
         );
 
@@ -106,6 +108,7 @@ contract BaseTest is Utils {
         nstblHub.updateAssetAllocation(USDT, 1e4);
         nstblHub.updateAssetAllocation(DAI, 1e4);
 
+        aclManager.setAuthorizedCallerHub(nealthyAddr, true);
         nstblHubHarness.setSystemParams(dt, ub, lb, 1e3, 7e3);
         nstblHubHarness.updateAssetFeeds(
             [address(usdcPriceFeedMock), address(usdtPriceFeedMock), address(daiPriceFeedMock)]

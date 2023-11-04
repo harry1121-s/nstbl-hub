@@ -4,15 +4,14 @@ import { NSTBLHub } from "../../contracts/NSTBLHub.sol";
 
 contract NSTBLHubInternal is NSTBLHub {
     constructor(
-        address _nealthyAddr,
         address _nstblToken,
         address _stakePool,
         address _chainLinkPriceFeed,
         address _atvl,
-        address _admin,
         address _loanManager,
+        address _aclManager,
         uint256 _eqTh
-    ) NSTBLHub(_nealthyAddr, _nstblToken, _stakePool, _chainLinkPriceFeed, _atvl, _admin, _loanManager, _eqTh) { }
+    ) NSTBLHub(_nstblToken, _stakePool, _chainLinkPriceFeed, _atvl, _loanManager, _aclManager, _eqTh) { }
 
     function getSortedAssetsWithPrice()
         external

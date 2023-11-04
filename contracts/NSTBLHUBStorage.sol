@@ -7,14 +7,15 @@ import "./interfaces/IStakePool.sol";
 import "./interfaces/IATVL.sol";
 
 contract NSTBLHUBStorage {
-    address public admin;
     address public nealthyAddr;
     address public atvl;
     address public loanManager;
+    address public aclManager;
     address public stakePool;
     address public nstblToken;
     address public chainLinkPriceFeed;
     uint256 public atvlBurnAmount;
+    uint256 public stakePoolBurnAmount;
 
     uint256 public usdcDeposited;
     uint256 public usdtDeposited;

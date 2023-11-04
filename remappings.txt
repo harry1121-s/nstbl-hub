@@ -5,3 +5,4 @@ forge-std/=modules/forge-std/src/
 solidity-examples=modules/solidity-examples
 @loanManager/=modules/nstbl-loan-manager
 @stakePool/=modules/nstbl-stake-pool
+@aclManager/=modules/nstbl-acl-manager

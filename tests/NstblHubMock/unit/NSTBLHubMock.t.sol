@@ -377,490 +377,496 @@ import { IERC20Helper, BaseTest } from "../helpers/BaseTest.t.sol";
 //     }
 // }
 
-// contract NSTBLHubTestUnstake is BaseTest {
-
-//     function setUp() public override {
-//         super.setUp();
-//     }
-
-//     function test_unstake_noDepeg() external {
-//         _stakeNstbl(nealthyAddr, _amount, 0);
-
-//         //maintaining exact proportions
-//         deal(USDC, address(nstblHub), 8e5 * 1e18);
-//         deal(USDT, address(nstblHub), 1e5 * 1e18);
-//         deal(DAI, address(nstblHub), 1e5 * 1e18);
-
-//         usdcPriceFeedMock.updateAnswer(981e5);
-//         usdtPriceFeedMock.updateAnswer(99e6);
-//         daiPriceFeedMock.updateAnswer(985e5);
-
-//         vm.expectRevert("HUB::UNAUTH");
-//         nstblHub.unstake(_amount, 0, nealthyAddr);
-
-//         vm.startPrank(nealthyAddr);
-//         nstblHub.unstake(_amount, 0, nealthyAddr);
-//         vm.stopPrank();
-//     }
-
-//     function test_unstake_OneDepeg_InsuffLiquidity() external {
-//         erc20_transfer(address(nstblToken), admin, address(atvl), 12_000 * 1e18);
-//         _stakeNstbl(nealthyAddr, _amount, 0);
-
-//         //maintaining exact proportions
-//         deal(USDC, address(nstblHub), 8e5 * 1e18);
-//         deal(USDT, address(nstblHub), 1e5 * 1e18);
-//         deal(DAI, address(nstblHub), 1e5 * 1e18);
-
-//         usdcPriceFeedMock.updateAnswer(981e5);
-//         usdtPriceFeedMock.updateAnswer(99e6);
-//         daiPriceFeedMock.updateAnswer(975e5);
-
-//         vm.expectRevert("HUB::UNAUTH");
-//         nstblHub.unstake(_amount, 0, nealthyAddr);
-
-//         uint256 atvlBalBefore = nstblToken.balanceOf(address(atvl));
-//         uint256 stakePoolBalBefore = nstblToken.balanceOf(address(stakePool));
-//         uint256 nstblSupplyBefore = nstblToken.totalSupply();
-//         uint256 stakeAmountBefore = stakePool.getUserStakedAmount(nealthyAddr, 0);
-
-//         vm.startPrank(nealthyAddr);
-//         nstblHub.unstake(_amount, 0, nealthyAddr);
-//         vm.stopPrank();
-
-//         uint256 atvlBalAfter = nstblToken.balanceOf(address(atvl));
-//         uint256 stakePoolBalAfter = nstblToken.balanceOf(address(stakePool));
-//         uint256 nstblSupplyAfter = nstblToken.totalSupply();
-//         uint256 stakeAmountAfter = stakePool.getUserStakedAmount(nealthyAddr, 0);
-
-//         assertEq(atvlBalBefore - atvlBalAfter + atvl.pendingNstblBurn(), nstblHub.atvlBurnAmount());
-//         assertEq(nstblSupplyBefore - nstblSupplyAfter, nstblHub.atvlBurnAmount() + stakeAmountBefore - stakeAmountAfter);
-//     }
-
-//     function test_unstake_TwoDepeg_InsuffLiquidity() external {
-//         erc20_transfer(address(nstblToken), admin, address(atvl), 12_000 * 1e18);
-//         _stakeNstbl(nealthyAddr, _amount, 0);
-
-//         //maintaining exact proportions
-//         deal(USDC, address(nstblHub), 8e5 * 1e18);
-//         deal(USDT, address(nstblHub), 1e5 * 1e18);
-//         deal(DAI, address(nstblHub), 1e5 * 1e18);
-
-//         usdcPriceFeedMock.updateAnswer(981e5);
-//         usdtPriceFeedMock.updateAnswer(975e5);
-//         daiPriceFeedMock.updateAnswer(965e5);
-
-//         vm.expectRevert("HUB::UNAUTH");
-//         nstblHub.unstake(_amount, 0, nealthyAddr);
-
-//         uint256 atvlBalBefore = nstblToken.balanceOf(address(atvl));
-//         uint256 stakePoolBalBefore = nstblToken.balanceOf(address(stakePool));
-//         uint256 nstblSupplyBefore = nstblToken.totalSupply();
-//         uint256 stakeAmountBefore = stakePool.getUserStakedAmount(nealthyAddr, 0);
-
-//         vm.startPrank(nealthyAddr);
-//         nstblHub.unstake(_amount, 0, nealthyAddr);
-//         vm.stopPrank();
-
-//         uint256 atvlBalAfter = nstblToken.balanceOf(address(atvl));
-//         uint256 stakePoolBalAfter = nstblToken.balanceOf(address(stakePool));
-//         uint256 nstblSupplyAfter = nstblToken.totalSupply();
-//         uint256 stakeAmountAfter = stakePool.getUserStakedAmount(nealthyAddr, 0);
-
-//         assertEq(atvlBalBefore - atvlBalAfter + atvl.pendingNstblBurn(), nstblHub.atvlBurnAmount());
-//         assertEq(nstblSupplyBefore - nstblSupplyAfter, nstblHub.atvlBurnAmount() + stakeAmountBefore - stakeAmountAfter);
-//     }
-
-//     function test_unstake_ThreeDepeg_InsuffLiquidity() external {
-//         erc20_transfer(address(nstblToken), admin, address(atvl), 100_000 * 1e18);
-//         _stakeNstbl(nealthyAddr, _amount, 0);
-
-//         //maintaining exact proportions
-//         deal(USDC, address(nstblHub), 8e5 * 1e18);
-//         deal(USDT, address(nstblHub), 1e5 * 1e18);
-//         deal(DAI, address(nstblHub), 1e5 * 1e18);
-
-//         usdcPriceFeedMock.updateAnswer(959e5);
-//         usdtPriceFeedMock.updateAnswer(975e5);
-//         daiPriceFeedMock.updateAnswer(965e5);
-
-//         vm.expectRevert("HUB::UNAUTH");
-//         nstblHub.unstake(_amount, 0, nealthyAddr);
-
-//         uint256 atvlBalBefore = nstblToken.balanceOf(address(atvl));
-//         uint256 stakePoolBalBefore = nstblToken.balanceOf(address(stakePool));
-//         uint256 nstblSupplyBefore = nstblToken.totalSupply();
-//         uint256 stakeAmountBefore = stakePool.getUserStakedAmount(nealthyAddr, 0);
-
-//         vm.startPrank(nealthyAddr);
-//         nstblHub.unstake(_amount, 0, nealthyAddr);
-//         vm.stopPrank();
-
-//         uint256 atvlBalAfter = nstblToken.balanceOf(address(atvl));
-//         uint256 stakePoolBalAfter = nstblToken.balanceOf(address(stakePool));
-//         uint256 nstblSupplyAfter = nstblToken.totalSupply();
-//         uint256 stakeAmountAfter = stakePool.getUserStakedAmount(nealthyAddr, 0);
-
-//         assertEq(atvlBalBefore - atvlBalAfter + atvl.pendingNstblBurn(), nstblHub.atvlBurnAmount());
-//         assertEq(nstblSupplyBefore - nstblSupplyAfter, nstblHub.atvlBurnAmount() + stakeAmountBefore - stakeAmountAfter);
-//     }
-
-//     function test_unstake_ThreeDepeg_SuffLiquidity() external {
-//         erc20_transfer(address(nstblToken), admin, address(atvl), 100_000 * 1e18);
-//         _stakeNstbl(nealthyAddr, _amount, 0);
-
-//         //maintaining exact proportions
-//         deal(USDC, address(nstblHub), 800e5 * 1e18);
-//         deal(USDT, address(nstblHub), 1e5 * 1e18);
-//         deal(DAI, address(nstblHub), 1e5 * 1e18);
-
-//         usdcPriceFeedMock.updateAnswer(959e5);
-//         usdtPriceFeedMock.updateAnswer(975e5);
-//         daiPriceFeedMock.updateAnswer(965e5);
-
-//         vm.expectRevert("HUB::UNAUTH");
-//         nstblHub.unstake(_amount, 0, nealthyAddr);
-
-//         uint256 atvlBalBefore = nstblToken.balanceOf(address(atvl));
-//         uint256 stakePoolBalBefore = nstblToken.balanceOf(address(stakePool));
-//         uint256 nstblSupplyBefore = nstblToken.totalSupply();
-//         uint256 stakeAmountBefore = stakePool.getUserStakedAmount(nealthyAddr, 0);
-
-//         vm.startPrank(nealthyAddr);
-//         nstblHub.unstake(_amount, 0, nealthyAddr);
-//         vm.stopPrank();
-
-//         uint256 atvlBalAfter = nstblToken.balanceOf(address(atvl));
-//         uint256 stakePoolBalAfter = nstblToken.balanceOf(address(stakePool));
-//         uint256 nstblSupplyAfter = nstblToken.totalSupply();
-//         uint256 stakeAmountAfter = stakePool.getUserStakedAmount(nealthyAddr, 0);
-
-//         assertEq(atvlBalBefore - atvlBalAfter + atvl.pendingNstblBurn(), nstblHub.atvlBurnAmount());
-//         assertEq(nstblSupplyBefore - nstblSupplyAfter, nstblHub.atvlBurnAmount() + stakeAmountBefore - stakeAmountAfter);
-//     }
-// }
-
-contract NSTBLHubTestRedeem is BaseTest {
-    using SafeERC20 for IERC20Helper;
+contract NSTBLHubTestUnstake is BaseTest {
 
     function setUp() public override {
         super.setUp();
     }
 
-    // function test_redeem_noDepeg_suffLiquidity() external {
-
-    //     uint256 _amount = 1e6 * 1e18;
-    //     erc20_transfer(address(nstblToken), admin, nealthyAddr, _amount);
-
-    //     //noDepeg
-    //     usdcPriceFeedMock.updateAnswer(982e5);
-    //     usdtPriceFeedMock.updateAnswer(99e6);
-    //     daiPriceFeedMock.updateAnswer(985e5);
-
-    //     deal(USDC, address(nstblHub), (_amount*8/10)/10**12);
-    //     deal(USDT, address(nstblHub), (_amount*1/10)/10**12);
-    //     deal(DAI, address(nstblHub), (_amount*1/10));
-
-    //     uint256 usdcBalBefore = IERC20Helper(USDC).balanceOf(address(nstblHub));
-    //     uint256 usdtBalBefore = IERC20Helper(USDT).balanceOf(address(nstblHub));
-    //     uint256 daiBalBefore = IERC20Helper(DAI).balanceOf(address(nstblHub));
-    //     uint256 nstblBalBefore = nstblToken.balanceOf(nealthyAddr);
-    //     vm.startPrank(nealthyAddr);
-    //     nstblToken.approve(address(nstblHub), _amount);
-    //     nstblHub.redeem(_amount, user1);
-    //     vm.stopPrank();
-    //     uint256 usdcBalAfter = IERC20Helper(USDC).balanceOf(address(nstblHub));
-    //     uint256 usdtBalAfter = IERC20Helper(USDT).balanceOf(address(nstblHub));
-    //     uint256 daiBalAfter = IERC20Helper(DAI).balanceOf(address(nstblHub));
-    //     uint256 nstblBalAfter = nstblToken.balanceOf(nealthyAddr);
-    //     assertEq((_amount*8/10)/10**12, usdcBalBefore - usdcBalAfter);
-    //     assertEq((_amount*1/10)/10**12, usdtBalBefore - usdtBalAfter);
-    //     assertEq((_amount*1/10), daiBalBefore - daiBalAfter);
-    //     assertEq(nstblToken.balanceOf(address(nstblHub)), nstblBalBefore - nstblBalAfter);
-
-    // }
-
-    // function test_redeem_noDepeg_suffLiquidity_fuzz(uint256 _amount) external {
-
-    //     _amount = bound(_amount, 1e13, nstblToken.totalSupply());
-    //     erc20_transfer(address(nstblToken), admin, nealthyAddr, _amount);
-
-    //     //noDepeg
-    //     usdcPriceFeedMock.updateAnswer(982e5);
-    //     usdtPriceFeedMock.updateAnswer(99e6);
-    //     daiPriceFeedMock.updateAnswer(985e5);
-
-    //     deal(USDC, address(nstblHub), (_amount*8e4/1e5)/10**12);
-    //     require((_amount*8e4/1e5)/10**12 > 0);
-    //     deal(USDT, address(nstblHub), (_amount*1e4/1e5)/10**12);
-    //     deal(DAI, address(nstblHub), _amount*1e18/1e5);
-
-    //     uint256 usdcBalBefore = IERC20Helper(USDC).balanceOf(address(nstblHub));
-    //     uint256 usdtBalBefore = IERC20Helper(USDT).balanceOf(address(nstblHub));
-    //     uint256 daiBalBefore = IERC20Helper(DAI).balanceOf(address(nstblHub));
-    //     uint256 nstblBalBefore = nstblToken.balanceOf(nealthyAddr);
-    //     vm.startPrank(nealthyAddr);
-    //     nstblToken.approve(address(nstblHub), _amount);
-    //     nstblHub.redeem(_amount, user1);
-    //     vm.stopPrank();
-    //     uint256 usdcBalAfter = IERC20Helper(USDC).balanceOf(address(nstblHub));
-    //     uint256 usdtBalAfter = IERC20Helper(USDT).balanceOf(address(nstblHub));
-    //     uint256 daiBalAfter = IERC20Helper(DAI).balanceOf(address(nstblHub));
-    //     uint256 nstblBalAfter = nstblToken.balanceOf(nealthyAddr);
-    //     assertEq((_amount*8e4/1e5)/10**12, usdcBalBefore - usdcBalAfter);
-    //     assertEq((_amount*1e4/1e5)/10**12, usdtBalBefore - usdtBalAfter);
-    //     assertEq(_amount*1e4/1e5, daiBalBefore - daiBalAfter);
-    //     assertEq(nstblToken.balanceOf(address(nstblHub)), nstblBalBefore - nstblBalAfter);
-
-    // }
-
-    // function test_redeem_daiAtDepeg_suffLiquidity() external {
-
-    //     uint256 _amount = 1e6*1e18;
-    //     erc20_transfer(address(nstblToken), admin, nealthyAddr, _amount);
-
-    //     //daiDepeg
-    //     usdcPriceFeedMock.updateAnswer(982e5);
-    //     usdtPriceFeedMock.updateAnswer(99e6);
-    //     daiPriceFeedMock.updateAnswer(980e5);
-
-    //     deal(USDC, address(nstblHub), (_amount*8/10)/10**12);
-    //     deal(USDT, address(nstblHub), (_amount*1/10)/10**12);
-    //     deal(DAI, address(nstblHub), (_amount*1/10));
-
-    //     uint256 usdcBalBefore = IERC20Helper(USDC).balanceOf(address(nstblHub));
-    //     uint256 usdtBalBefore = IERC20Helper(USDT).balanceOf(address(nstblHub));
-    //     uint256 daiBalBefore = IERC20Helper(DAI).balanceOf(address(nstblHub));
-    //     uint256 nstblBalBefore = nstblToken.balanceOf(nealthyAddr);
-    //     vm.startPrank(nealthyAddr);
-    //     nstblToken.approve(address(nstblHub), _amount);
-    //     nstblHub.redeem(_amount, user1);
-    //     vm.stopPrank();
-    //     uint256 usdcBalAfter = IERC20Helper(USDC).balanceOf(address(nstblHub));
-    //     uint256 usdtBalAfter = IERC20Helper(USDT).balanceOf(address(nstblHub));
-    //     uint256 daiBalAfter = IERC20Helper(DAI).balanceOf(address(nstblHub));
-    //     uint256 nstblBalAfter = nstblToken.balanceOf(nealthyAddr);
-    //     assertEq((_amount*8/10)/10**12, usdcBalBefore - usdcBalAfter);
-    //     assertEq((_amount*1/10)/10**12, usdtBalBefore - usdtBalAfter);
-    //     assertEq((_amount*1/10), daiBalBefore - daiBalAfter);
-    //     assertEq(nstblToken.balanceOf(address(nstblHub)), nstblBalBefore - nstblBalAfter);
-
-    // }
-
-    // function test_redeem_daiDepeg_suffLiquidity() external {
-
-    //     uint256 _amount = 1e6*1e18;
-    //     erc20_transfer(address(nstblToken), admin, nealthyAddr, _amount);
-
-    //     //daiDepeg
-    //     usdcPriceFeedMock.updateAnswer(982e5);
-    //     usdtPriceFeedMock.updateAnswer(99e6);
-    //     daiPriceFeedMock.updateAnswer(970e5);
-
-    //     deal(USDC, address(nstblHub), (_amount*8/10)/10**12);
-    //     deal(USDT, address(nstblHub), (_amount*1/10)/10**12);
-    //     deal(DAI, address(nstblHub), (_amount*2/10));
-
-    //     uint256 usdcBalBefore = IERC20Helper(USDC).balanceOf(address(nstblHub));
-    //     uint256 usdtBalBefore = IERC20Helper(USDT).balanceOf(address(nstblHub));
-    //     uint256 daiBalBefore = IERC20Helper(DAI).balanceOf(address(nstblHub));
-    //     uint256 nstblBalBefore = nstblToken.balanceOf(nealthyAddr);
-    //     vm.startPrank(nealthyAddr);
-    //     nstblToken.approve(address(nstblHub), _amount);
-    //     nstblHub.redeem(_amount, user1);
-    //     vm.stopPrank();
-    //     uint256 usdcBalAfter = IERC20Helper(USDC).balanceOf(address(nstblHub));
-    //     uint256 usdtBalAfter = IERC20Helper(USDT).balanceOf(address(nstblHub));
-    //     uint256 daiBalAfter = IERC20Helper(DAI).balanceOf(address(nstblHub));
-    //     uint256 nstblBalAfter = nstblToken.balanceOf(nealthyAddr);
-    //     assertEq((_amount*8/10)/10**12, usdcBalBefore - usdcBalAfter);
-    //     assertEq((_amount*1/10)/10**12, usdtBalBefore - usdtBalAfter);
-    //     uint256 finalDaiBal = (_amount*1/10)*nstblHub.dt()/97e6;
-    //     assertEq(finalDaiBal, daiBalBefore - daiBalAfter);
-    //     assertEq(nstblToken.balanceOf(address(nstblHub)), nstblBalBefore - nstblBalAfter);
-
-    // }
-
-    // function test_redeem_daiUSDTDepeg_suffLiquidity() external {
-
-    //     uint256 _amount = 1e6*1e18;
-    //     erc20_transfer(address(nstblToken), admin, nealthyAddr, _amount);
-
-    //     //daiDepeg
-    //     usdcPriceFeedMock.updateAnswer(982e5);
-    //     usdtPriceFeedMock.updateAnswer(975e5);
-    //     daiPriceFeedMock.updateAnswer(970e5);
-
-    //     deal(USDC, address(nstblHub), (_amount*8/10)/10**12);
-    //     deal(USDT, address(nstblHub), (_amount*2/10)/10**12);
-    //     deal(DAI, address(nstblHub), (_amount*2/10));
-
-    //     uint256 usdcBalBefore = IERC20Helper(USDC).balanceOf(address(nstblHub));
-    //     uint256 usdtBalBefore = IERC20Helper(USDT).balanceOf(address(nstblHub));
-    //     uint256 daiBalBefore = IERC20Helper(DAI).balanceOf(address(nstblHub));
-    //     uint256 nstblBalBefore = nstblToken.balanceOf(nealthyAddr);
-    //     vm.startPrank(nealthyAddr);
-    //     nstblToken.approve(address(nstblHub), _amount);
-    //     nstblHub.redeem(_amount, user1);
-    //     vm.stopPrank();
-    //     uint256 usdcBalAfter = IERC20Helper(USDC).balanceOf(address(nstblHub));
-    //     uint256 usdtBalAfter = IERC20Helper(USDT).balanceOf(address(nstblHub));
-    //     uint256 daiBalAfter = IERC20Helper(DAI).balanceOf(address(nstblHub));
-    //     uint256 nstblBalAfter = nstblToken.balanceOf(nealthyAddr);
-    //     assertEq((_amount*8/10)/10**12, usdcBalBefore - usdcBalAfter);
-    //     uint256 finalUsdtBal = ((_amount*1/10)/10**12)*nstblHub.dt()/975e5;
-    //     assertEq(finalUsdtBal, usdtBalBefore - usdtBalAfter);
-    //     uint256 finalDaiBal = (_amount*1/10)*nstblHub.dt()/97e6;
-    //     assertEq(finalDaiBal, daiBalBefore - daiBalAfter);
-    //     assertEq(nstblToken.balanceOf(address(nstblHub)), nstblBalBefore - nstblBalAfter);
-
-    // }
-
-    // function test_redeem_daiUSDTDepeg_suffLiquidity_case2() external {
-
-    //     uint256 _amount = 1e6*1e18;
-    //     erc20_transfer(address(nstblToken), admin, nealthyAddr, _amount);
-
-    //     //daiDepeg
-    //     usdcPriceFeedMock.updateAnswer(982e5);
-    //     usdtPriceFeedMock.updateAnswer(975e5);
-    //     daiPriceFeedMock.updateAnswer(970e5);
-
-    //     deal(USDC, address(nstblHub), (_amount)/10**12);
-    //     deal(USDT, address(nstblHub), (_amount*1/10)/10**12);
-    //     deal(DAI, address(nstblHub), (_amount*1/10));
-
-    //     uint256 usdcBalBefore = IERC20Helper(USDC).balanceOf(address(nstblHub));
-    //     uint256 usdtBalBefore = IERC20Helper(USDT).balanceOf(address(nstblHub));
-    //     uint256 daiBalBefore = IERC20Helper(DAI).balanceOf(address(nstblHub));
-    //     uint256 nstblBalBefore = nstblToken.balanceOf(nealthyAddr);
-    //     vm.startPrank(nealthyAddr);
-    //     nstblToken.approve(address(nstblHub), _amount);
-    //     nstblHub.redeem(_amount, user1);
-    //     vm.stopPrank();
-    //     uint256 usdcBalAfter = IERC20Helper(USDC).balanceOf(address(nstblHub));
-    //     uint256 usdtBalAfter = IERC20Helper(USDT).balanceOf(address(nstblHub));
-    //     uint256 daiBalAfter = IERC20Helper(DAI).balanceOf(address(nstblHub));
-    //     uint256 nstblBalAfter = nstblToken.balanceOf(nealthyAddr);
-
-    //     uint256 daiRedeemableNSTBL = (_amount*1/10)/1e12*97e6/nstblHub.dt();
-    //     uint256 usdtRedeemableNSTBL = ((_amount*1/10)/10**12)*975e5/nstblHub.dt();
-
-    //     assertTrue((_amount*8/10)/10**12 + ((_amount*1/10)/1e12 - daiRedeemableNSTBL) + ((_amount*1/10)/10**12 - usdtRedeemableNSTBL) - (usdcBalBefore - usdcBalAfter)<10);
-    //     assertEq(((_amount*1/10)/10**12), usdtBalBefore - usdtBalAfter);
-    //     assertEq((_amount*1/10), daiBalBefore - daiBalAfter);
-    //     assertEq(nstblToken.balanceOf(address(nstblHub)), nstblBalBefore - nstblBalAfter );
-
-    // }
-
-    // function test_redeem_daiUSDTDepeg_insuffLiquidity() external {
-
-    //     uint256 _amount = 1e6*1e18;
-    //     erc20_transfer(address(nstblToken), admin, nealthyAddr, _amount);
-
-    //     //daiDepeg
-    //     usdcPriceFeedMock.updateAnswer(982e5);
-    //     usdtPriceFeedMock.updateAnswer(975e5);
-    //     daiPriceFeedMock.updateAnswer(970e5);
-
-    //     deal(USDC, address(nstblHub), (_amount*8/10)/10**12);
-    //     deal(USDT, address(nstblHub), (_amount*1/10)/10**12);
-    //     deal(DAI, address(nstblHub), (_amount*1/10));
-
-    //     uint256 usdcBalBefore = IERC20Helper(USDC).balanceOf(address(nstblHub));
-    //     uint256 usdtBalBefore = IERC20Helper(USDT).balanceOf(address(nstblHub));
-    //     uint256 daiBalBefore = IERC20Helper(DAI).balanceOf(address(nstblHub));
-    //     uint256 nstblBalBefore = nstblToken.balanceOf(nealthyAddr);
-    //     vm.startPrank(nealthyAddr);
-    //     nstblToken.approve(address(nstblHub), _amount);
-    //     nstblHub.redeem(_amount, user1);
-    //     vm.stopPrank();
-    //     uint256 usdcBalAfter = IERC20Helper(USDC).balanceOf(address(nstblHub));
-    //     uint256 usdtBalAfter = IERC20Helper(USDT).balanceOf(address(nstblHub));
-    //     uint256 daiBalAfter = IERC20Helper(DAI).balanceOf(address(nstblHub));
-    //     uint256 nstblBalAfter = nstblToken.balanceOf(nealthyAddr);
-
-    //     uint256 daiRedeemableNSTBL = (_amount*1/10)/1e12*97e6/nstblHub.dt();
-    //     uint256 usdtRedeemableNSTBL = ((_amount*1/10)/10**12)*975e5/nstblHub.dt();
-
-    //     assertEq((_amount*8/10)/10**12 , (usdcBalBefore - usdcBalAfter));
-    //     assertEq(((_amount*1/10)/10**12), usdtBalBefore - usdtBalAfter);
-    //     assertEq((_amount*1/10), daiBalBefore - daiBalAfter);
-    //     assertEq(nstblToken.balanceOf(address(nstblHub)), nstblBalBefore - nstblBalAfter );
-    //     assertEq(nstblToken.balanceOf(address(nstblHub)), nstblHub.atvlBurnAmount());
-
-    // }
-
-    // function test_redeem_usdcDepeg_suffLiquidity() external {
-
-    //     uint256 _amount = 1e6*1e18;
-    //     erc20_transfer(address(nstblToken), admin, nealthyAddr, _amount);
-
-    //     //daiDepeg
-    //     usdcPriceFeedMock.updateAnswer(975e5);
-    //     usdtPriceFeedMock.updateAnswer(99e6);
-    //     daiPriceFeedMock.updateAnswer(980e5);
-
-    //     deal(USDC, address(nstblHub), (_amount)/10**12);
-    //     deal(USDT, address(nstblHub), (_amount*1/10)/10**12);
-    //     deal(DAI, address(nstblHub), (_amount*1/10));
-
-    //     uint256 usdcBalBefore = IERC20Helper(USDC).balanceOf(address(nstblHub));
-    //     uint256 usdtBalBefore = IERC20Helper(USDT).balanceOf(address(nstblHub));
-    //     uint256 daiBalBefore = IERC20Helper(DAI).balanceOf(address(nstblHub));
-    //     uint256 nstblBalBefore = nstblToken.balanceOf(nealthyAddr);
-    //     vm.startPrank(nealthyAddr);
-    //     nstblToken.approve(address(nstblHub), _amount);
-    //     nstblHub.redeem(_amount, user1);
-    //     vm.stopPrank();
-    //     uint256 usdcBalAfter = IERC20Helper(USDC).balanceOf(address(nstblHub));
-    //     uint256 usdtBalAfter = IERC20Helper(USDT).balanceOf(address(nstblHub));
-    //     uint256 daiBalAfter = IERC20Helper(DAI).balanceOf(address(nstblHub));
-    //     uint256 nstblBalAfter = nstblToken.balanceOf(nealthyAddr);
-    //     uint256 usdcWithdrawAmt = (_amount*8/10)/10**12 * nstblHub.dt()/975e5;
-    //     assertEq(usdcWithdrawAmt, usdcBalBefore - usdcBalAfter);
-    //     assertEq((_amount*1/10)/10**12, usdtBalBefore - usdtBalAfter);
-    //     assertEq((_amount*1/10), daiBalBefore - daiBalAfter);
-    //     assertEq(nstblToken.balanceOf(address(nstblHub)), nstblBalBefore - nstblBalAfter);
-
-    // }
-
-    function test_redeem_daiUSDTDepeg_belowLB_suffLiquidity() external {
+    function test_unstake_noDepeg() external {
         uint256 _amount = 1e6 * 1e18;
-        erc20_transfer(address(nstblToken), admin, nealthyAddr, _amount);
+        _stakeNstbl(nealthyAddr, _amount, 0);
 
-        //daiDepeg
-        usdcPriceFeedMock.updateAnswer(982e5);
-        usdtPriceFeedMock.updateAnswer(955e5);
-        daiPriceFeedMock.updateAnswer(950e5);
+        //maintaining exact proportions
+        deal(USDC, address(nstblHub), 8e5 * 1e6);
+        deal(USDT, address(nstblHub), 1e5 * 1e6);
+        deal(DAI, address(nstblHub), 1e5 * 1e18);
 
-        deal(USDC, address(nstblHub), (_amount * 8 / 10) / 10 ** 12);
-        deal(USDT, address(nstblHub), (_amount * 2 / 10) / 10 ** 12);
-        deal(DAI, address(nstblHub), (_amount * 2 / 10));
+        usdcPriceFeedMock.updateAnswer(981e5);
+        usdtPriceFeedMock.updateAnswer(99e6);
+        daiPriceFeedMock.updateAnswer(985e5);
 
-        uint256 usdcBalBefore = IERC20Helper(USDC).balanceOf(address(nstblHub));
-        uint256 usdtBalBefore = IERC20Helper(USDT).balanceOf(address(nstblHub));
-        uint256 daiBalBefore = IERC20Helper(DAI).balanceOf(address(nstblHub));
-        uint256 nstblBalBefore = nstblToken.balanceOf(nealthyAddr);
+        vm.expectRevert("HUB::UNAUTH");
+        nstblHub.unstake(_amount, 0, nealthyAddr);
+
         vm.startPrank(nealthyAddr);
-        nstblToken.approve(address(nstblHub), _amount);
-        nstblHub.redeem(_amount, user1);
+        nstblHub.unstake(_amount, 0, nealthyAddr);
         vm.stopPrank();
-        uint256 usdcBalAfter = IERC20Helper(USDC).balanceOf(address(nstblHub));
-        uint256 usdtBalAfter = IERC20Helper(USDT).balanceOf(address(nstblHub));
-        uint256 daiBalAfter = IERC20Helper(DAI).balanceOf(address(nstblHub));
-        uint256 nstblBalAfter = nstblToken.balanceOf(nealthyAddr);
+    }
 
-        uint256 daiRedeemableAmt = (_amount * 1 / 10) * nstblHub.dt() / 950e5;
-        uint256 usdtRedeemableAmt = ((_amount * 1 / 10) / 10 ** 12) * nstblHub.dt() / 955e5;
+    function test_unstake_OneDepeg_InsuffLiquidity() external {
+        erc20_transfer(address(nstblToken), admin, address(atvl), 12_000 * 1e18);
+        uint256 _amount = 1e6 * 1e18;
+        _stakeNstbl(nealthyAddr, _amount, 0);
 
-        assertEq((_amount * 8 / 10) / 10 ** 12, (usdcBalBefore - usdcBalAfter));
-        assertEq(usdtRedeemableAmt, usdtBalBefore - usdtBalAfter);
-        assertEq(daiRedeemableAmt, daiBalBefore - daiBalAfter);
-        assertEq(nstblToken.balanceOf(address(nstblHub)), nstblBalBefore - nstblBalAfter);
-        assertEq(nstblToken.balanceOf(address(nstblHub)), nstblHub.atvlBurnAmount());
+        //maintaining exact proportions
+        deal(USDC, address(nstblHub), 8e5 * 1e6);
+        deal(USDT, address(nstblHub), 1e5 * 1e6);
+        deal(DAI, address(nstblHub), 1e5 * 1e18);
+
+        usdcPriceFeedMock.updateAnswer(981e5);
+        usdtPriceFeedMock.updateAnswer(99e6);
+        daiPriceFeedMock.updateAnswer(975e5);
+
+        vm.expectRevert("HUB::UNAUTH");
+        nstblHub.unstake(_amount, 0, nealthyAddr);
+
+        uint256 atvlBalBefore = nstblToken.balanceOf(address(atvl));
+        uint256 stakePoolBalBefore = nstblToken.balanceOf(address(stakePool));
+        uint256 nstblSupplyBefore = nstblToken.totalSupply();
+        uint256 stakeAmountBefore = stakePool.getUserStakedAmount(nealthyAddr, 0);
+
+        vm.startPrank(nealthyAddr);
+        nstblHub.unstake(_amount, 0, nealthyAddr);
+        vm.stopPrank();
+
+        uint256 atvlBalAfter = nstblToken.balanceOf(address(atvl));
+        uint256 stakePoolBalAfter = nstblToken.balanceOf(address(stakePool));
+        uint256 nstblSupplyAfter = nstblToken.totalSupply();
+        uint256 stakeAmountAfter = stakePool.getUserStakedAmount(nealthyAddr, 0);
+
+        assertEq(atvlBalBefore - atvlBalAfter + atvl.pendingNstblBurn(), nstblHub.atvlBurnAmount());
+        assertEq(nstblSupplyBefore - nstblSupplyAfter, nstblHub.atvlBurnAmount() + stakeAmountBefore - stakeAmountAfter);
+    }
+
+    function test_unstake_TwoDepeg_InsuffLiquidity() external {
+
+        erc20_transfer(address(nstblToken), admin, address(atvl), 12_000 * 1e18);
+        uint256 _amount = 1e6 * 1e18;
+        _stakeNstbl(nealthyAddr, _amount, 0);
+
+        //maintaining exact proportions
+        deal(USDC, address(nstblHub), 8e5 * 1e6);
+        deal(USDT, address(nstblHub), 1e5 * 1e6);
+        deal(DAI, address(nstblHub), 1e5 * 1e18);
+
+        usdcPriceFeedMock.updateAnswer(981e5);
+        usdtPriceFeedMock.updateAnswer(975e5);
+        daiPriceFeedMock.updateAnswer(965e5);
+
+        vm.expectRevert("HUB::UNAUTH");
+        nstblHub.unstake(_amount, 0, nealthyAddr);
+
+        uint256 atvlBalBefore = nstblToken.balanceOf(address(atvl));
+        uint256 stakePoolBalBefore = nstblToken.balanceOf(address(stakePool));
+        uint256 nstblSupplyBefore = nstblToken.totalSupply();
+        uint256 stakeAmountBefore = stakePool.getUserStakedAmount(nealthyAddr, 0);
+
+        vm.startPrank(nealthyAddr);
+        nstblHub.unstake(_amount, 0, nealthyAddr);
+        vm.stopPrank();
+
+        uint256 atvlBalAfter = nstblToken.balanceOf(address(atvl));
+        uint256 stakePoolBalAfter = nstblToken.balanceOf(address(stakePool));
+        uint256 nstblSupplyAfter = nstblToken.totalSupply();
+        uint256 stakeAmountAfter = stakePool.getUserStakedAmount(nealthyAddr, 0);
+
+        assertEq(atvlBalBefore - atvlBalAfter + atvl.pendingNstblBurn(), nstblHub.atvlBurnAmount());
+        assertEq(nstblSupplyBefore - nstblSupplyAfter, nstblHub.atvlBurnAmount() + stakeAmountBefore - stakeAmountAfter);
+    }
+
+    function test_unstake_ThreeDepeg_InsuffLiquidity() external {
+        erc20_transfer(address(nstblToken), admin, address(atvl), 100_000 * 1e18);
+        uint256 _amount = 1e6 * 1e18;
+        _stakeNstbl(nealthyAddr, _amount, 0);
+
+        //maintaining exact proportions
+        deal(USDC, address(nstblHub), 8e5 * 1e6);
+        deal(USDT, address(nstblHub), 1e5 * 1e6);
+        deal(DAI, address(nstblHub), 1e5 * 1e18);
+
+        usdcPriceFeedMock.updateAnswer(959e5);
+        usdtPriceFeedMock.updateAnswer(975e5);
+        daiPriceFeedMock.updateAnswer(965e5);
+
+        vm.expectRevert("HUB::UNAUTH");
+        nstblHub.unstake(_amount, 0, nealthyAddr);
+
+        uint256 atvlBalBefore = nstblToken.balanceOf(address(atvl));
+        uint256 stakePoolBalBefore = nstblToken.balanceOf(address(stakePool));
+        uint256 nstblSupplyBefore = nstblToken.totalSupply();
+        uint256 stakeAmountBefore = stakePool.getUserStakedAmount(nealthyAddr, 0);
+
+        vm.startPrank(nealthyAddr);
+        nstblHub.unstake(_amount, 0, nealthyAddr);
+        vm.stopPrank();
+
+        uint256 atvlBalAfter = nstblToken.balanceOf(address(atvl));
+        uint256 stakePoolBalAfter = nstblToken.balanceOf(address(stakePool));
+        uint256 nstblSupplyAfter = nstblToken.totalSupply();
+        uint256 stakeAmountAfter = stakePool.getUserStakedAmount(nealthyAddr, 0);
+
+        assertEq(atvlBalBefore - atvlBalAfter + atvl.pendingNstblBurn(), nstblHub.atvlBurnAmount());
+        assertEq(nstblSupplyBefore - nstblSupplyAfter, nstblHub.atvlBurnAmount() + stakeAmountBefore - stakeAmountAfter);
+    }
+
+    function test_unstake_ThreeDepeg_SuffLiquidity() external {
+        erc20_transfer(address(nstblToken), admin, address(atvl), 100_000 * 1e18);
+        uint256 _amount = 1e6 * 1e18;
+        _stakeNstbl(nealthyAddr, _amount, 0);
+
+        //maintaining exact proportions
+        deal(USDC, address(nstblHub), 800e5 * 1e6);
+        deal(USDT, address(nstblHub), 1e5 * 1e6);
+        deal(DAI, address(nstblHub), 1e5 * 1e18);
+
+        usdcPriceFeedMock.updateAnswer(959e5);
+        usdtPriceFeedMock.updateAnswer(975e5);
+        daiPriceFeedMock.updateAnswer(965e5);
+
+        vm.expectRevert("HUB::UNAUTH");
+        nstblHub.unstake(_amount, 0, nealthyAddr);
+
+        uint256 atvlBalBefore = nstblToken.balanceOf(address(atvl));
+        uint256 stakePoolBalBefore = nstblToken.balanceOf(address(stakePool));
+        uint256 nstblSupplyBefore = nstblToken.totalSupply();
+        uint256 stakeAmountBefore = stakePool.getUserStakedAmount(nealthyAddr, 0);
+
+        vm.startPrank(nealthyAddr);
+        nstblHub.unstake(_amount, 0, nealthyAddr);
+        vm.stopPrank();
+
+        uint256 atvlBalAfter = nstblToken.balanceOf(address(atvl));
+        uint256 stakePoolBalAfter = nstblToken.balanceOf(address(stakePool));
+        uint256 nstblSupplyAfter = nstblToken.totalSupply();
+        uint256 stakeAmountAfter = stakePool.getUserStakedAmount(nealthyAddr, 0);
+
+        assertEq(atvlBalBefore - atvlBalAfter + atvl.pendingNstblBurn(), nstblHub.atvlBurnAmount());
+        assertEq(nstblSupplyBefore - nstblSupplyAfter, nstblHub.atvlBurnAmount() + stakeAmountBefore - stakeAmountAfter);
     }
 }
+
+// contract NSTBLHubTestRedeem is BaseTest {
+//     using SafeERC20 for IERC20Helper;
+
+//     function setUp() public override {
+//         super.setUp();
+//     }
+
+//     function test_redeem_noDepeg_suffLiquidity() external {
+
+//         uint256 _amount = 1e6 * 1e18;
+//         erc20_transfer(address(nstblToken), admin, nealthyAddr, _amount);
+
+//         //noDepeg
+//         usdcPriceFeedMock.updateAnswer(982e5);
+//         usdtPriceFeedMock.updateAnswer(99e6);
+//         daiPriceFeedMock.updateAnswer(985e5);
+
+//         deal(USDC, address(nstblHub), (_amount*8/10)/10**12);
+//         deal(USDT, address(nstblHub), (_amount*1/10)/10**12);
+//         deal(DAI, address(nstblHub), (_amount*1/10));
+
+//         uint256 usdcBalBefore = IERC20Helper(USDC).balanceOf(address(nstblHub));
+//         uint256 usdtBalBefore = IERC20Helper(USDT).balanceOf(address(nstblHub));
+//         uint256 daiBalBefore = IERC20Helper(DAI).balanceOf(address(nstblHub));
+//         uint256 nstblBalBefore = nstblToken.balanceOf(nealthyAddr);
+//         vm.startPrank(nealthyAddr);
+//         nstblToken.approve(address(nstblHub), _amount);
+//         nstblHub.redeem(_amount, user1);
+//         vm.stopPrank();
+//         uint256 usdcBalAfter = IERC20Helper(USDC).balanceOf(address(nstblHub));
+//         uint256 usdtBalAfter = IERC20Helper(USDT).balanceOf(address(nstblHub));
+//         uint256 daiBalAfter = IERC20Helper(DAI).balanceOf(address(nstblHub));
+//         uint256 nstblBalAfter = nstblToken.balanceOf(nealthyAddr);
+//         assertEq((_amount*8/10)/10**12, usdcBalBefore - usdcBalAfter);
+//         assertEq((_amount*1/10)/10**12, usdtBalBefore - usdtBalAfter);
+//         assertEq((_amount*1/10), daiBalBefore - daiBalAfter);
+//         assertEq(nstblToken.balanceOf(address(nstblHub)), nstblBalBefore - nstblBalAfter);
+
+//     }
+
+//     function test_redeem_noDepeg_suffLiquidity_fuzz(uint256 _amount) external {
+
+//         _amount = bound(_amount, 1e13, nstblToken.totalSupply());
+//         erc20_transfer(address(nstblToken), admin, nealthyAddr, _amount);
+
+//         //noDepeg
+//         usdcPriceFeedMock.updateAnswer(982e5);
+//         usdtPriceFeedMock.updateAnswer(99e6);
+//         daiPriceFeedMock.updateAnswer(985e5);
+
+//         deal(USDC, address(nstblHub), (_amount*8e4/1e5)/10**12);
+//         require((_amount*8e4/1e5)/10**12 > 0);
+//         deal(USDT, address(nstblHub), (_amount*1e4/1e5)/10**12);
+//         deal(DAI, address(nstblHub), _amount*1e18/1e5);
+
+//         uint256 usdcBalBefore = IERC20Helper(USDC).balanceOf(address(nstblHub));
+//         uint256 usdtBalBefore = IERC20Helper(USDT).balanceOf(address(nstblHub));
+//         uint256 daiBalBefore = IERC20Helper(DAI).balanceOf(address(nstblHub));
+//         uint256 nstblBalBefore = nstblToken.balanceOf(nealthyAddr);
+//         vm.startPrank(nealthyAddr);
+//         nstblToken.approve(address(nstblHub), _amount);
+//         nstblHub.redeem(_amount, user1);
+//         vm.stopPrank();
+//         uint256 usdcBalAfter = IERC20Helper(USDC).balanceOf(address(nstblHub));
+//         uint256 usdtBalAfter = IERC20Helper(USDT).balanceOf(address(nstblHub));
+//         uint256 daiBalAfter = IERC20Helper(DAI).balanceOf(address(nstblHub));
+//         uint256 nstblBalAfter = nstblToken.balanceOf(nealthyAddr);
+//         assertEq((_amount*8e4/1e5)/10**12, usdcBalBefore - usdcBalAfter);
+//         assertEq((_amount*1e4/1e5)/10**12, usdtBalBefore - usdtBalAfter);
+//         assertEq(_amount*1e4/1e5, daiBalBefore - daiBalAfter);
+//         assertEq(nstblToken.balanceOf(address(nstblHub)), nstblBalBefore - nstblBalAfter);
+
+//     }
+
+//     function test_redeem_daiAtDepeg_suffLiquidity() external {
+
+//         uint256 _amount = 1e6*1e18;
+//         erc20_transfer(address(nstblToken), admin, nealthyAddr, _amount);
+
+//         //daiDepeg
+//         usdcPriceFeedMock.updateAnswer(982e5);
+//         usdtPriceFeedMock.updateAnswer(99e6);
+//         daiPriceFeedMock.updateAnswer(980e5);
+
+//         deal(USDC, address(nstblHub), (_amount*8/10)/10**12);
+//         deal(USDT, address(nstblHub), (_amount*1/10)/10**12);
+//         deal(DAI, address(nstblHub), (_amount*1/10));
+
+//         uint256 usdcBalBefore = IERC20Helper(USDC).balanceOf(address(nstblHub));
+//         uint256 usdtBalBefore = IERC20Helper(USDT).balanceOf(address(nstblHub));
+//         uint256 daiBalBefore = IERC20Helper(DAI).balanceOf(address(nstblHub));
+//         uint256 nstblBalBefore = nstblToken.balanceOf(nealthyAddr);
+//         vm.startPrank(nealthyAddr);
+//         nstblToken.approve(address(nstblHub), _amount);
+//         nstblHub.redeem(_amount, user1);
+//         vm.stopPrank();
+//         uint256 usdcBalAfter = IERC20Helper(USDC).balanceOf(address(nstblHub));
+//         uint256 usdtBalAfter = IERC20Helper(USDT).balanceOf(address(nstblHub));
+//         uint256 daiBalAfter = IERC20Helper(DAI).balanceOf(address(nstblHub));
+//         uint256 nstblBalAfter = nstblToken.balanceOf(nealthyAddr);
+//         assertEq((_amount*8/10)/10**12, usdcBalBefore - usdcBalAfter);
+//         assertEq((_amount*1/10)/10**12, usdtBalBefore - usdtBalAfter);
+//         assertEq((_amount*1/10), daiBalBefore - daiBalAfter);
+//         assertEq(nstblToken.balanceOf(address(nstblHub)), nstblBalBefore - nstblBalAfter);
+
+//     }
+
+//     function test_redeem_daiDepeg_suffLiquidity() external {
+
+//         uint256 _amount = 1e6*1e18;
+//         erc20_transfer(address(nstblToken), admin, nealthyAddr, _amount);
+
+//         //daiDepeg
+//         usdcPriceFeedMock.updateAnswer(982e5);
+//         usdtPriceFeedMock.updateAnswer(99e6);
+//         daiPriceFeedMock.updateAnswer(970e5);
+
+//         deal(USDC, address(nstblHub), (_amount*8/10)/10**12);
+//         deal(USDT, address(nstblHub), (_amount*1/10)/10**12);
+//         deal(DAI, address(nstblHub), (_amount*2/10));
+
+//         uint256 usdcBalBefore = IERC20Helper(USDC).balanceOf(address(nstblHub));
+//         uint256 usdtBalBefore = IERC20Helper(USDT).balanceOf(address(nstblHub));
+//         uint256 daiBalBefore = IERC20Helper(DAI).balanceOf(address(nstblHub));
+//         uint256 nstblBalBefore = nstblToken.balanceOf(nealthyAddr);
+//         vm.startPrank(nealthyAddr);
+//         nstblToken.approve(address(nstblHub), _amount);
+//         nstblHub.redeem(_amount, user1);
+//         vm.stopPrank();
+//         uint256 usdcBalAfter = IERC20Helper(USDC).balanceOf(address(nstblHub));
+//         uint256 usdtBalAfter = IERC20Helper(USDT).balanceOf(address(nstblHub));
+//         uint256 daiBalAfter = IERC20Helper(DAI).balanceOf(address(nstblHub));
+//         uint256 nstblBalAfter = nstblToken.balanceOf(nealthyAddr);
+//         assertEq((_amount*8/10)/10**12, usdcBalBefore - usdcBalAfter);
+//         assertEq((_amount*1/10)/10**12, usdtBalBefore - usdtBalAfter);
+//         uint256 finalDaiBal = (_amount*1/10)*nstblHub.dt()/97e6;
+//         assertEq(finalDaiBal, daiBalBefore - daiBalAfter);
+//         assertEq(nstblToken.balanceOf(address(nstblHub)), nstblBalBefore - nstblBalAfter);
+
+//     }
+
+//     function test_redeem_daiUSDTDepeg_suffLiquidity() external {
+
+//         uint256 _amount = 1e6*1e18;
+//         erc20_transfer(address(nstblToken), admin, nealthyAddr, _amount);
+
+//         //daiDepeg
+//         usdcPriceFeedMock.updateAnswer(982e5);
+//         usdtPriceFeedMock.updateAnswer(975e5);
+//         daiPriceFeedMock.updateAnswer(970e5);
+
+//         deal(USDC, address(nstblHub), (_amount*8/10)/10**12);
+//         deal(USDT, address(nstblHub), (_amount*2/10)/10**12);
+//         deal(DAI, address(nstblHub), (_amount*2/10));
+
+//         uint256 usdcBalBefore = IERC20Helper(USDC).balanceOf(address(nstblHub));
+//         uint256 usdtBalBefore = IERC20Helper(USDT).balanceOf(address(nstblHub));
+//         uint256 daiBalBefore = IERC20Helper(DAI).balanceOf(address(nstblHub));
+//         uint256 nstblBalBefore = nstblToken.balanceOf(nealthyAddr);
+//         vm.startPrank(nealthyAddr);
+//         nstblToken.approve(address(nstblHub), _amount);
+//         nstblHub.redeem(_amount, user1);
+//         vm.stopPrank();
+//         uint256 usdcBalAfter = IERC20Helper(USDC).balanceOf(address(nstblHub));
+//         uint256 usdtBalAfter = IERC20Helper(USDT).balanceOf(address(nstblHub));
+//         uint256 daiBalAfter = IERC20Helper(DAI).balanceOf(address(nstblHub));
+//         uint256 nstblBalAfter = nstblToken.balanceOf(nealthyAddr);
+//         assertEq((_amount*8/10)/10**12, usdcBalBefore - usdcBalAfter);
+//         uint256 finalUsdtBal = ((_amount*1/10)/10**12)*nstblHub.dt()/975e5;
+//         assertEq(finalUsdtBal, usdtBalBefore - usdtBalAfter);
+//         uint256 finalDaiBal = (_amount*1/10)*nstblHub.dt()/97e6;
+//         assertEq(finalDaiBal, daiBalBefore - daiBalAfter);
+//         assertEq(nstblToken.balanceOf(address(nstblHub)), nstblBalBefore - nstblBalAfter);
+
+//     }
+
+//     function test_redeem_daiUSDTDepeg_suffLiquidity_case2() external {
+
+//         uint256 _amount = 1e6*1e18;
+//         erc20_transfer(address(nstblToken), admin, nealthyAddr, _amount);
+
+//         //daiDepeg
+//         usdcPriceFeedMock.updateAnswer(982e5);
+//         usdtPriceFeedMock.updateAnswer(975e5);
+//         daiPriceFeedMock.updateAnswer(970e5);
+
+//         deal(USDC, address(nstblHub), (_amount)/10**12);
+//         deal(USDT, address(nstblHub), (_amount*1/10)/10**12);
+//         deal(DAI, address(nstblHub), (_amount*1/10));
+
+//         uint256 usdcBalBefore = IERC20Helper(USDC).balanceOf(address(nstblHub));
+//         uint256 usdtBalBefore = IERC20Helper(USDT).balanceOf(address(nstblHub));
+//         uint256 daiBalBefore = IERC20Helper(DAI).balanceOf(address(nstblHub));
+//         uint256 nstblBalBefore = nstblToken.balanceOf(nealthyAddr);
+//         vm.startPrank(nealthyAddr);
+//         nstblToken.approve(address(nstblHub), _amount);
+//         nstblHub.redeem(_amount, user1);
+//         vm.stopPrank();
+//         uint256 usdcBalAfter = IERC20Helper(USDC).balanceOf(address(nstblHub));
+//         uint256 usdtBalAfter = IERC20Helper(USDT).balanceOf(address(nstblHub));
+//         uint256 daiBalAfter = IERC20Helper(DAI).balanceOf(address(nstblHub));
+//         uint256 nstblBalAfter = nstblToken.balanceOf(nealthyAddr);
+
+//         uint256 daiRedeemableNSTBL = (_amount*1/10)/1e12*97e6/nstblHub.dt();
+//         uint256 usdtRedeemableNSTBL = ((_amount*1/10)/10**12)*975e5/nstblHub.dt();
+
+//         assertTrue((_amount*8/10)/10**12 + ((_amount*1/10)/1e12 - daiRedeemableNSTBL) + ((_amount*1/10)/10**12 - usdtRedeemableNSTBL) - (usdcBalBefore - usdcBalAfter)<10);
+//         assertEq(((_amount*1/10)/10**12), usdtBalBefore - usdtBalAfter);
+//         assertEq((_amount*1/10), daiBalBefore - daiBalAfter);
+//         assertEq(nstblToken.balanceOf(address(nstblHub)), nstblBalBefore - nstblBalAfter );
+
+//     }
+
+//     function test_redeem_daiUSDTDepeg_insuffLiquidity() external {
+
+//         uint256 _amount = 1e6*1e18;
+//         erc20_transfer(address(nstblToken), admin, nealthyAddr, _amount);
+
+//         //daiDepeg
+//         usdcPriceFeedMock.updateAnswer(982e5);
+//         usdtPriceFeedMock.updateAnswer(975e5);
+//         daiPriceFeedMock.updateAnswer(970e5);
+
+//         deal(USDC, address(nstblHub), (_amount*8/10)/10**12);
+//         deal(USDT, address(nstblHub), (_amount*1/10)/10**12);
+//         deal(DAI, address(nstblHub), (_amount*1/10));
+
+//         uint256 usdcBalBefore = IERC20Helper(USDC).balanceOf(address(nstblHub));
+//         uint256 usdtBalBefore = IERC20Helper(USDT).balanceOf(address(nstblHub));
+//         uint256 daiBalBefore = IERC20Helper(DAI).balanceOf(address(nstblHub));
+//         uint256 nstblBalBefore = nstblToken.balanceOf(nealthyAddr);
+//         vm.startPrank(nealthyAddr);
+//         nstblToken.approve(address(nstblHub), _amount);
+//         nstblHub.redeem(_amount, user1);
+//         vm.stopPrank();
+//         uint256 usdcBalAfter = IERC20Helper(USDC).balanceOf(address(nstblHub));
+//         uint256 usdtBalAfter = IERC20Helper(USDT).balanceOf(address(nstblHub));
+//         uint256 daiBalAfter = IERC20Helper(DAI).balanceOf(address(nstblHub));
+//         uint256 nstblBalAfter = nstblToken.balanceOf(nealthyAddr);
+
+//         uint256 daiRedeemableNSTBL = (_amount*1/10)/1e12*97e6/nstblHub.dt();
+//         uint256 usdtRedeemableNSTBL = ((_amount*1/10)/10**12)*975e5/nstblHub.dt();
+
+//         assertEq((_amount*8/10)/10**12 , (usdcBalBefore - usdcBalAfter));
+//         assertEq(((_amount*1/10)/10**12), usdtBalBefore - usdtBalAfter);
+//         assertEq((_amount*1/10), daiBalBefore - daiBalAfter);
+//         assertEq(nstblToken.balanceOf(address(nstblHub)), nstblBalBefore - nstblBalAfter );
+//         assertEq(nstblToken.balanceOf(address(nstblHub)), nstblHub.atvlBurnAmount());
+
+//     }
+
+//     function test_redeem_usdcDepeg_suffLiquidity() external {
+
+//         uint256 _amount = 1e6*1e18;
+//         erc20_transfer(address(nstblToken), admin, nealthyAddr, _amount);
+
+//         //daiDepeg
+//         usdcPriceFeedMock.updateAnswer(975e5);
+//         usdtPriceFeedMock.updateAnswer(99e6);
+//         daiPriceFeedMock.updateAnswer(980e5);
+
+//         deal(USDC, address(nstblHub), (_amount)/10**12);
+//         deal(USDT, address(nstblHub), (_amount*1/10)/10**12);
+//         deal(DAI, address(nstblHub), (_amount*1/10));
+
+//         uint256 usdcBalBefore = IERC20Helper(USDC).balanceOf(address(nstblHub));
+//         uint256 usdtBalBefore = IERC20Helper(USDT).balanceOf(address(nstblHub));
+//         uint256 daiBalBefore = IERC20Helper(DAI).balanceOf(address(nstblHub));
+//         uint256 nstblBalBefore = nstblToken.balanceOf(nealthyAddr);
+//         vm.startPrank(nealthyAddr);
+//         nstblToken.approve(address(nstblHub), _amount);
+//         nstblHub.redeem(_amount, user1);
+//         vm.stopPrank();
+//         uint256 usdcBalAfter = IERC20Helper(USDC).balanceOf(address(nstblHub));
+//         uint256 usdtBalAfter = IERC20Helper(USDT).balanceOf(address(nstblHub));
+//         uint256 daiBalAfter = IERC20Helper(DAI).balanceOf(address(nstblHub));
+//         uint256 nstblBalAfter = nstblToken.balanceOf(nealthyAddr);
+//         uint256 usdcWithdrawAmt = (_amount*8/10)/10**12 * nstblHub.dt()/975e5;
+//         assertEq(usdcWithdrawAmt, usdcBalBefore - usdcBalAfter);
+//         assertEq((_amount*1/10)/10**12, usdtBalBefore - usdtBalAfter);
+//         assertEq((_amount*1/10), daiBalBefore - daiBalAfter);
+//         assertEq(nstblToken.balanceOf(address(nstblHub)), nstblBalBefore - nstblBalAfter);
+
+//     }
+
+//     function test_redeem_daiUSDTDepeg_belowLB_suffLiquidity() external {
+//         uint256 _amount = 1e6 * 1e18;
+//         erc20_transfer(address(nstblToken), admin, nealthyAddr, _amount);
+
+//         //daiDepeg
+//         usdcPriceFeedMock.updateAnswer(982e5);
+//         usdtPriceFeedMock.updateAnswer(955e5);
+//         daiPriceFeedMock.updateAnswer(950e5);
+
+//         deal(USDC, address(nstblHub), (_amount * 8 / 10) / 10 ** 12);
+//         deal(USDT, address(nstblHub), (_amount * 2 / 10) / 10 ** 12);
+//         deal(DAI, address(nstblHub), (_amount * 2 / 10));
+
+//         uint256 usdcBalBefore = IERC20Helper(USDC).balanceOf(address(nstblHub));
+//         uint256 usdtBalBefore = IERC20Helper(USDT).balanceOf(address(nstblHub));
+//         uint256 daiBalBefore = IERC20Helper(DAI).balanceOf(address(nstblHub));
+//         uint256 nstblBalBefore = nstblToken.balanceOf(nealthyAddr);
+//         vm.startPrank(nealthyAddr);
+//         nstblToken.approve(address(nstblHub), _amount);
+//         nstblHub.redeem(_amount, user1);
+//         vm.stopPrank();
+//         uint256 usdcBalAfter = IERC20Helper(USDC).balanceOf(address(nstblHub));
+//         uint256 usdtBalAfter = IERC20Helper(USDT).balanceOf(address(nstblHub));
+//         uint256 daiBalAfter = IERC20Helper(DAI).balanceOf(address(nstblHub));
+//         uint256 nstblBalAfter = nstblToken.balanceOf(nealthyAddr);
+
+//         uint256 daiRedeemableAmt = (_amount * 1 / 10) * nstblHub.dt() / 950e5;
+//         uint256 usdtRedeemableAmt = ((_amount * 1 / 10) / 10 ** 12) * nstblHub.dt() / 955e5;
+
+//         assertEq((_amount * 8 / 10) / 10 ** 12, (usdcBalBefore - usdcBalAfter));
+//         assertEq(usdtRedeemableAmt, usdtBalBefore - usdtBalAfter);
+//         assertEq(daiRedeemableAmt, daiBalBefore - daiBalAfter);
+//         assertEq(nstblToken.balanceOf(address(nstblHub)), nstblBalBefore - nstblBalAfter);
+//         assertEq(nstblToken.balanceOf(address(nstblHub)), nstblHub.atvlBurnAmount());
+//     }
+// }
 
 // contract NSTBLHubInternal is BaseTest{
 

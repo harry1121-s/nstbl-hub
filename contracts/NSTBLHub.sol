@@ -1,5 +1,6 @@
 pragma solidity 0.8.21;
 
+import {IACLManager} from "@aclManager/contracts/IACLManager.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import { console } from "forge-std/Test.sol";
 import "./NSTBLHUBStorage.sol";
@@ -10,12 +11,12 @@ contract NSTBLHub is NSTBLHUBStorage {
     uint256 private _locked = 1;
 
     modifier onlyAdmin() {
-        require(msg.sender == admin, "HUB::NOT_ADMIN");
+        require(msg.sender == IACLManager(aclManager).owner(), "HUB::NOT_ADMIN");
         _;
     }
 
     modifier authorizedCaller() {
-        require(msg.sender == nealthyAddr, "HUB::UNAUTH");
+        require(IACLManager(aclManager).authorizedCallersHub(msg.sender), "HUB::UNAUTH");
         _;
     }
 
@@ -27,22 +28,20 @@ contract NSTBLHub is NSTBLHUBStorage {
     }
 
     constructor(
-        address _nealthyAddr,
         address _nstblToken,
         address _stakePool,
         address _chainLinkPriceFeed,
         address _atvl,
-        address _admin,
         address _loanManager,
+        address _aclManager,
         uint256 _eqTh
     ) {
-        nealthyAddr = _nealthyAddr;
         nstblToken = _nstblToken;
         stakePool = _stakePool;
         chainLinkPriceFeed = _chainLinkPriceFeed;
         atvl = _atvl;
-        admin = _admin;
         loanManager = _loanManager;
+        aclManager = _aclManager;
         eqTh = _eqTh;
     }
 
@@ -284,38 +283,39 @@ contract NSTBLHub is NSTBLHUBStorage {
         uint256 assetBalance;
         uint256 assetRequired;
         uint256 targetPrice;
+        uint256 adjustedDecimals;
 
         for (uint256 i = 0; i < _failedAssets.length; i++) {
             if (_failedAssetsPrice[i] > ub) {
                 targetPrice = dt;
-            } else if (_failedAssetsPrice[i] > lb) {
-                targetPrice = 1e8;
             } else {
                 targetPrice = _failedAssetsPrice[i] + 4e6;
             }
 
             // _assets.push(_failedAssets[i]);
             _assets[i] = _failedAssets[i];
-
-            assetRequired = assetsLeft * targetPrice / _failedAssetsPrice[i];
+            adjustedDecimals = IERC20Helper(nstblToken).decimals() - IERC20Helper(_failedAssets[i]).decimals();
+            assetRequired = assetsLeft * targetPrice / (_failedAssetsPrice[i] * 10**adjustedDecimals);
             assetBalance = IERC20Helper(_failedAssets[i]).balanceOf(address(this)) * precision;
 
             if (assetRequired <= assetBalance) {
+                console.log("HERE1");
                 // _assetAmount.push(assetRequired/precision);
                 _assetAmount[i] = assetRequired / precision;
-                _unstakeAmount += assetsLeft;
+                _unstakeAmount += (assetsLeft / precision);
 
-                _burnAmount += assetRequired - assetsLeft;
+                console.log(assetRequired, assetsLeft);
+                _burnAmount += ((assetRequired*10**adjustedDecimals - assetsLeft)/precision);
                 assetsLeft -= assetsLeft;
                 break;
             } else {
-                redeemableNstbl = assetBalance * _failedAssetsPrice[i] / targetPrice;
+                redeemableNstbl = assetBalance * 10**adjustedDecimals * _failedAssetsPrice[i] / targetPrice;
 
                 // _assetAmount.push(assetBalance/precision);
                 _assetAmount[i] = assetBalance / precision;
                 _unstakeAmount += redeemableNstbl;
 
-                _burnAmount += assetBalance - redeemableNstbl;
+                _burnAmount += (assetBalance*10**adjustedDecimals) - redeemableNstbl;
                 assetsLeft -= redeemableNstbl;
             }
         }
@@ -553,21 +553,6 @@ contract NSTBLHub is NSTBLHUBStorage {
         _amount = IStakePool(stakePool).getUserStakedAmount(_user, _poolId);
     }
 
-    // //TODO: update this function
-    // function totalLiquidAssets() public view returns (uint256 _assets) {
-    //     for (uint256 i = 0; i < assets.length; i++) {
-    //         _assets += IERC20Helper(assets[i]).balanceOf(address(this));
-    //     }
-    // }
-
-    function updateAuthorizedCaller(address _caller) external onlyAdmin {
-        nealthyAddr = _caller;
-    }
-
-    function updateAdmin(address _admin) external onlyAdmin {
-        admin = _admin;
-    }
-
     function setSystemParams(uint256 _dt, uint256 _ub, uint256 _lb, uint256 _liquidPercent, uint256 _tBillPercent)
         external
         onlyAdmin
@@ -581,7 +566,10 @@ contract NSTBLHub is NSTBLHUBStorage {
 
     function addToWithdrawalQueue(address _user, uint256 _amount) internal { }
 
-    function _burnNstblFromStakePool(uint256 _amount) internal { }
+    function _burnNstblFromStakePool(uint256 _amount) internal { 
+        stakePoolBurnAmount += _amount;
+        // IStakePool(stakePool).burnNstbl(_amount);
+    }
 
     function processTBillWithdraw(uint256 _amount) internal { }
 }

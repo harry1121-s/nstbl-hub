@@ -12,7 +12,7 @@ testEqLogic:
 	forge test --match-path ./tests/NstblHubMock/unit/eqLogic.t.sol -vvvvv --via-ir
 
 testHubMock:
-	forge test --match-path ./tests/NstblHubMock/unit/NSTBLHubMock.t.sol -vvvvv 
+	forge test --match-path ./tests/NstblHubMock/unit/NSTBLHubMock.t.sol -vvv 
 
 testHub:
 	forge test --match-path ./tests/NstblHub/unit/NSTBLHub.t.sol -vvvvv --via-ir

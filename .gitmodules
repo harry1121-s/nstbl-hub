@@ -16,3 +16,6 @@
 [submodule "modules/nstbl-stake-pool"]
 	path = modules/nstbl-stake-pool
 	url = https://github.com/harry1121-s/nstbl-stake-pool.git
+[submodule "modules/nstbl-acl-manager"]
+	path = modules/nstbl-acl-manager
+	url = https://github.com/harry1121-s/nstbl-acl-manager.git
