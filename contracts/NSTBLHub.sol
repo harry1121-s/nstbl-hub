@@ -11,7 +11,7 @@ contract NSTBLHub is NSTBLHUBStorage {
     uint256 private _locked = 1;
 
     modifier onlyAdmin() {
-        require(msg.sender == IACLManager(aclManager).owner(), "HUB::NOT_ADMIN");
+        require(msg.sender == IACLManager(aclManager).admin(), "HUB::NOT_ADMIN");
         _;
     }
 
