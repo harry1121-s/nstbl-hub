@@ -22,6 +22,9 @@ contract NSTBLHUBStorage {
     uint256 public daiDeposited;
     uint256 public usdcInvested;
 
+    uint256 usdcRequestedForRedeem;
+    uint256 public usdcRedeemed;
+
     mapping(address => uint256) public assetAllocation;
 
     address USDC = address(0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48);

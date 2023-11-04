@@ -154,7 +154,7 @@ contract eqLogic {
 
     function _getAssetBalances() internal view returns (uint256[] memory) {
         uint256[] memory balances = new uint256[](3);
-        balances[0] = ILoanManager(loanManager).getAssets(USDC) + usdcDeposited * 1e12;
+        balances[0] = ILoanManager(loanManager).getMaturedAssets(USDC) + usdcDeposited * 1e12;
         balances[1] = usdtDeposited * 1e12;
         balances[2] = daiDeposited;
 

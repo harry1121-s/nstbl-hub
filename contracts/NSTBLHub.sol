@@ -169,7 +169,7 @@ contract NSTBLHub is NSTBLHUBStorage {
 
     function _getAssetBalances() internal view returns (uint256[] memory) {
         uint256[] memory balances = new uint256[](3);
-        balances[0] = ILoanManager(loanManager).getAssets(USDC) + usdcDeposited * 1e12;
+        balances[0] = ILoanManager(loanManager).getMaturedAssets(USDC) + usdcDeposited * 1e12;
         balances[1] = usdtDeposited * 1e12;
         balances[2] = daiDeposited;
 
@@ -242,7 +242,7 @@ contract NSTBLHub is NSTBLHUBStorage {
         if (assetsLeft > 0) {
             addToWithdrawalQueue(_user, assetsLeft);
         }
-        processTBillWithdraw(tBillTokens);
+        requestTBillWithdraw(tBillTokens);
     }
 
     function unstakeNstbl(uint256 _amount, uint256 _poolId, address _user) internal {
@@ -407,7 +407,7 @@ contract NSTBLHub is NSTBLHUBStorage {
         _burnNstblFromAtvl((burnAmount - stakePoolBurnAmount) / precision);
         _burnNstblFromStakePool(stakePoolBurnAmount / precision);
         addToWithdrawalQueue(_user, remainingNstbl);
-        processTBillWithdraw(_amount * 7e4 / 1e5);
+        requestTBillWithdraw(_amount * 7e4 / 1e5);
     }
 
     function _transferNormal(
@@ -571,5 +571,24 @@ contract NSTBLHub is NSTBLHUBStorage {
         // IStakePool(stakePool).burnNstbl(_amount);
     }
 
-    function processTBillWithdraw(uint256 _amount) internal { }
+    function requestTBillWithdraw(uint256 _amount) internal { 
+        if(ILoanManager(loanManager).awaitingRedemption(USDC)){
+            processTBillWithdraw();
+        }
+        else{
+            usdcRequestedForRedeem = _amount;
+            uint256 lUSDCSupply = ILoanManager(loanManager).getLPTotalSupply();
+            uint256 lmTokenAmount = _amount * lUSDCSupply / ILoanManager(loanManager).getAssets(USDC, lUSDCSupply);
+            require(lmTokenAmount <= lUSDCSupply, "HUB::Invalid Amount");
+            ILoanManager(loanManager).requestRedeem(USDC, lmTokenAmount);
+        }
+        
+    }
+
+    function processTBillWithdraw() public { 
+        uint256 balBefore = IERC20Helper(USDC).balanceOf(address(this));
+        ILoanManager(loanManager).redeem(USDC);
+        uint256 balAfter = IERC20Helper(USDC).balanceOf(address(this));
+        usdcRedeemed += (balAfter - balBefore);
+    }
 }
