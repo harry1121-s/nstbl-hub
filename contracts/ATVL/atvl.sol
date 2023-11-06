@@ -45,6 +45,7 @@ contract Atvl {
     function receiveNstblFromStakePool() external { }
 
     function burnNstbl(uint256 _burnAmount) external authorizedCaller {
+        
         uint256 burnAmount = _burnAmount + pendingNstblBurn <= IERC20Helper(nstblToken).balanceOf(address(this))
             ? _burnAmount + pendingNstblBurn
             : IERC20Helper(nstblToken).balanceOf(address(this));

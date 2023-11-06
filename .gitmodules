@@ -19,3 +19,6 @@
 [submodule "modules/nstbl-acl-manager"]
 	path = modules/nstbl-acl-manager
 	url = https://github.com/harry1121-s/nstbl-acl-manager.git
+[submodule "modules/nstbl-token"]
+	path = modules/nstbl-token
+	url = https://github.com/harry1121-s/nstbl-token.git

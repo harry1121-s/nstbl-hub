@@ -78,7 +78,14 @@ contract StakePoolMock is StakePoolStorage {
     }
 
     //TODO: get user staked amount + rewards function
-
+    function getUserAvailableTokensDepeg(address _user, uint256 _poolId)
+        external
+        view
+        returns (uint256 _availableTokens)
+    {
+        StakerInfo memory staker = stakerInfo[_poolId][_user];
+        _availableTokens = staker.amount ;
+    }
     function stake(uint256 _amount, address _userAddress, uint256 _poolId) public authorizedCaller {
         require(_amount > 0, "SP::INVALID AMOUNT");
         require(_poolId < poolInfo.length, "SP::INVALID POOL");
@@ -95,18 +102,16 @@ contract StakePoolMock is StakePoolStorage {
         emit Stake(_userAddress, _amount, pendingNSTBL);
     }
 
-    function unstake(uint256 _amount, address _userAddress, uint256 _poolId) public authorizedCaller {
-        require(_amount > 0, "SP::INVALID AMOUNT");
+    function unstake(address _userAddress, uint256 _poolId, bool _depeg) public authorizedCaller {
         require(_poolId < poolInfo.length, "SP::INVALID POOL");
 
         StakerInfo storage staker = stakerInfo[_poolId][_userAddress];
 
-        require(_amount <= staker.amount, "SP::INVALID AMOUNT");
+        require(staker.amount > 0, "SP::INVALID AMOUNT");
 
-        staker.amount -= _amount;
-        totalStakedAmount -= _amount;
-        IERC20Helper(nstbl).safeTransfer(msg.sender, _amount);
-
-        emit Unstake(_userAddress, _amount);
+        totalStakedAmount -= staker.amount;
+        IERC20Helper(nstbl).safeTransfer(msg.sender, staker.amount);
+        staker.amount = 0;
+        emit Unstake(_userAddress, staker.amount);
     }
 }
