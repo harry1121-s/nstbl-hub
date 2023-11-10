@@ -79,7 +79,7 @@ contract NSTBLHub is NSTBLHUBStorage {
             IERC20Helper(DAI).safeTransferFrom(msg.sender, address(this), _daiAmt);
             daiDeposited += _daiAmt;
         }
-
+        console.log("Before investUSDC");
         _investUSDC(7e3 * _usdcAmt / _a1);
         IERC20Helper(nstblToken).mint(msg.sender, (_usdcAmt + _usdtAmt) * 1e12 + _daiAmt);
     }
@@ -178,7 +178,7 @@ contract NSTBLHub is NSTBLHUBStorage {
 
     function _investUSDC(uint256 _amt) internal {
         //@TODO: integration with stakePool
-        IStakePool(stakePool).updatePoolFromHub(false, 0, _amt);
+        // IStakePool(stakePool).updatePoolFromHub(false, 0, _amt);
         usdcInvested += _amt;
         IERC20Helper(USDC).safeIncreaseAllowance(loanManager, _amt);
         ILoanManager(loanManager).deposit(USDC, _amt);

@@ -7,6 +7,7 @@ import "./interfaces/IStakePool.sol";
 import "./interfaces/IATVL.sol";
 
 contract NSTBLHUBStorage {
+    uint256 versionSlot;
     address public nealthyAddr;
     address public atvl;
     address public loanManager;
