@@ -10,10 +10,14 @@ import { ChainLinkPriceFeedMock } from "../../../contracts/mocks/chainlink/Chain
 import { ACLManager } from "@nstbl-acl-manager/contracts/ACLManager.sol";
 import { NSTBLHub } from "../../../contracts/NSTBLHub.sol";
 import { Atvl } from "../../../contracts/ATVL/atvl.sol";
-import { NSTBLHubInternal } from "../../harness/NSTBLHUBInternal.sol";
-import { LoanManagerMock } from "../../../contracts/mocks/LoanManagerMock.sol";
+// import { NSTBLHubInternal } from "../../harness/NSTBLHUBInternal.sol";
+import { IPoolManager } from "../../../contracts/interfaces/maple/IPoolManager.sol";
+import { LoanManager } from "@nstbl-loan-manager/contracts/LoanManager.sol";
+import { ProxyAdmin } from "../../../contracts/upgradeable/ProxyAdmin.sol";
+import { TransparentUpgradeableProxy, ITransparentUpgradeableProxy } from "../../../contracts/upgradeable/TransparentUpgradeableProxy.sol";
 import { IERC20, IERC20Helper } from "../../../contracts/interfaces/IERC20Helper.sol";
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import { ERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 contract BaseTest is Test{
     using SafeERC20 for IERC20Helper;
@@ -26,11 +30,17 @@ contract BaseTest is Test{
 
     //NSTBLHubSetup
     NSTBLHub public nstblHub;
-    // NSTBLHubInternal public nstblHubHarness;
     Atvl public atvl;
-    // eqLogic public eqlogic;
-    // eqLogicInternal public eqLogicHarness;
 
+    //LoanManager
+    LoanManager public lmImplementation;
+    LoanManager public loanManager;
+    IPoolManager public poolManagerUSDC;
+    address public lmLPToken;
+
+    //Proxy
+    ProxyAdmin public proxyAdmin;
+    TransparentUpgradeableProxy public loanManagerProxy;
 
     //Mocks////////////////////////////////////////
     LZEndpointMock public LZEndpoint_src;
@@ -43,8 +53,6 @@ contract BaseTest is Test{
     MockV3Aggregator public usdcPriceFeedMock;
     MockV3Aggregator public usdtPriceFeedMock;
     MockV3Aggregator public daiPriceFeedMock;
-
-    LoanManagerMock public loanManager;
 
 
      /*//////////////////////////////////////////////////////////////
@@ -62,6 +70,11 @@ contract BaseTest is Test{
     address USDC = address(0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48);
     address USDT = address(0xdAC17F958D2ee523a2206206994597C13D831ec7);
     address DAI = address(0x6B175474E89094C44Da98b954EedeAC495271d0F);
+
+    address public poolDelegateUSDC = 0x8c8C2431658608F5649B8432764a930c952d8A98;
+    address public MAPLE_USDC_CASH_POOL = 0xfe119e9C24ab79F1bDd5dd884B86Ceea2eE75D92;
+    address public MAPLE_POOL_MANAGER_USDC = 0x219654A61a0BC394055652986BE403fa14405Bb8;
+    address public WITHDRAWAL_MANAGER_USDC = 0x1146691782c089bCF0B19aCb8620943a35eebD12;
 
     uint256 public dt = 98 * 1e6;
     uint256 public ub = 97 * 1e6;
@@ -123,8 +136,7 @@ contract BaseTest is Test{
 
         token_src.setAuthorizedChain(block.chainid, true);
 
-       
-
+    
         stakePool = new StakePoolMock(
             deployer,
             address(nstblToken)
@@ -132,8 +144,16 @@ contract BaseTest is Test{
         atvl = new Atvl(
             deployer
         );
-        loanManager = new LoanManagerMock(deployer);
-        
+        // loanManager = new LoanManagerMock(deployer);
+       
+
+        //LoanManager
+        proxyAdmin = new ProxyAdmin(owner);
+        lmImplementation = new LoanManager();
+        bytes memory data = abi.encodeCall(lmImplementation.initialize, (address(aclManager), MAPLE_USDC_CASH_POOL));
+        loanManagerProxy = new TransparentUpgradeableProxy(address(lmImplementation), address(proxyAdmin), data);
+        loanManager = LoanManager(address(loanManagerProxy));
+         
         nstblHub = new NSTBLHub(
             address(nstblToken),
             address(stakePool),
@@ -144,6 +164,7 @@ contract BaseTest is Test{
             2*1e24
         );
 
+        loanManager.updateNSTBLHUB(address(nstblHub));
 
          // Set authorized caller in ACLManager
         // Token
@@ -154,6 +175,9 @@ contract BaseTest is Test{
         aclManager.setAuthorizedCallerBlacklister(compliance, true);
         // StakePool
         aclManager.setAuthorizedCallerStakePool(address(nstblHub), true); 
+        //LoanManager
+        aclManager.setAuthorizedCallerLoanManager(address(nstblHub), true);
+
 
         atvl.init(address(nstblToken), 120);
         atvl.setAuthorizedCaller(address(nstblHub), true);
@@ -169,6 +193,21 @@ contract BaseTest is Test{
 
         aclManager.setAuthorizedCallerHub(nealthyAddr, true);
 
+        vm.stopPrank();
+
+        lmLPToken = address(loanManager.lUSDC());
+
+        //setting NSTBLHub as allowed lender
+        poolManagerUSDC = IPoolManager(MAPLE_POOL_MANAGER_USDC);
+        _setAllowedLender();
+    }
+
+     function _setAllowedLender() internal {
+        bool out;
+        vm.startPrank(poolDelegateUSDC);
+        poolManagerUSDC.setAllowedLender(address(loanManager), true);
+        (out,) = address(poolManagerUSDC).staticcall(abi.encodeWithSignature("isValidLender(address)", address(loanManager)));
+        assertTrue(out);
         vm.stopPrank();
     }
 

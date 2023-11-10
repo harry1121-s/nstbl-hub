@@ -38,24 +38,20 @@ contract NSTBLHubTestDeposit is BaseTest {
         uint256 usdcBalBefore = IERC20Helper(USDC).balanceOf(address(nstblHub));
         uint256 usdtBalBefore = IERC20Helper(USDT).balanceOf(address(nstblHub));
         uint256 daiBalBefore = IERC20Helper(DAI).balanceOf(address(nstblHub));
-        uint256 usdcBalBeforeLM = IERC20Helper(USDC).balanceOf(address(loanManager));
+        uint256 usdcBalBeforeLM = IERC20Helper(USDC).balanceOf(MAPLE_USDC_CASH_POOL);
         uint256 nstblBalBefore = nstblToken.balanceOf(nealthyAddr);
         vm.startPrank(nealthyAddr);
         IERC20Helper(USDC).safeIncreaseAllowance(address(nstblHub), usdcAmt);
         IERC20Helper(USDT).safeIncreaseAllowance(address(nstblHub), usdtAmt);
         IERC20Helper(DAI).safeIncreaseAllowance(address(nstblHub), daiAmt);
         nstblHub.deposit(usdcAmt, usdtAmt, daiAmt);
-        uint256 usdcBalAfter = IERC20Helper(USDC).balanceOf(address(nstblHub));
-        uint256 usdtBalAfter = IERC20Helper(USDT).balanceOf(address(nstblHub));
-        uint256 daiBalAfter = IERC20Helper(DAI).balanceOf(address(nstblHub));
-        uint256 usdcBalAfterLM = IERC20Helper(USDC).balanceOf(address(loanManager));
         uint256 nstblBalAfter = nstblToken.balanceOf(nealthyAddr);
         vm.stopPrank();
 
-        assertEq(usdcAmt - tBillAmt, usdcBalAfter - usdcBalBefore);
-        assertEq(tBillAmt, usdcBalAfterLM - usdcBalBeforeLM);
-        assertEq(usdtAmt, usdtBalAfter - usdtBalBefore);
-        assertEq(daiAmt, daiBalAfter - daiBalBefore);
+        assertEq(usdcAmt - tBillAmt, IERC20Helper(USDC).balanceOf(address(nstblHub)) - usdcBalBefore);
+        assertEq(tBillAmt, IERC20Helper(USDC).balanceOf(MAPLE_USDC_CASH_POOL) - usdcBalBeforeLM, "idhr fata h");
+        assertEq(usdtAmt, IERC20Helper(USDT).balanceOf(address(nstblHub)) - usdtBalBefore);
+        assertEq(daiAmt, IERC20Helper(DAI).balanceOf(address(nstblHub)) - daiBalBefore);
         assertEq((usdcAmt + usdtAmt) * 1e12 + daiAmt, nstblBalAfter - nstblBalBefore);
 
         assertEq((usdcAmt + usdtAmt) * 1e12 + daiAmt, nstblToken.balanceOf(nealthyAddr));
@@ -116,24 +112,20 @@ contract NSTBLHubTestDeposit is BaseTest {
         uint256 usdcBalBefore = IERC20Helper(USDC).balanceOf(address(nstblHub));
         uint256 usdtBalBefore = IERC20Helper(USDT).balanceOf(address(nstblHub));
         uint256 daiBalBefore = IERC20Helper(DAI).balanceOf(address(nstblHub));
-        uint256 usdcBalBeforeLM = IERC20Helper(USDC).balanceOf(address(loanManager));
+        uint256 usdcBalBeforeLM = IERC20Helper(USDC).balanceOf(MAPLE_USDC_CASH_POOL);
         uint256 nstblBalBefore = nstblToken.balanceOf(nealthyAddr);
         vm.startPrank(nealthyAddr);
         IERC20Helper(USDC).safeIncreaseAllowance(address(nstblHub), usdcAmt);
         IERC20Helper(USDT).safeIncreaseAllowance(address(nstblHub), usdtAmt);
         IERC20Helper(DAI).safeIncreaseAllowance(address(nstblHub), daiAmt);
         nstblHub.deposit(usdcAmt, usdtAmt, daiAmt);
-        uint256 usdcBalAfter = IERC20Helper(USDC).balanceOf(address(nstblHub));
-        uint256 usdtBalAfter = IERC20Helper(USDT).balanceOf(address(nstblHub));
-        uint256 daiBalAfter = IERC20Helper(DAI).balanceOf(address(nstblHub));
-        uint256 usdcBalAfterLM = IERC20Helper(USDC).balanceOf(address(loanManager));
         uint256 nstblBalAfter = nstblToken.balanceOf(nealthyAddr);
         vm.stopPrank();
 
-        assertEq(usdcAmt - tBillAmt, usdcBalAfter - usdcBalBefore);
-        assertEq(tBillAmt, usdcBalAfterLM - usdcBalBeforeLM);
-        assertEq(usdtAmt, usdtBalAfter - usdtBalBefore);
-        assertEq(daiAmt, daiBalAfter - daiBalBefore);
+        assertEq(usdcAmt - tBillAmt, IERC20Helper(USDC).balanceOf(address(nstblHub)) - usdcBalBefore);
+        assertEq(tBillAmt, IERC20Helper(USDC).balanceOf(MAPLE_USDC_CASH_POOL) - usdcBalBeforeLM);
+        assertEq(usdtAmt, IERC20Helper(USDT).balanceOf(address(nstblHub)) - usdtBalBefore);
+        assertEq(daiAmt, IERC20Helper(DAI).balanceOf(address(nstblHub)) - daiBalBefore);
         assertEq((usdcAmt + usdtAmt) * 1e12 + daiAmt, nstblBalAfter - nstblBalBefore);
 
         assertEq((usdcAmt + usdtAmt) * 1e12 + daiAmt, nstblToken.balanceOf(nealthyAddr));
@@ -164,24 +156,21 @@ contract NSTBLHubTestDeposit is BaseTest {
         uint256 usdcBalBefore = IERC20Helper(USDC).balanceOf(address(nstblHub));
         uint256 usdtBalBefore = IERC20Helper(USDT).balanceOf(address(nstblHub));
         uint256 daiBalBefore = IERC20Helper(DAI).balanceOf(address(nstblHub));
-        uint256 usdcBalBeforeLM = IERC20Helper(USDC).balanceOf(address(loanManager));
+        uint256 usdcBalBeforeLM = IERC20Helper(USDC).balanceOf(MAPLE_USDC_CASH_POOL);
         uint256 nstblBalBefore = nstblToken.balanceOf(nealthyAddr);
         vm.startPrank(nealthyAddr);
         IERC20Helper(USDC).safeIncreaseAllowance(address(nstblHub), usdcAmt);
         IERC20Helper(USDT).safeIncreaseAllowance(address(nstblHub), usdtAmt);
         IERC20Helper(DAI).safeIncreaseAllowance(address(nstblHub), daiAmt);
         nstblHub.deposit(usdcAmt, usdtAmt, daiAmt);
-        uint256 usdcBalAfter = IERC20Helper(USDC).balanceOf(address(nstblHub));
-        uint256 usdtBalAfter = IERC20Helper(USDT).balanceOf(address(nstblHub));
-        uint256 daiBalAfter = IERC20Helper(DAI).balanceOf(address(nstblHub));
-        uint256 usdcBalAfterLM = IERC20Helper(USDC).balanceOf(address(loanManager));
+
         uint256 nstblBalAfter = nstblToken.balanceOf(nealthyAddr);
         vm.stopPrank();
 
-        assertEq(usdcAmt - tBillAmt, usdcBalAfter - usdcBalBefore);
-        assertEq(tBillAmt, usdcBalAfterLM - usdcBalBeforeLM);
-        assertEq(usdtAmt, usdtBalAfter - usdtBalBefore);
-        assertEq(daiAmt, daiBalAfter - daiBalBefore);
+        assertEq(usdcAmt - tBillAmt, IERC20Helper(USDC).balanceOf(address(nstblHub)) - usdcBalBefore);
+        assertEq(tBillAmt, IERC20Helper(USDC).balanceOf(MAPLE_USDC_CASH_POOL) - usdcBalBeforeLM);
+        assertEq(usdtAmt, IERC20Helper(USDT).balanceOf(address(nstblHub)) - usdtBalBefore);
+        assertEq(daiAmt, IERC20Helper(DAI).balanceOf(address(nstblHub)) - daiBalBefore);
         assertEq((usdcAmt + usdtAmt) * 1e12 + daiAmt, nstblBalAfter - nstblBalBefore);
 
         assertEq((usdcAmt + usdtAmt) * 1e12 + daiAmt, nstblToken.balanceOf(nealthyAddr));
@@ -213,7 +202,7 @@ contract NSTBLHubTestDeposit is BaseTest {
         uint256 usdcBalBefore = IERC20Helper(USDC).balanceOf(address(nstblHub));
         uint256 usdtBalBefore = IERC20Helper(USDT).balanceOf(address(nstblHub));
         uint256 daiBalBefore = IERC20Helper(DAI).balanceOf(address(nstblHub));
-        uint256 usdcBalBeforeLM = IERC20Helper(USDC).balanceOf(address(loanManager));
+        uint256 usdcBalBeforeLM = IERC20Helper(USDC).balanceOf(MAPLE_USDC_CASH_POOL);
         uint256 nstblBalBefore = nstblToken.balanceOf(nealthyAddr);
         vm.startPrank(nealthyAddr);
         IERC20Helper(USDC).safeIncreaseAllowance(address(nstblHub), usdcAmt);
@@ -225,23 +214,19 @@ contract NSTBLHubTestDeposit is BaseTest {
         }
         nstblHub.deposit(usdcAmt, usdtAmt, daiAmt);
 
-        uint256 usdcBalAfter = IERC20Helper(USDC).balanceOf(address(nstblHub));
-        uint256 usdtBalAfter = IERC20Helper(USDT).balanceOf(address(nstblHub));
-        uint256 daiBalAfter = IERC20Helper(DAI).balanceOf(address(nstblHub));
-        uint256 usdcBalAfterLM = IERC20Helper(USDC).balanceOf(address(loanManager));
         uint256 nstblBalAfter = nstblToken.balanceOf(nealthyAddr);
 
         vm.stopPrank();
-        assertEq(usdcAmt - tBillAmt, usdcBalAfter - usdcBalBefore);
-        assertEq(tBillAmt, usdcBalAfterLM - usdcBalBeforeLM);
-        assertEq(usdtAmt, usdtBalAfter - usdtBalBefore);
-        assertEq(daiAmt, daiBalAfter - daiBalBefore);
+        assertEq(usdcAmt - tBillAmt, IERC20Helper(USDC).balanceOf(address(nstblHub)) - usdcBalBefore);
+        assertEq(tBillAmt, IERC20Helper(USDC).balanceOf(MAPLE_USDC_CASH_POOL) - usdcBalBeforeLM);
+        assertEq(usdtAmt, IERC20Helper(USDT).balanceOf(address(nstblHub)) - usdtBalBefore);
+        assertEq(daiAmt, IERC20Helper(DAI).balanceOf(address(nstblHub)) - daiBalBefore);
         assertEq((usdcAmt + usdtAmt) * 1e12 + daiAmt, nstblBalAfter - nstblBalBefore);
 
         assertEq((usdcAmt + usdtAmt) * 1e12 + daiAmt, nstblToken.balanceOf(nealthyAddr));
     }
 
-    function test_fixed_deposit_fuzz_depositAmount(uint256 _amount1) external {
+    function test_deposit_fuzz_depositAmount(uint256 _amount1) external {
         _amount1 = bound(_amount1, 0, 1e9);
         usdcPriceFeedMock.updateAnswer(981e5);
         usdtPriceFeedMock.updateAnswer(981e5);
@@ -261,7 +246,7 @@ contract NSTBLHubTestDeposit is BaseTest {
         uint256 usdcBalBefore = IERC20Helper(USDC).balanceOf(address(nstblHub));
         uint256 usdtBalBefore = IERC20Helper(USDT).balanceOf(address(nstblHub));
         uint256 daiBalBefore = IERC20Helper(DAI).balanceOf(address(nstblHub));
-        uint256 usdcBalBeforeLM = IERC20Helper(USDC).balanceOf(address(loanManager));
+        uint256 usdcBalBeforeLM = IERC20Helper(USDC).balanceOf(MAPLE_USDC_CASH_POOL);
         uint256 nstblBalBefore = nstblToken.balanceOf(nealthyAddr);
         vm.startPrank(nealthyAddr);
         IERC20Helper(USDC).safeIncreaseAllowance(address(nstblHub), usdcAmt);
@@ -273,17 +258,13 @@ contract NSTBLHubTestDeposit is BaseTest {
         }
         nstblHub.deposit(usdcAmt, usdtAmt, daiAmt);
 
-        uint256 usdcBalAfter = IERC20Helper(USDC).balanceOf(address(nstblHub));
-        uint256 usdtBalAfter = IERC20Helper(USDT).balanceOf(address(nstblHub));
-        uint256 daiBalAfter = IERC20Helper(DAI).balanceOf(address(nstblHub));
-        uint256 usdcBalAfterLM = IERC20Helper(USDC).balanceOf(address(loanManager));
         uint256 nstblBalAfter = nstblToken.balanceOf(nealthyAddr);
 
         vm.stopPrank();
-        assertEq(usdcAmt - tBillAmt, usdcBalAfter - usdcBalBefore);
-        assertEq(tBillAmt, usdcBalAfterLM - usdcBalBeforeLM);
-        assertEq(usdtAmt, usdtBalAfter - usdtBalBefore);
-        assertEq(daiAmt, daiBalAfter - daiBalBefore);
+        assertEq(usdcAmt - tBillAmt, IERC20Helper(USDC).balanceOf(address(nstblHub)) - usdcBalBefore);
+        assertEq(tBillAmt, IERC20Helper(USDC).balanceOf(MAPLE_USDC_CASH_POOL) - usdcBalBeforeLM);
+        assertEq(usdtAmt, IERC20Helper(USDT).balanceOf(address(nstblHub)) - usdtBalBefore);
+        assertEq(daiAmt, IERC20Helper(DAI).balanceOf(address(nstblHub)) - daiBalBefore);
         assertEq((usdcAmt + usdtAmt) * 1e12 + daiAmt, nstblBalAfter - nstblBalBefore);
 
         assertEq((usdcAmt + usdtAmt) * 1e12 + daiAmt, nstblToken.balanceOf(nealthyAddr));
@@ -321,7 +302,7 @@ contract NSTBLHubTestDeposit is BaseTest {
         uint256 usdcBalBefore = IERC20Helper(USDC).balanceOf(address(nstblHub));
         uint256 usdtBalBefore = IERC20Helper(USDT).balanceOf(address(nstblHub));
         uint256 daiBalBefore = IERC20Helper(DAI).balanceOf(address(nstblHub));
-        uint256 usdcBalBeforeLM = IERC20Helper(USDC).balanceOf(address(loanManager));
+        uint256 usdcBalBeforeLM = IERC20Helper(USDC).balanceOf(MAPLE_USDC_CASH_POOL);
         uint256 nstblBalBefore = nstblToken.balanceOf(nealthyAddr);
         vm.startPrank(nealthyAddr);
         IERC20Helper(USDC).safeIncreaseAllowance(address(nstblHub), usdcAmt);
@@ -333,17 +314,14 @@ contract NSTBLHubTestDeposit is BaseTest {
         }
         nstblHub.deposit(usdcAmt, usdtAmt, daiAmt);
 
-        uint256 usdcBalAfter = IERC20Helper(USDC).balanceOf(address(nstblHub));
-        uint256 usdtBalAfter = IERC20Helper(USDT).balanceOf(address(nstblHub));
-        uint256 daiBalAfter = IERC20Helper(DAI).balanceOf(address(nstblHub));
-        uint256 usdcBalAfterLM = IERC20Helper(USDC).balanceOf(address(loanManager));
+
         uint256 nstblBalAfter = nstblToken.balanceOf(nealthyAddr);
 
         vm.stopPrank();
-        assertEq(usdcAmt - tBillAmt, usdcBalAfter - usdcBalBefore);
-        assertEq(tBillAmt, usdcBalAfterLM - usdcBalBeforeLM);
-        assertEq(usdtAmt, usdtBalAfter - usdtBalBefore);
-        assertEq(daiAmt, daiBalAfter - daiBalBefore);
+        assertEq(usdcAmt - tBillAmt, IERC20Helper(USDC).balanceOf(address(nstblHub)) - usdcBalBefore);
+        assertEq(tBillAmt, IERC20Helper(USDC).balanceOf(MAPLE_USDC_CASH_POOL) - usdcBalBeforeLM);
+        assertEq(usdtAmt, IERC20Helper(USDT).balanceOf(address(nstblHub)) - usdtBalBefore);
+        assertEq(daiAmt, IERC20Helper(DAI).balanceOf(address(nstblHub)) - daiBalBefore);
         assertEq((usdcAmt + usdtAmt) * 1e12 + daiAmt, nstblBalAfter - nstblBalBefore);
 
         assertEq((usdcAmt + usdtAmt) * 1e12 + daiAmt, nstblToken.balanceOf(nealthyAddr));

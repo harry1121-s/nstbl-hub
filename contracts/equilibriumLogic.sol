@@ -154,7 +154,7 @@ contract eqLogic {
 
     function _getAssetBalances() internal view returns (uint256[] memory) {
         uint256[] memory balances = new uint256[](3);
-        balances[0] = ILoanManager(loanManager).getMaturedAssets(USDC) + usdcDeposited * 1e12;
+        balances[0] = ILoanManager(loanManager).getMaturedAssets() + usdcDeposited * 1e12;
         balances[1] = usdtDeposited * 1e12;
         balances[2] = daiDeposited;
 
@@ -163,6 +163,6 @@ contract eqLogic {
 
     function _investUSDC(uint256 _amt) internal {
         IERC20Helper(USDC).safeIncreaseAllowance(loanManager, _amt);
-        ILoanManager(loanManager).deposit(USDC, _amt);
+        ILoanManager(loanManager).deposit(_amt);
     }
 }

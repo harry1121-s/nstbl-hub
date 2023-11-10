@@ -169,7 +169,9 @@ contract NSTBLHub is NSTBLHUBStorage {
 
     function _getAssetBalances() internal view returns (uint256[] memory) {
         uint256[] memory balances = new uint256[](3);
-        balances[0] = ILoanManager(loanManager).getMaturedAssets(USDC) + usdcDeposited * 1e12;
+        console.log("IDHR fatega?");
+        balances[0] = ILoanManager(loanManager).getMaturedAssets() + usdcDeposited * 1e12;
+        console.log("IDHR nhn fata");
         balances[1] = usdtDeposited * 1e12;
         balances[2] = daiDeposited;
 
@@ -181,7 +183,7 @@ contract NSTBLHub is NSTBLHUBStorage {
         // IStakePool(stakePool).updatePoolFromHub(false, 0, _amt);
         usdcInvested += _amt;
         IERC20Helper(USDC).safeIncreaseAllowance(loanManager, _amt);
-        ILoanManager(loanManager).deposit(USDC, _amt);
+        ILoanManager(loanManager).deposit(_amt);
     }
 
     function redeem(uint256 _amount, address _user) external authorizedCaller nonReentrant {
@@ -589,14 +591,14 @@ contract NSTBLHub is NSTBLHUBStorage {
             uint256 lUSDCSupply = ILoanManager(loanManager).getLPTotalSupply();
             uint256 lmTokenAmount = _amount * lUSDCSupply / ILoanManager(loanManager).getAssets(USDC, lUSDCSupply);
             require(lmTokenAmount <= lUSDCSupply, "HUB::Invalid Amount");
-            ILoanManager(loanManager).requestRedeem(USDC, lmTokenAmount);
+            ILoanManager(loanManager).requestRedeem(lmTokenAmount);
         }
         
     }
 
     function processTBillWithdraw() public { 
         uint256 balBefore = IERC20Helper(USDC).balanceOf(address(this));
-        ILoanManager(loanManager).redeem(USDC);
+        ILoanManager(loanManager).redeem();
         uint256 balAfter = IERC20Helper(USDC).balanceOf(address(this));
         usdcRedeemed += (balAfter - balBefore);
     }
