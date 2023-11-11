@@ -70,6 +70,7 @@ contract NSTBLHub is NSTBLHUBStorage {
 
         //Deposit required Tokens
         IERC20Helper(USDC).safeTransferFrom(msg.sender, address(this), _usdcAmt);
+        console.log("USDC balance after deposit: ", IERC20Helper(USDC).balanceOf(address(this)));
         usdcDeposited += _usdcAmt;
         if (_a2 != 0) {
             IERC20Helper(USDT).safeTransferFrom(msg.sender, address(this), _usdtAmt);
@@ -81,6 +82,7 @@ contract NSTBLHub is NSTBLHUBStorage {
         }
         console.log("Before investUSDC");
         _investUSDC(7e3 * _usdcAmt / _a1);
+        console.log("USDC balance after invest: ", IERC20Helper(USDC).balanceOf(address(this)));
         IERC20Helper(nstblToken).mint(msg.sender, (_usdcAmt + _usdtAmt) * 1e12 + _daiAmt);
     }
 
@@ -188,7 +190,10 @@ contract NSTBLHub is NSTBLHUBStorage {
 
     function redeem(uint256 _amount, address _user) external authorizedCaller nonReentrant {
         (uint256 p1, uint256 p2, uint256 p3) = IChainlinkPriceFeed(chainLinkPriceFeed).getLatestPrice(); //usdc
-
+        console.log("Asset balances before redemption------------------");
+        console.log(IERC20Helper(USDC).balanceOf(address(this)));
+        console.log(IERC20Helper(USDT).balanceOf(address(this)));
+        console.log(IERC20Helper(DAI).balanceOf(address(this)));
         if (p1 > dt && p2 > dt && p3 > dt) {
             redeemNormal(_amount, _user);
         } else {
@@ -222,7 +227,7 @@ contract NSTBLHub is NSTBLHUBStorage {
         uint256 adjustedDecimals;
         console.log("AMOUNTS", _amount, liquidTokens, tBillTokens);
         console.log("REDEEM NORMAL");
-        IERC20Helper(nstblToken).safeTransferFrom(msg.sender, address(this), _amount);
+        IERC20Helper(nstblToken).burn(msg.sender, _amount);
         for (uint256 i = 0; i < assets.length; i++) {
             adjustedDecimals = IERC20Helper(nstblToken).decimals() - IERC20Helper(assets[i]).decimals();
             if (i == 0) {
@@ -243,9 +248,9 @@ contract NSTBLHub is NSTBLHUBStorage {
             IERC20Helper(assets[i]).safeTransfer(msg.sender, availAssets / 10 ** adjustedDecimals);
             assetsLeft -= availAssets;
         }
-        if (assetsLeft > 0) {
-            addToWithdrawalQueue(_user, assetsLeft);
-        }
+        // if (assetsLeft > 0) {
+        //     addToWithdrawalQueue(_user, assetsLeft);
+        // }
         requestTBillWithdraw(tBillTokens);
     }
 
@@ -583,24 +588,38 @@ contract NSTBLHub is NSTBLHUBStorage {
     }
 
     function requestTBillWithdraw(uint256 _amount) internal { 
-        if(ILoanManager(loanManager).awaitingRedemption(USDC)){
-            processTBillWithdraw();
+        if(ILoanManager(loanManager).awaitingRedemption()){
+            console.log("IDHR fata");
+            _redeemTBill();
         }
         else{
+            console.log("IDHR nhn fata");
             usdcRequestedForRedeem = _amount;
             uint256 lUSDCSupply = ILoanManager(loanManager).getLPTotalSupply();
-            uint256 lmTokenAmount = _amount * lUSDCSupply / ILoanManager(loanManager).getAssets(USDC, lUSDCSupply);
-            require(lmTokenAmount <= lUSDCSupply, "HUB::Invalid Amount");
-            ILoanManager(loanManager).requestRedeem(lmTokenAmount);
+            console.log("Amount requested for redeem: ", _amount);
+            console.log("lUSDCSupply: ", lUSDCSupply);
+            console.log("Assets with maple: ", ILoanManager(loanManager).getAssets(lUSDCSupply));
+            uint256 lmTokenAmount = (_amount/1e12) * lUSDCSupply / ILoanManager(loanManager).getAssets(lUSDCSupply);
+            console.log("lmTokenAmount: ", lmTokenAmount);
+
+            lmTokenAmount <= lUSDCSupply ? ILoanManager(loanManager).requestRedeem(lmTokenAmount) : ILoanManager(loanManager).requestRedeem(lUSDCSupply);
+            console.log("IDHR bhi nhn fata");
+            
         }
         
     }
 
-    function processTBillWithdraw() public { 
+    function processTBillWithdraw() external authorizedCaller returns(uint256 usdcRedeemed){ 
+       require(ILoanManager(loanManager).awaitingRedemption(), "HUB: No redemption requested");
+       usdcRedeemed = _redeemTBill();
+    }
+    
+    function _redeemTBill() internal returns(uint256){
         uint256 balBefore = IERC20Helper(USDC).balanceOf(address(this));
         ILoanManager(loanManager).redeem();
         uint256 balAfter = IERC20Helper(USDC).balanceOf(address(this));
         usdcRedeemed += (balAfter - balBefore);
+        return(balAfter - balBefore);
     }
 
     function retriveFunds(address _asset, uint256 _amount) external onlyAdmin {

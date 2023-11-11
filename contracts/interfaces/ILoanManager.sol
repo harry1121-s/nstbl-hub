@@ -8,9 +8,9 @@ interface ILoanManager {
     /*//////////////////////////////////////////////////////////////
                                  VIEWS
     //////////////////////////////////////////////////////////////*/
-    function getAssets(address _asset, uint256 _lpTokenAmount) external view returns (uint256);
+    function getAssets(uint256 _lpTokenAmount) external view returns (uint256);
     function getInvestedAssets(address _assets) external view returns (uint256);
     function getMaturedAssets() external view returns (uint256);
-    function awaitingRedemption(address _asset) external view returns (bool);
+    function awaitingRedemption() external view returns (bool);
     function getLPTotalSupply() external view returns (uint256);
 }

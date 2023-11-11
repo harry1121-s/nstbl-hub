@@ -4,7 +4,7 @@ profile ?=default
 
 update:
 	cd modules && \
-	git submodule update --remote --recursive nstbl-acl-manager nstbl-token nstbl-stake-pool nstbl-loan-manager && \
+	git submodule update --remote nstbl-acl-manager nstbl-token nstbl-stake-pool nstbl-loan-manager && \
 	cd ..
 build:
 	@FOUNDRY_PROFILE=production forge build
