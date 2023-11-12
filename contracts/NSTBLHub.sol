@@ -197,6 +197,11 @@ contract NSTBLHub is NSTBLHUBStorage {
         if (p1 > dt && p2 > dt && p3 > dt) {
             redeemNormal(_amount, _user);
         } else {
+            console.log("NSTBL total Supply: ", IERC20Helper(nstblToken).totalSupply());
+            console.log("Total amount requested for redemption: ", _amount);
+            console.log("USDC balance", IERC20Helper(USDC).balanceOf(address(this)));
+            console.log("USDT balance", IERC20Helper(USDT).balanceOf(address(this)));
+            console.log("DAI balance", IERC20Helper(DAI).balanceOf(address(this)));
             redeemForNonStaker(_amount, _user);
         }
     }
@@ -208,7 +213,7 @@ contract NSTBLHub is NSTBLHUBStorage {
             unstakeNstbl(_user, _trancheId, false, _lpOwner);
         } else {
             console.log("yhn nhn jaega");
-            // unstakeAndRedeemNstbl(_poolId, _user);
+            // unstakeAndRedeemNstbl(_user, _trancheId, _lpOwner);
         }
     }
 
@@ -221,7 +226,7 @@ contract NSTBLHub is NSTBLHUBStorage {
         INSTBLToken(nstblToken).sendOrReturnPool(msg.sender, stakePool, _amount);
     }
 
-    function redeemNormal(uint256 _amount, address _user) public authorizedCaller {
+    function redeemNormal(uint256 _amount, address _user) internal {
         uint256 liquidTokens = liquidPercent * _amount / 1e4;
         uint256 tBillTokens = tBillPercent * _amount / 1e4;
         uint256 availAssets;
@@ -264,16 +269,16 @@ contract NSTBLHub is NSTBLHUBStorage {
         // IERC20Helper(nstblToken).safeTransfer(msg.sender, balAfter - balBefore);
     }
 
-    // function unstakeAndRedeemNstbl(uint256 _poolId, address _user) internal {
+    // function unstakeAndRedeemNstbl(address _user, uint8 _trancheId, address _lpOwner) internal {
     //     console.log("HERE");
     //     console.log("NSTBL Supply: ", IERC20Helper(nstblToken).totalSupply());
     //     (address[] memory _failedAssets, uint256[] memory _failedAssetsPrice) =
     //         _failedAssetsOrderWithPrice(_noOfFailedAssets());
     //     console.log("HERE2");
     //     (address[] memory _assets, uint256[] memory _assetAmounts, uint256 _unstakeBurnAmount, uint256 _burnAmount) =
-    //         _getStakerRedeemParams(_poolId, _user, _failedAssets, _failedAssetsPrice);
+    //         _getStakerRedeemParams(_user, _trancheId, _failedAssets, _failedAssetsPrice);
     //     console.log("HERE3");
-    //     _unstakeAndBurnNstbl(_user, _unstakeBurnAmount / precision, _burnAmount/precision, _poolId);
+    //     _unstakeAndBurnNstbl(_user, _trancheId, _lpOwner, _unstakeBurnAmount / precision, _burnAmount/precision);
     //     console.log("HERE4");
     //     _burnNstblFromAtvl(_burnAmount / precision);
     //     console.log("HERE5");
@@ -287,15 +292,15 @@ contract NSTBLHub is NSTBLHUBStorage {
     // }
 
     // function _getStakerRedeemParams(
-    //     uint256 _poolId,
     //     address _user,
+    //     uint8 _trancheId,
     //     address[] memory _failedAssets,
     //     uint256[] memory _failedAssetsPrice
     // ) internal view returns (address[] memory, uint256[] memory, uint256 _unstakeBurnAmount, uint256 _burnAmount) {
     //     address[] memory _assets = new address[](_failedAssets.length);
     //     uint256[] memory _assetAmount = new uint256[](_failedAssets.length);
     //     console.log("HERE6");
-    //     uint256 assetsLeft = IStakePool(stakePool).getUserAvailableTokensDepeg(_user, _poolId) * precision;
+    //     uint256 assetsLeft = IStakePool(stakePool).getUserAvailableTokensDepeg(_user, _trancheId) * precision;
     //     console.log("Assets Left: ", assetsLeft);
     //     uint256 redeemableNstbl;
     //     uint256 assetBalance;
@@ -342,11 +347,11 @@ contract NSTBLHub is NSTBLHUBStorage {
     //     return (_assets, _assetAmount, _unstakeBurnAmount, _burnAmount);
     // }
 
-    // function _unstakeAndBurnNstbl(address _user, uint256 _unstakeBurnAmount, uint256 _burnAmount, uint256 _poolId) internal {
-    //     uint256 balBefore = IERC20Helper(nstblToken).balanceOf(address(this));
-    //     IStakePool(stakePool).unstake(_user, _poolId, true);
-    //     uint256 balAfter = IERC20Helper(nstblToken).balanceOf(address(this));
-    //     IERC20Helper(nstblToken).burn(address(this), _unstakeBurnAmount);
+    // function _unstakeAndBurnNstbl(address _user, uint8 _trancheId, address _lpOwner, uint256 _unstakeBurnAmount, uint256 _burnAmount) internal {
+    //     // uint256 balBefore = IERC20Helper(nstblToken).balanceOf(address(this));
+    //     uint256 tokensToBurn = IStakePool(stakePool).unstake(_user, _poolId, true, _lpOwner);
+    //     // uint256 balAfter = IERC20Helper(nstblToken).balanceOf(address(this));
+    //     IERC20Helper(nstblToken).burn(stakePool, _unstakeBurnAmount);
     //     console.log("Unstake Burn Amount: ", _unstakeBurnAmount);
     //     console.log("Trasfer tokens: ", (balAfter - balBefore), (balAfter - balBefore) - _unstakeBurnAmount);
     //     IERC20Helper(nstblToken).safeTransfer(msg.sender, (balAfter - balBefore) - _unstakeBurnAmount);
@@ -354,10 +359,11 @@ contract NSTBLHub is NSTBLHUBStorage {
 
     function _burnNstblFromAtvl(uint256 _burnAmount) internal {
         atvlBurnAmount += _burnAmount;
+        console.log("bhai itna burn hoga: ", _burnAmount);
         IATVL(atvl).burnNstbl(_burnAmount);
     }
 
-    function redeemForNonStaker(uint256 _amount, address _user) public authorizedCaller {
+    function redeemForNonStaker(uint256 _amount, address _user) internal {
         bool belowDT;
         bool burnFromStakePool;
         uint256 precisionAmount = _amount * precision;
@@ -370,6 +376,7 @@ contract NSTBLHub is NSTBLHUBStorage {
         uint256 adjustedDecimals;
 
         console.log("Redeem For Non-Staker");
+        IERC20Helper(nstblToken).burn(msg.sender, _amount);
         (address[] memory sortedAssets, uint256[] memory sortedAssetsPrice) = _getSortedAssetsWithPrice();
         for (uint256 i = 0; i < sortedAssets.length; i++) {
             if (sortedAssetsPrice[i] <= dt) {
@@ -386,15 +393,16 @@ contract NSTBLHub is NSTBLHUBStorage {
             assetBalance = IERC20Helper(sortedAssets[i]).balanceOf(address(this)) * precision;
             console.log("asset ", sortedAssets[i]);
             adjustedDecimals = IERC20Helper(nstblToken).decimals() - IERC20Helper(sortedAssets[i]).decimals();
+            console.log("ADJUSTED DECI", adjustedDecimals);
             console.log("HERE1");
             if (!belowDT) {
-                assetRequired = (assetAllocation[sortedAssets[i]] * precisionAmount / 1e5) + remainingNstbl * precision;
+                assetRequired = (assetAllocation[sortedAssets[i]] * precisionAmount / 1e5) + remainingNstbl;
                 remainingNstbl = _transferNormal(_user, sortedAssets[i], assetRequired, assetBalance, adjustedDecimals);
             } else {
                 console.log("HERE5");
 
                 assetProportion = (
-                    (assetAllocation[sortedAssets[i]] * precisionAmount / 1e5) + remainingNstbl * precision
+                    (assetAllocation[sortedAssets[i]] * precisionAmount / 1e5) + remainingNstbl 
                 ) / 10 ** adjustedDecimals;
                 console.log("HERE6");
                 console.log(
@@ -422,14 +430,10 @@ contract NSTBLHub is NSTBLHUBStorage {
                     burnFromStakePool ? _stakePoolBurnAmount(remainingNstbl, assetRequired, assetProportion) : 0;
             }
         }
-
-        console.log("Final burn Amount: ", burnAmount);
-        console.log("Final stakePoolBurnAmount: ", stakePoolBurnAmount);
-        console.log("Final remainingNstbl: ", remainingNstbl);
-
-        _burnNstblFromAtvl((burnAmount - stakePoolBurnAmount) / precision);
-        _burnNstblFromStakePool(stakePoolBurnAmount / precision);
-        addToWithdrawalQueue(_user, remainingNstbl);
+        console.log("ATVL BURNNNNN", burnAmount-stakePoolBurnAmount);
+        console.log("STAKE BURNNNNN", stakePoolBurnAmount);
+        _burnNstblFromAtvl((burnAmount - stakePoolBurnAmount) );
+        _burnNstblFromStakePool(stakePoolBurnAmount);
         requestTBillWithdraw(_amount * 7e4 / 1e5);
     }
 
@@ -449,7 +453,7 @@ contract NSTBLHub is NSTBLHUBStorage {
         } else {
             IERC20Helper(_asset).safeTransfer(_user, _assetBalance / precision);
 
-            _remainingNstbl = (_assetRequired - _assetBalance * 10 ** _adjustedDecimals) / precision;
+            _remainingNstbl = (_assetRequired - _assetBalance * 10 ** _adjustedDecimals);
             console.log("Remaining NSTBL: ", _remainingNstbl);
             console.log("HERE4");
         }
@@ -481,9 +485,9 @@ contract NSTBLHub is NSTBLHUBStorage {
             redeemableNstbl = _assetBalance * _assetPrice / dt;
             // console.log("Redeemable NSTBL: ", redeemableNstbl);
             _burnAmount += (_assetBalance - redeemableNstbl) * 10 ** _adjustedDecimals / precision;
-            // console.log("Burn AMount: ", burnAmount);
+            console.log("Burn AMount------: ", _burnAmount);
             // assetsLeft -= assetBalance;
-            _remainingNstbl = (_assetProportion - redeemableNstbl) * 10 ** _adjustedDecimals / precision;
+            _remainingNstbl = (_assetProportion - redeemableNstbl) * 10 ** _adjustedDecimals;
             // console.log("Remaining NSTBL: ", remainingNstbl);
             IERC20Helper(_asset).safeTransfer(_user, _assetBalance / precision);
             // console.log("HERE9");
@@ -496,11 +500,8 @@ contract NSTBLHub is NSTBLHUBStorage {
         view
         returns (uint256 _burnAmount)
     {
-        if (_remNSTBL == 0) {
-            _burnAmount = (_assetRequired - _assetProportion) - (_assetProportion * dt / ub - _assetProportion);
-        } else {
-            _burnAmount = (_assetRequired - _assetProportion) - (_assetProportion * dt / ub - _assetProportion);
-        }
+        
+        _burnAmount = (_assetRequired - _assetProportion) - (_assetProportion * dt / ub - _assetProportion);
         _burnAmount /= precision;
     }
 
@@ -514,41 +515,41 @@ contract NSTBLHub is NSTBLHUBStorage {
         assetFeeds[2] = _assetFeeds[2];
     }
 
-    // function _failedAssetsOrderWithPrice(uint256 _size) internal view returns (address[] memory, uint256[] memory) {
-    //     uint256 count;
-    //     address[] memory _assetsList = new address[](_size);
-    //     uint256[] memory _assetsPrice = new uint256[](_size);
-    //     uint256 price;
-    //     for (uint256 i = 0; i < assetFeeds.length; i++) {
-    //         price = IChainlinkPriceFeed(chainLinkPriceFeed).getLatestPrice(assetFeeds[i]);
-    //         if (price <= dt) {
-    //             _assetsList[count] = (assets[i]);
-    //             _assetsPrice[count] = (price);
-    //             count += 1;
-    //         }
-    //     }
-    //     for (uint256 i = 0; i < count - 1; i++) {
-    //         if (_assetsPrice[i] > _assetsPrice[i + 1]) {
-    //             (_assetsList[i], _assetsList[i + 1]) = (_assetsList[i + 1], _assetsList[i]);
-    //             (_assetsPrice[i], _assetsPrice[i + 1]) = (_assetsPrice[i + 1], _assetsPrice[i]);
-    //         }
-    //     }
-    //     if (count > 1 && _assetsPrice[0] > _assetsPrice[1]) {
-    //         (_assetsList[0], _assetsList[1]) = (_assetsList[1], _assetsList[0]);
-    //         (_assetsPrice[0], _assetsPrice[1]) = (_assetsPrice[1], _assetsPrice[0]);
-    //     }
-    //     return (_assetsList, _assetsPrice);
-    // }
+    function _failedAssetsOrderWithPrice(uint256 _size) internal view returns (address[] memory, uint256[] memory) {
+        uint256 count;
+        address[] memory _assetsList = new address[](_size);
+        uint256[] memory _assetsPrice = new uint256[](_size);
+        uint256 price;
+        for (uint256 i = 0; i < assetFeeds.length; i++) {
+            price = IChainlinkPriceFeed(chainLinkPriceFeed).getLatestPrice(assetFeeds[i]);
+            if (price <= dt) {
+                _assetsList[count] = (assets[i]);
+                _assetsPrice[count] = (price);
+                count += 1;
+            }
+        }
+        for (uint256 i = 0; i < count - 1; i++) {
+            if (_assetsPrice[i] > _assetsPrice[i + 1]) {
+                (_assetsList[i], _assetsList[i + 1]) = (_assetsList[i + 1], _assetsList[i]);
+                (_assetsPrice[i], _assetsPrice[i + 1]) = (_assetsPrice[i + 1], _assetsPrice[i]);
+            }
+        }
+        if (count > 1 && _assetsPrice[0] > _assetsPrice[1]) {
+            (_assetsList[0], _assetsList[1]) = (_assetsList[1], _assetsList[0]);
+            (_assetsPrice[0], _assetsPrice[1]) = (_assetsPrice[1], _assetsPrice[0]);
+        }
+        return (_assetsList, _assetsPrice);
+    }
 
-    // function _noOfFailedAssets() internal view returns (uint256) {
-    //     uint256 count;
-    //     for (uint256 i = 0; i < assetFeeds.length; i++) {
-    //         if (IChainlinkPriceFeed(chainLinkPriceFeed).getLatestPrice(assetFeeds[i]) < dt) {
-    //             count += 1;
-    //         }
-    //     }
-    //     return count;
-    // }
+    function _noOfFailedAssets() internal view returns (uint256) {
+        uint256 count;
+        for (uint256 i = 0; i < assetFeeds.length; i++) {
+            if (IChainlinkPriceFeed(chainLinkPriceFeed).getLatestPrice(assetFeeds[i]) < dt) {
+                count += 1;
+            }
+        }
+        return count;
+    }
 
     function _getSortedAssetsWithPrice() internal view returns (address[] memory, uint256[] memory) {
         address[] memory _assets = new address[](assets.length);
@@ -583,11 +584,15 @@ contract NSTBLHub is NSTBLHUBStorage {
         tBillPercent = _tBillPercent;
     }
 
-    function addToWithdrawalQueue(address _user, uint256 _amount) internal { }
+    function addToWithdrawalQueue(address _user, uint256 _amount) internal {
+
+     }
 
     function _burnNstblFromStakePool(uint256 _amount) internal { 
         stakePoolBurnAmount += _amount;
-        // IStakePool(stakePool).burnNstbl(_amount);
+        if(_amount != 0){
+            IStakePool(stakePool).burnNSTBL(_amount);
+        }
     }
 
     function requestTBillWithdraw(uint256 _amount) internal { 
