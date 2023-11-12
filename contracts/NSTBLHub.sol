@@ -201,23 +201,24 @@ contract NSTBLHub is NSTBLHUBStorage {
         }
     }
 
-    // function unstake(uint256 _poolId, address _user) external authorizedCaller nonReentrant {
-    //     (uint256 p1, uint256 p2, uint256 p3) = IChainlinkPriceFeed(chainLinkPriceFeed).getLatestPrice();
+    function unstake(address _user, uint8 _trancheId, address _lpOwner) external authorizedCaller nonReentrant {
+        (uint256 p1, uint256 p2, uint256 p3) = IChainlinkPriceFeed(chainLinkPriceFeed).getLatestPrice();
 
-    //     if (p1 > dt && p2 > dt && p3 > dt) {
-    //         unstakeNstbl(_poolId, _user, false);
-    //     } else {
-    //         unstakeAndRedeemNstbl(_poolId, _user);
-    //     }
-    // }
+        if (p1 > dt && p2 > dt && p3 > dt) {
+            unstakeNstbl(_user, _trancheId, false, _lpOwner);
+        } else {
+            console.log("yhn nhn jaega");
+            // unstakeAndRedeemNstbl(_poolId, _user);
+        }
+    }
 
-    // function stake(uint256 _amount, uint256 _poolId, address user) external authorizedCaller nonReentrant {
-    //     (uint256 p1, uint256 p2, uint256 p3) = IChainlinkPriceFeed(chainLinkPriceFeed).getLatestPrice();
-    //     require(p1 > dt && p2 > dt && p3 > dt, "VAULT:STAKING_SUSPENDED");
-    //     IERC20Helper(nstblToken).safeTransferFrom(msg.sender, address(this), _amount);
-    //     IERC20Helper(nstblToken).safeIncreaseAllowance(stakePool, _amount);
-    //     IStakePool(stakePool).stake(_amount, user, _poolId);
-    // }
+    function stake(address _user, uint256 _amount, uint8 _trancheId, address _destAddress) external authorizedCaller nonReentrant {
+        (uint256 p1, uint256 p2, uint256 p3) = IChainlinkPriceFeed(chainLinkPriceFeed).getLatestPrice();
+        require(p1 > dt && p2 > dt && p3 > dt, "VAULT:STAKING_SUSPENDED");
+        IERC20Helper(nstblToken).safeTransferFrom(msg.sender, address(this), _amount);
+        IERC20Helper(nstblToken).safeIncreaseAllowance(stakePool, _amount);
+        IStakePool(stakePool).stake(_user, _amount, _trancheId, _destAddress);
+    }
 
     function redeemNormal(uint256 _amount, address _user) public authorizedCaller {
         uint256 liquidTokens = liquidPercent * _amount / 1e4;
@@ -254,12 +255,12 @@ contract NSTBLHub is NSTBLHUBStorage {
         requestTBillWithdraw(tBillTokens);
     }
 
-    // function unstakeNstbl(uint256 _poolId, address _user, bool _depeg) internal {
-    //     uint256 balBefore = IERC20Helper(nstblToken).balanceOf(address(this));
-    //     IStakePool(stakePool).unstake(_user, _poolId, _depeg);
-    //     uint256 balAfter = IERC20Helper(nstblToken).balanceOf(address(this));
-    //     IERC20Helper(nstblToken).safeTransfer(msg.sender, balAfter - balBefore);
-    // }
+    function unstakeNstbl(address _user, uint8 _trancheId, bool _depeg, address _lpOwner) internal {
+        uint256 balBefore = IERC20Helper(nstblToken).balanceOf(address(this));
+        IStakePool(stakePool).unstake(_user, _trancheId, _depeg, _lpOwner);
+        uint256 balAfter = IERC20Helper(nstblToken).balanceOf(address(this));
+        IERC20Helper(nstblToken).safeTransfer(msg.sender, balAfter - balBefore);
+    }
 
     // function unstakeAndRedeemNstbl(uint256 _poolId, address _user) internal {
     //     console.log("HERE");
@@ -613,7 +614,7 @@ contract NSTBLHub is NSTBLHUBStorage {
        require(ILoanManager(loanManager).awaitingRedemption(), "HUB: No redemption requested");
        usdcRedeemed = _redeemTBill();
     }
-    
+
     function _redeemTBill() internal returns(uint256){
         uint256 balBefore = IERC20Helper(USDC).balanceOf(address(this));
         ILoanManager(loanManager).redeem();

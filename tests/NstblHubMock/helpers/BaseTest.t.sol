@@ -235,11 +235,40 @@ contract BaseTest is Test{
     //     vm.stopPrank();
     // }
 
-    // function _stakeNstbl(address _user, uint256 _amount, uint256 _poolId) internal {
-    //     erc20_transfer(address(nstblToken), deployer, nealthyAddr, _amount);
-    //     vm.startPrank(nealthyAddr);
-    //     nstblToken.approve(address(nstblHub), _amount);
-    //     nstblHub.stake(_amount, _poolId, _user);
-    //     vm.stopPrank();
-    // }
+    function _stakeNSTBL(address _user, uint256 _amount, uint8 _trancheId) internal {
+        // Add nSTBL balance to NSTBL_HUB
+        // deal(address(nstblToken), nealthyAddr, _amount);
+        // assertEq(IERC20Helper(address(nstblToken)).balanceOf(nealthyAddr), _amount);
+
+        // Action = Stake
+        vm.startPrank(nealthyAddr);
+        IERC20Helper(address(nstblToken)).safeIncreaseAllowance(address(nstblHub), _amount);
+        nstblHub.stake(_user, _amount, _trancheId, destinationAddress);
+        vm.stopPrank();
+    }
+
+    function _depositNSTBL(uint256 _amount) internal {
+        uint256 usdcAmt;
+        uint256 usdtAmt;
+        uint256 daiAmt;
+
+        (usdcAmt, usdtAmt, daiAmt,) = nstblHub.previewDeposit(_amount/1e18);
+        deal(USDC, nealthyAddr, usdcAmt);
+        deal(USDT, nealthyAddr, usdtAmt);
+        deal(DAI, nealthyAddr, daiAmt);
+
+        vm.startPrank(nealthyAddr);
+        IERC20Helper(USDC).safeIncreaseAllowance(address(nstblHub), usdcAmt);
+        IERC20Helper(USDT).safeIncreaseAllowance(address(nstblHub), usdtAmt);
+        IERC20Helper(DAI).safeIncreaseAllowance(address(nstblHub), daiAmt);
+        nstblHub.deposit(usdcAmt, usdtAmt, daiAmt);
+        vm.stopPrank();
+
+    }
+
+    function _unstakeNSTBL(address _user, uint8 _trancheId) internal {
+
+        vm.prank(nealthyAddr);
+        nstblHub.unstake(_user, _trancheId, destinationAddress);
+    }
 }
