@@ -5,6 +5,7 @@ import "./interfaces/IChainlinkPriceFeed.sol";
 import "./interfaces/ILoanManager.sol";
 import "./interfaces/IStakePool.sol";
 import "./interfaces/IATVL.sol";
+import "./interfaces/INSTBLToken.sol";
 
 contract NSTBLHUBStorage {
     uint256 versionSlot;

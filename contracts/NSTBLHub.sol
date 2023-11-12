@@ -215,9 +215,10 @@ contract NSTBLHub is NSTBLHUBStorage {
     function stake(address _user, uint256 _amount, uint8 _trancheId, address _destAddress) external authorizedCaller nonReentrant {
         (uint256 p1, uint256 p2, uint256 p3) = IChainlinkPriceFeed(chainLinkPriceFeed).getLatestPrice();
         require(p1 > dt && p2 > dt && p3 > dt, "VAULT:STAKING_SUSPENDED");
-        IERC20Helper(nstblToken).safeTransferFrom(msg.sender, address(this), _amount);
-        IERC20Helper(nstblToken).safeIncreaseAllowance(stakePool, _amount);
+        // IERC20Helper(nstblToken).safeTransferFrom(msg.sender, address(this), _amount);
+        // IERC20Helper(nstblToken).safeIncreaseAllowance(stakePool, _amount);
         IStakePool(stakePool).stake(_user, _amount, _trancheId, _destAddress);
+        INSTBLToken(nstblToken).sendOrReturnPool(msg.sender, stakePool, _amount);
     }
 
     function redeemNormal(uint256 _amount, address _user) public authorizedCaller {
@@ -256,10 +257,11 @@ contract NSTBLHub is NSTBLHUBStorage {
     }
 
     function unstakeNstbl(address _user, uint8 _trancheId, bool _depeg, address _lpOwner) internal {
-        uint256 balBefore = IERC20Helper(nstblToken).balanceOf(address(this));
-        IStakePool(stakePool).unstake(_user, _trancheId, _depeg, _lpOwner);
-        uint256 balAfter = IERC20Helper(nstblToken).balanceOf(address(this));
-        IERC20Helper(nstblToken).safeTransfer(msg.sender, balAfter - balBefore);
+        // uint256 balBefore = IERC20Helper(nstblToken).balanceOf(address(this));
+        uint256 tokensUnstaked = IStakePool(stakePool).unstake(_user, _trancheId, _depeg, _lpOwner);
+        // uint256 balAfter = IERC20Helper(nstblToken).balanceOf(address(this));
+        INSTBLToken(nstblToken).sendOrReturnPool(stakePool, msg.sender, tokensUnstaked);
+        // IERC20Helper(nstblToken).safeTransfer(msg.sender, balAfter - balBefore);
     }
 
     // function unstakeAndRedeemNstbl(uint256 _poolId, address _user) internal {
