@@ -391,29 +391,16 @@ contract NSTBLHub is NSTBLHUBStorage {
             }
 
             assetBalance = IERC20Helper(sortedAssets[i]).balanceOf(address(this)) * precision;
-            console.log("asset ", sortedAssets[i]);
             adjustedDecimals = IERC20Helper(nstblToken).decimals() - IERC20Helper(sortedAssets[i]).decimals();
-            console.log("ADJUSTED DECI", adjustedDecimals);
-            console.log("HERE1");
             if (!belowDT) {
                 assetRequired = (assetAllocation[sortedAssets[i]] * precisionAmount / 1e5) + remainingNstbl;
                 remainingNstbl = _transferNormal(_user, sortedAssets[i], assetRequired, assetBalance, adjustedDecimals);
             } else {
-                console.log("HERE5");
 
                 assetProportion = (
                     (assetAllocation[sortedAssets[i]] * precisionAmount / 1e5) + remainingNstbl 
                 ) / 10 ** adjustedDecimals;
-                console.log("HERE6");
-                console.log(
-                    "Asset Proportion withour remNSTBL",
-                    (assetAllocation[sortedAssets[i]] * precisionAmount / 1e5) / 10 ** adjustedDecimals
-                );
-                console.log("Asset Proportion: ", assetProportion);
                 assetRequired = assetProportion * dt / sortedAssetsPrice[i];
-                console.log("Asset Required: ", assetRequired);
-                console.log("Asset Balance: ", assetBalance);
-                console.log("HERE7");
 
                 (remainingNstbl, burnAmount) = _transferBelowDepeg(
                     _user,
@@ -430,11 +417,10 @@ contract NSTBLHub is NSTBLHUBStorage {
                     burnFromStakePool ? _stakePoolBurnAmount(remainingNstbl, assetRequired, assetProportion) : 0;
             }
         }
-        console.log("ATVL BURNNNNN", burnAmount-stakePoolBurnAmount);
-        console.log("STAKE BURNNNNN", stakePoolBurnAmount);
         _burnNstblFromAtvl((burnAmount - stakePoolBurnAmount) );
         _burnNstblFromStakePool(stakePoolBurnAmount);
         requestTBillWithdraw(_amount * 7e4 / 1e5);
+
     }
 
     function _transferNormal(
