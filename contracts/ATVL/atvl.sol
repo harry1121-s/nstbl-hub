@@ -34,18 +34,15 @@ contract Atvl {
     }
 
     function burnNstbl(uint256 _burnAmount) external authorizedCaller {
-        
         uint256 burnAmount = _burnAmount + pendingNstblBurn <= IERC20Helper(nstblToken).balanceOf(address(this))
             ? _burnAmount + pendingNstblBurn
             : IERC20Helper(nstblToken).balanceOf(address(this));
         totalNstblBurned += burnAmount;
         pendingNstblBurn = _burnAmount + pendingNstblBurn - burnAmount;
         IERC20Helper(nstblToken).burn(address(this), burnAmount);
-
     }
 
     function checkDeployedATVL() external view returns (uint256) {
         return IERC20Helper(nstblToken).balanceOf(address(this));
     }
-
 }

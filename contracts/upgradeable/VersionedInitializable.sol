@@ -15,8 +15,8 @@ pragma solidity 0.8.21;
  * This is slightly modified from [Aave's version.](https://github.com/aave/protocol-v2/blob/6a503eb0a897124d8b9d126c915ffdf3e88343a9/contracts/protocol/libraries/aave-upgradeability/VersionedInitializable.sol)
  *
  */
-abstract contract VersionedInitializable {
 
+abstract contract VersionedInitializable {
     address private immutable originalImpl;
     uint256 constant LAST_INITIALIZED_REVISION_SLOT = 0;
 
@@ -25,6 +25,7 @@ abstract contract VersionedInitializable {
     /**
      * @dev Modifier to use in the initializer function of a contract.
      */
+
     modifier initializer() {
         if (address(this) == originalImpl) {
             revert CannotInitImplementation();
@@ -55,6 +56,7 @@ abstract contract VersionedInitializable {
     /**
      * @dev returns the revision number of the contract
      * Needs to be defined in the inherited class as a constant.
-     **/
+     *
+     */
     function getRevision() internal pure virtual returns (uint256);
 }

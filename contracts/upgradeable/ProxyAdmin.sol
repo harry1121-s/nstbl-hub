@@ -3,8 +3,8 @@
 
 pragma solidity ^0.8.20;
 
-import {ITransparentUpgradeableProxy} from "./TransparentUpgradeableProxy.sol";
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import { ITransparentUpgradeableProxy } from "./TransparentUpgradeableProxy.sol";
+import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 
 /**
  * @dev This is an auxiliary contract meant to be assigned as the admin of a {TransparentUpgradeableProxy}. For an
@@ -24,7 +24,7 @@ contract ProxyAdmin is Ownable {
     /**
      * @dev Sets the initial owner who can perform upgrades.
      */
-    constructor(address initialOwner) Ownable(initialOwner) {}
+    constructor(address initialOwner) Ownable(initialOwner) { }
 
     /**
      * @dev Upgrades `proxy` to `implementation` and calls a function on the new implementation.
@@ -35,11 +35,12 @@ contract ProxyAdmin is Ownable {
      * - This contract must be the admin of `proxy`.
      * - If `data` is empty, `msg.value` must be zero.
      */
-    function upgradeAndCall(
-        ITransparentUpgradeableProxy proxy,
-        address implementation,
-        bytes memory data
-    ) public payable virtual onlyOwner {
-        proxy.upgradeToAndCall{value: msg.value}(implementation, data);
+    function upgradeAndCall(ITransparentUpgradeableProxy proxy, address implementation, bytes memory data)
+        public
+        payable
+        virtual
+        onlyOwner
+    {
+        proxy.upgradeToAndCall{ value: msg.value }(implementation, data);
     }
 }

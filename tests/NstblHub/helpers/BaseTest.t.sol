@@ -14,13 +14,18 @@ import { NSTBLHubInternal } from "../../harness/NSTBLHUBInternal.sol";
 import { IPoolManager } from "../../../contracts/interfaces/maple/IPoolManager.sol";
 import { LoanManager } from "@nstbl-loan-manager/contracts/LoanManager.sol";
 import { ProxyAdmin } from "../../../contracts/upgradeable/ProxyAdmin.sol";
-import { TransparentUpgradeableProxy, ITransparentUpgradeableProxy } from "../../../contracts/upgradeable/TransparentUpgradeableProxy.sol";
+import {
+    TransparentUpgradeableProxy,
+    ITransparentUpgradeableProxy
+} from "../../../contracts/upgradeable/TransparentUpgradeableProxy.sol";
 import { IERC20, IERC20Helper } from "../../../contracts/interfaces/IERC20Helper.sol";
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import { ERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-contract BaseTest is Test{
+
+contract BaseTest is Test {
     using SafeERC20 for IERC20Helper;
     //TokenSetup
+
     ACLManager public aclManager;
     NSTBLToken public token_src;
     NSTBLToken public token_dst;
@@ -54,13 +59,11 @@ contract BaseTest is Test{
 
     NSTBLHubInternal public nstblHubHarness;
 
-
     MockV3Aggregator public usdcPriceFeedMock;
     MockV3Aggregator public usdtPriceFeedMock;
     MockV3Aggregator public daiPriceFeedMock;
 
-
-     /*//////////////////////////////////////////////////////////////
+    /*//////////////////////////////////////////////////////////////
     Testing constants
     //////////////////////////////////////////////////////////////*/
 
@@ -85,7 +88,6 @@ contract BaseTest is Test{
     uint256 public ub = 97 * 1e6;
     uint256 public lb = 96 * 1e6;
 
-
     /*//////////////////////////////////////////////////////////////
     Addresses for testing
     //////////////////////////////////////////////////////////////*/
@@ -103,7 +105,7 @@ contract BaseTest is Test{
     address public MULTISIG = vm.addr(6);
     address public nealthyAddr = vm.addr(7);
 
-     /*//////////////////////////////////////////////////////////////
+    /*//////////////////////////////////////////////////////////////
     Setup
     //////////////////////////////////////////////////////////////*/
     function setUp() public virtual {
@@ -123,7 +125,7 @@ contract BaseTest is Test{
         aclManager = new ACLManager();
 
         priceFeed =
-        new ChainLinkPriceFeed(address(usdcPriceFeedMock), address(usdtPriceFeedMock), address(daiPriceFeedMock));
+            new ChainLinkPriceFeed(address(usdcPriceFeedMock), address(usdtPriceFeedMock), address(daiPriceFeedMock));
 
         // Deploy tokens
         token_src = new NSTBLToken(name, symbol, sharedDecimals, address(LZEndpoint_src), address(aclManager));
@@ -141,7 +143,6 @@ contract BaseTest is Test{
 
         token_src.setAuthorizedChain(block.chainid, true);
 
-    
         // stakePool = new StakePoolMock(
         //     deployer,
         //     address(nstblToken)
@@ -150,9 +151,7 @@ contract BaseTest is Test{
             deployer
         );
 
-        
         // loanManager = new LoanManagerMock(deployer);
-       
 
         //LoanManager
         proxyAdmin = new ProxyAdmin(owner);
@@ -160,17 +159,14 @@ contract BaseTest is Test{
         bytes memory data = abi.encodeCall(lmImplementation.initialize, (address(aclManager), MAPLE_USDC_CASH_POOL));
         loanManagerProxy = new TransparentUpgradeableProxy(address(lmImplementation), address(proxyAdmin), data);
         loanManager = LoanManager(address(loanManagerProxy));
-        console.log("LoanManager Proxy Address:", address(loanManagerProxy));
-        console.log("LoanManager address;", address(loanManager));
-         
+
         //StakePool
         spImplementation = new NSTBLStakePool();
-        console.log("StakePool Implementation Address:", address(spImplementation));
-        data = abi.encodeCall(spImplementation.initialize, (address(aclManager), address(nstblToken), address(loanManager), address(atvl)));
+        data = abi.encodeCall(
+            spImplementation.initialize, (address(aclManager), address(nstblToken), address(loanManager), address(atvl))
+        );
         stakePoolProxy = new TransparentUpgradeableProxy(address(spImplementation), address(proxyAdmin), data);
         stakePool = NSTBLStakePool(address(stakePoolProxy));
-        console.log("StakePool Proxy Address:", address(stakePoolProxy));
-        console.log("StakePool address;", address(stakePool));
 
         //nSTBLHub
         nstblHub = new NSTBLHub(
@@ -185,7 +181,7 @@ contract BaseTest is Test{
 
         loanManager.updateNSTBLHUB(address(nstblHub));
 
-         // Set authorized caller in ACLManager
+        // Set authorized caller in ACLManager
         // Token
         aclManager.setAuthorizedCallerToken(address(nstblHub), true);
         aclManager.setAuthorizedCallerToken(address(atvl), true);
@@ -193,10 +189,9 @@ contract BaseTest is Test{
         aclManager.setAuthorizedCallerToken(owner, true);
         aclManager.setAuthorizedCallerBlacklister(compliance, true);
         // StakePool
-        aclManager.setAuthorizedCallerStakePool(address(nstblHub), true); 
+        aclManager.setAuthorizedCallerStakePool(address(nstblHub), true);
         //LoanManager
         aclManager.setAuthorizedCallerLoanManager(address(nstblHub), true);
-
 
         atvl.init(address(nstblToken));
         atvl.setAuthorizedCaller(address(nstblHub), true);
@@ -233,32 +228,19 @@ contract BaseTest is Test{
         //setting NSTBLHub as allowed lender
         poolManagerUSDC = IPoolManager(MAPLE_POOL_MANAGER_USDC);
         _setAllowedLender();
-
-        
-
     }
 
-     function _setAllowedLender() internal {
+    function _setAllowedLender() internal {
         bool out;
         vm.startPrank(poolDelegateUSDC);
         poolManagerUSDC.setAllowedLender(address(loanManager), true);
-        (out,) = address(poolManagerUSDC).staticcall(abi.encodeWithSignature("isValidLender(address)", address(loanManager)));
+        (out,) =
+            address(poolManagerUSDC).staticcall(abi.encodeWithSignature("isValidLender(address)", address(loanManager)));
         assertTrue(out);
         vm.stopPrank();
     }
 
-    // function erc20_transfer(address asset_, address account_, address destination_, uint256 amount_) internal {
-    //     vm.startPrank(account_);
-    //     console.log("Balance of account: ", IERC20Helper(asset_).balanceOf(account_));
-    //     IERC20Helper(asset_).safeTransfer(destination_, amount_);
-    //     vm.stopPrank();
-    // }
-
     function _stakeNSTBL(address _user, uint256 _amount, uint8 _trancheId) internal {
-        // Add nSTBL balance to NSTBL_HUB
-        // deal(address(nstblToken), nealthyAddr, _amount);
-        // assertEq(IERC20Helper(address(nstblToken)).balanceOf(nealthyAddr), _amount);
-
         // Action = Stake
         vm.startPrank(nealthyAddr);
         IERC20Helper(address(nstblToken)).safeIncreaseAllowance(address(nstblHub), _amount);
@@ -271,7 +253,7 @@ contract BaseTest is Test{
         uint256 usdtAmt;
         uint256 daiAmt;
 
-        (usdcAmt, usdtAmt, daiAmt,) = nstblHub.previewDeposit(_amount/1e18);
+        (usdcAmt, usdtAmt, daiAmt,) = nstblHub.previewDeposit(_amount / 1e18);
         deal(USDC, nealthyAddr, usdcAmt);
         deal(USDT, nealthyAddr, usdtAmt);
         deal(DAI, nealthyAddr, daiAmt);
@@ -282,11 +264,9 @@ contract BaseTest is Test{
         IERC20Helper(DAI).safeIncreaseAllowance(address(nstblHub), daiAmt);
         nstblHub.deposit(usdcAmt, usdtAmt, daiAmt);
         vm.stopPrank();
-
     }
 
     function _unstakeNSTBL(address _user, uint8 _trancheId) internal {
-
         vm.prank(nealthyAddr);
         nstblHub.unstake(_user, _trancheId, destinationAddress);
     }

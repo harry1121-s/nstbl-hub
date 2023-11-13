@@ -56,5 +56,4 @@ contract NSTBLHUBStorage {
     uint256 public liquidPercent;
     uint256 public tBillPercent;
     uint256 public marginPercent;
-    
 }
