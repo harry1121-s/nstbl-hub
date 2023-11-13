@@ -2,12 +2,10 @@ pragma solidity 0.8.21;
 
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "../interfaces/IERC20Helper.sol";
-import { console } from "forge-std/Test.sol";
 
 contract Atvl {
     mapping(address => bool) public authorizedCallers;
     address public _admin;
-    uint256 public atvlThreshold;
     address public nstblToken;
     uint256 public totalNstblReceived;
     uint256 public totalNstblBurned;
@@ -27,20 +25,13 @@ contract Atvl {
         _admin = _admin_;
     }
 
-    function init(address _nstblToken, uint256 _atvlThreshold) external onlyAdmin {
+    function init(address _nstblToken) external onlyAdmin {
         nstblToken = _nstblToken;
-        atvlThreshold = _atvlThreshold;
     }
 
     function setAuthorizedCaller(address _caller, bool _isAuthorized) external onlyAdmin {
         authorizedCallers[_caller] = _isAuthorized;
     }
-
-    function updateThreshold(uint256 _atvlThreshold) external onlyAdmin {
-        atvlThreshold = _atvlThreshold;
-    }
-
-    function receiveNstbl() external { }
 
     function burnNstbl(uint256 _burnAmount) external authorizedCaller {
         
@@ -56,4 +47,5 @@ contract Atvl {
     function checkDeployedATVL() external view returns (uint256) {
         return IERC20Helper(nstblToken).balanceOf(address(this));
     }
+
 }

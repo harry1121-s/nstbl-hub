@@ -3,11 +3,10 @@ pragma solidity 0.8.21;
 
 import { Test, console } from "forge-std/Test.sol";
 import { MockV3Aggregator } from "../../../modules/chainlink/contracts/src/v0.8/tests/MockV3Aggregator.sol";
-// import { StakePoolMock } from "../../../contracts/mocks/StakePool/StakePoolMock.sol";
 import { NSTBLStakePool } from "@nstbl-stake-pool/contracts/StakePool.sol";
 import { NSTBLToken } from "@nstbl-token/contracts/NSTBLToken.sol";
 import { LZEndpointMock } from "@layerzerolabs/contracts/lzApp/mocks/LZEndpointMock.sol";
-import { ChainLinkPriceFeedMock } from "../../../contracts/mocks/chainlink/ChainlinkPriceFeedMock.sol";
+import { ChainLinkPriceFeed } from "../../../contracts/chainlink/ChainlinkPriceFeed.sol";
 import { ACLManager } from "@nstbl-acl-manager/contracts/ACLManager.sol";
 import { NSTBLHub } from "../../../contracts/NSTBLHub.sol";
 import { Atvl } from "../../../contracts/ATVL/atvl.sol";
@@ -51,7 +50,7 @@ contract BaseTest is Test{
     LZEndpointMock public LZEndpoint_src;
     LZEndpointMock public LZEndpoint_dst;
 
-    ChainLinkPriceFeedMock public priceFeed;
+    ChainLinkPriceFeed public priceFeed;
 
     NSTBLHubInternal public nstblHubHarness;
 
@@ -124,7 +123,7 @@ contract BaseTest is Test{
         aclManager = new ACLManager();
 
         priceFeed =
-        new ChainLinkPriceFeedMock(address(usdcPriceFeedMock), address(usdtPriceFeedMock), address(daiPriceFeedMock));
+        new ChainLinkPriceFeed(address(usdcPriceFeedMock), address(usdtPriceFeedMock), address(daiPriceFeedMock));
 
         // Deploy tokens
         token_src = new NSTBLToken(name, symbol, sharedDecimals, address(LZEndpoint_src), address(aclManager));
@@ -199,7 +198,7 @@ contract BaseTest is Test{
         aclManager.setAuthorizedCallerLoanManager(address(nstblHub), true);
 
 
-        atvl.init(address(nstblToken), 120);
+        atvl.init(address(nstblToken));
         atvl.setAuthorizedCaller(address(nstblHub), true);
         stakePool.setupStakePool([300, 200, 100], [700, 500, 300], [30, 90, 180]);
 
