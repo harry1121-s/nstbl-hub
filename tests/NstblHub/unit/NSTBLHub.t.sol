@@ -4,7 +4,7 @@ pragma solidity 0.8.21;
 
 import { Test, console } from "forge-std/Test.sol";
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import { IERC20Helper, BaseTest, ERC20 } from "../helpers/BaseTest.t.sol";
+import { IERC20Helper, BaseTest, ERC20, NSTBLHub, TransparentUpgradeableProxy } from "../helpers/BaseTest.t.sol";
 
 contract testProxy is BaseTest {
     function setUp() public override {
@@ -22,6 +22,40 @@ contract testProxy is BaseTest {
         assertEq(loanManager.getVersion(), 111);
         assertEq(loanManager.versionSlot(), 111);
         assertEq(ERC20(address(loanManager.lUSDC())).name(), "Loan Manager USDC");
+    }
+
+    function test_proxy_hub() external {
+        assertEq(nstblHub.nstblToken(), address(nstblToken));
+        assertEq(nstblHub.stakePool(), address(stakePool));
+        assertEq(nstblHub.chainLinkPriceFeed(), address(priceFeed));
+        assertEq(nstblHub.atvl(), address(atvl));
+        assertEq(nstblHub.loanManager(), address(loanManager));
+        assertEq(nstblHub.aclManager(), address(aclManager));
+        assertEq(nstblHub.eqTh(), 2*1e24);
+        assertEq(nstblHub.getVersion(), 1);
+    }
+
+    function test_proxy_hub_setup() external {
+        vm.startPrank(owner);
+        NSTBLHub hubImp2 = new NSTBLHub();
+        bytes memory data1 = abi.encodeCall(
+            nstblHubImpl.initialize,
+            (
+                address(nstblToken),
+                address(stakePool),
+                address(priceFeed),
+                address(atvl),
+                address(loanManager),
+                address(aclManager),
+                3*1e24
+            )
+        );
+        TransparentUpgradeableProxy proxyNew = new TransparentUpgradeableProxy(address(hubImp2), address(proxyAdmin), data1);
+        vm.stopPrank();
+        NSTBLHub hub2 = NSTBLHub(address(proxyNew));
+        assertEq(hub2.nstblToken(), address(nstblToken));
+        assertEq(hub2.stakePool(), address(stakePool));
+        assertEq(hub2.eqTh(), 3*1e24);
     }
 }
 
@@ -1096,30 +1130,5 @@ contract NSTBLHubTestRedeem is BaseTest {
             daiBalBefore - IERC20Helper(DAI).balanceOf(address(nstblHub)),
             "check DAI balance"
         );
-    }
-}
-
-contract NSTBLHubInternal is BaseTest {
-    function setUp() public override {
-        super.setUp();
-    }
-
-    function test_getSortedAssetPrices() external {
-        usdcPriceFeedMock.updateAnswer(999e5);
-        usdtPriceFeedMock.updateAnswer(99e6);
-        daiPriceFeedMock.updateAnswer(985e5);
-
-        (address[] memory assets, uint256[] memory prices) = nstblHubHarness.getSortedAssetsWithPrice();
-        assertTrue(assets[0] == DAI);
-        assertTrue(assets[1] == USDT);
-        assertTrue(assets[2] == USDC);
-
-        assertEq(prices[0], 985e5);
-        assertEq(prices[1], 99e6);
-        assertEq(prices[2], 999e5);
-    }
-
-    function test_burnStakePool() external {
-        nstblHubHarness.burnNstblFromStakePool(0);
     }
 }

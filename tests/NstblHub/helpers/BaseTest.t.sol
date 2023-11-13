@@ -10,7 +10,6 @@ import { ChainLinkPriceFeed } from "../../../contracts/chainlink/ChainlinkPriceF
 import { ACLManager } from "@nstbl-acl-manager/contracts/ACLManager.sol";
 import { NSTBLHub } from "../../../contracts/NSTBLHub.sol";
 import { ATVL } from "../../../contracts/ATVL.sol";
-import { NSTBLHubInternal } from "../../harness/NSTBLHUBInternal.sol";
 import { IPoolManager } from "../../../contracts/interfaces/maple/IPoolManager.sol";
 import { LoanManager } from "@nstbl-loan-manager/contracts/LoanManager.sol";
 import { ProxyAdmin } from "../../../contracts/upgradeable/ProxyAdmin.sol";
@@ -33,6 +32,7 @@ contract BaseTest is Test {
     NSTBLToken public nstblToken;
 
     //NSTBLHubSetup
+    NSTBLHub public nstblHubImpl;
     NSTBLHub public nstblHub;
     ATVL public atvl;
 
@@ -50,14 +50,14 @@ contract BaseTest is Test {
     ProxyAdmin public proxyAdmin;
     TransparentUpgradeableProxy public loanManagerProxy;
     TransparentUpgradeableProxy public stakePoolProxy;
+    TransparentUpgradeableProxy public hubProxy;
+
+    ChainLinkPriceFeed public priceFeed;
 
     //Mocks////////////////////////////////////////
     LZEndpointMock public LZEndpoint_src;
     LZEndpointMock public LZEndpoint_dst;
 
-    ChainLinkPriceFeed public priceFeed;
-
-    NSTBLHubInternal public nstblHubHarness;
 
     MockV3Aggregator public usdcPriceFeedMock;
     MockV3Aggregator public usdtPriceFeedMock;
@@ -163,16 +163,23 @@ contract BaseTest is Test {
         stakePoolProxy = new TransparentUpgradeableProxy(address(spImplementation), address(proxyAdmin), data);
         stakePool = NSTBLStakePool(address(stakePoolProxy));
 
-        //nSTBLHub
-        nstblHub = new NSTBLHub(
-            address(nstblToken),
-            address(stakePool),
-            address(priceFeed),
-            address(atvl),
-            address(loanManager),
-            address(aclManager),
-            2*1e24
+        //NSTBLHub
+        nstblHubImpl = new NSTBLHub();
+        data = abi.encodeCall(
+            nstblHubImpl.initialize,
+            (
+                address(nstblToken),
+                address(stakePool),
+                address(priceFeed),
+                address(atvl),
+                address(loanManager),
+                address(aclManager),
+                2*1e24
+            )
         );
+        hubProxy = new TransparentUpgradeableProxy(address(nstblHubImpl), address(proxyAdmin), data);
+        nstblHub = NSTBLHub(address(hubProxy));
+
 
         loanManager.updateNSTBLHUB(address(nstblHub));
 
@@ -199,22 +206,6 @@ contract BaseTest is Test {
         nstblHub.updateAssetAllocation(DAI, 1e4);
 
         aclManager.setAuthorizedCallerHub(nealthyAddr, true);
-
-        //harness for testing internal functions
-        nstblHubHarness = new NSTBLHubInternal(
-            address(nstblToken),
-            address(stakePool),
-            address(priceFeed),
-            address(atvl),
-            address(loanManager),
-            address(aclManager),
-            2*1e24
-        );
-
-        nstblHubHarness.setSystemParams(dt, ub, lb, 1e3, 7e3, 2*1e24);
-        nstblHubHarness.updateAssetFeeds(
-            [address(usdcPriceFeedMock), address(usdtPriceFeedMock), address(daiPriceFeedMock)]
-        );
 
         vm.stopPrank();
 

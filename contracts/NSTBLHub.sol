@@ -2,13 +2,13 @@ pragma solidity 0.8.21;
 
 import { IACLManager } from "@nstbl-acl-manager/contracts/IACLManager.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import { Test, console } from "forge-std/Test.sol";
+import "./upgradeable/VersionedInitializable.sol";
 import "./NSTBLHUBStorage.sol";
 
-contract NSTBLHub is NSTBLHUBStorage {
+contract NSTBLHub is NSTBLHUBStorage, VersionedInitializable {
     using SafeERC20 for IERC20Helper;
 
-    uint256 private _locked = 1;
+    uint256 private _locked;
 
     struct localVars {
         bool belowDT;
@@ -44,10 +44,10 @@ contract NSTBLHub is NSTBLHUBStorage {
     }
 
     /*//////////////////////////////////////////////////////////////
-    CONSTRUCTOR
+    INITIALIZE
     //////////////////////////////////////////////////////////////*/
 
-    constructor(
+    function initialize(
         address nstblToken_,
         address stakePool_,
         address chainLinkPriceFeed_,
@@ -55,7 +55,7 @@ contract NSTBLHub is NSTBLHUBStorage {
         address loanManager_,
         address aclManager_,
         uint256 eqTh_
-    ) {
+    ) external initializer {
         nstblToken = nstblToken_;
         stakePool = stakePool_;
         chainLinkPriceFeed = chainLinkPriceFeed_;
@@ -63,6 +63,13 @@ contract NSTBLHub is NSTBLHUBStorage {
         loanManager = loanManager_;
         aclManager = aclManager_;
         eqTh = eqTh_;
+        assets = [
+        0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48,
+        0xdAC17F958D2ee523a2206206994597C13D831ec7,
+        0x6B175474E89094C44Da98b954EedeAC495271d0F
+        ];
+        _locked = 1;
+        precision = 1e24;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -146,10 +153,20 @@ contract NSTBLHub is NSTBLHUBStorage {
     ADMIN ONLY
     //////////////////////////////////////////////////////////////*/
 
+     /**
+     * @dev Function to update the allocation of the individual assets
+     * @param asset_ The address of the asset
+     * @param allocation_ The allocation amount of the asset
+     */
     function updateAssetAllocation(address asset_, uint256 allocation_) external onlyAdmin {
         assetAllocation[asset_] = allocation_;
     }
 
+
+     /**
+     * @dev Function to update the chainlink price feed aggregator of the individual assets
+     * @param assetFeeds_ The array of asset feeds
+     */
     function updateAssetFeeds(address[3] memory assetFeeds_) external onlyAdmin {
         assetFeeds[0] = assetFeeds_[0];
         assetFeeds[1] = assetFeeds_[1];
@@ -705,5 +722,21 @@ contract NSTBLHub is NSTBLHUBStorage {
         usdcRedeemed += (balAfter - balBefore);
         IStakePool(stakePool).updatePoolFromHub(true, balAfter - balBefore, 0);
         return (balAfter - balBefore);
+    }
+
+    /**
+     * @dev Get the implementation contract version
+     * @return _value The implementation contract version
+     */
+    function getRevision() internal pure virtual override returns (uint256) {
+        return REVISION;
+    }
+
+    /**
+     * @dev Get the implementation contract version
+     * @return _version The implementation contract version
+     */
+    function getVersion() public pure returns(uint256 _version) {
+        _version = getRevision();
     }
 }
