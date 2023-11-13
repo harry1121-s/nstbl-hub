@@ -81,6 +81,7 @@ contract NSTBLHub is NSTBLHUBStorage {
             daiDeposited += _daiAmt;
         }
         console.log("Before investUSDC");
+        // IStakePool(stakePool).updatePoolFromHub(false, 0, 7e3 * _usdcAmt / _a1);
         _investUSDC(7e3 * _usdcAmt / _a1);
         console.log("USDC balance after invest: ", IERC20Helper(USDC).balanceOf(address(this)));
         IERC20Helper(nstblToken).mint(msg.sender, (_usdcAmt + _usdtAmt) * 1e12 + _daiAmt);
@@ -185,7 +186,6 @@ contract NSTBLHub is NSTBLHUBStorage {
 
     function _investUSDC(uint256 _amt) internal {
         //@TODO: integration with stakePool
-        // IStakePool(stakePool).updatePoolFromHub(false, 0, _amt);
         usdcInvested += _amt;
         IERC20Helper(USDC).safeIncreaseAllowance(loanManager, _amt);
         ILoanManager(loanManager).deposit(_amt);
@@ -221,8 +221,7 @@ contract NSTBLHub is NSTBLHUBStorage {
     }
 
     function stake(address _user, uint256 _amount, uint8 _trancheId, address _destAddress) external authorizedCaller nonReentrant {
-        (uint256 p1, uint256 p2, uint256 p3) = IChainlinkPriceFeed(chainLinkPriceFeed).getLatestPrice();
-        require(p1 > dt && p2 > dt && p3 > dt, "HUB: STAKING_SUSPENDED");
+        require(_amount + IERC20Helper(nstblToken).balanceOf(stakePool) <= 40*IERC20Helper(nstblToken).totalSupply()/100, "HUB::STAKE_LIMIT_EXCEEDED");
         // IERC20Helper(nstblToken).safeTransferFrom(msg.sender, address(this), _amount);
         // IERC20Helper(nstblToken).safeIncreaseAllowance(stakePool, _amount);
         IStakePool(stakePool).stake(_user, _amount, _trancheId, _destAddress);
@@ -569,7 +568,7 @@ contract NSTBLHub is NSTBLHUBStorage {
     function requestTBillWithdraw(uint256 _amount) internal {  //@TODO: update function to utilise window mechanism
         if(ILoanManager(loanManager).awaitingRedemption()){
             console.log("IDHR fata");
-            _redeemTBill();
+            uint256 usdcRedeemed = _redeemTBill();
         }
         else{
             console.log("IDHR nhn fata");
@@ -598,6 +597,7 @@ contract NSTBLHub is NSTBLHUBStorage {
         ILoanManager(loanManager).redeem();
         uint256 balAfter = IERC20Helper(USDC).balanceOf(address(this));
         usdcRedeemed += (balAfter - balBefore);
+        // IStakePool(stakePool).updatePoolFromHub(true, balAfter - balBefore, 0);
         return(balAfter - balBefore);
     }
 
