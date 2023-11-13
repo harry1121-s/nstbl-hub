@@ -266,6 +266,9 @@ contract NSTBLHub is NSTBLHUBStorage {
             cr[2] = _a3 != 0 ? (balances[2] * tAlloc * precision) / (_a3 * tvlOld) : 0;
             oldEq = _calcEq(cr[0], cr[1], cr[2]);
         }
+        else{
+            oldEq = 0;
+        }
 
         cr[0] = _a1 != 0 ? ((balances[0] + _usdcAmt) * 1e12 * tAlloc * precision) / (_a1 * tvlNew) : 0;
         cr[1] = _a2 != 0 ? ((balances[1] + _usdtAmt) * 1e12 * tAlloc * precision) / (_a2 * tvlNew) : 0;
@@ -680,16 +683,14 @@ contract NSTBLHub is NSTBLHUBStorage {
      * @param _amount The amount of USDC to be withdrawn
      */
     function requestTBillWithdraw(uint256 _amount) internal {
-        if (ILoanManager(loanManager).awaitingRedemption()) {
-            uint256 usdcReceived = _redeemTBill();
-        } else {
-            uint256 lUSDCSupply = ILoanManager(loanManager).getLPTotalSupply();
-            uint256 lmTokenAmount = ((_amount) / 1e12) * lUSDCSupply / ILoanManager(loanManager).getAssets(lUSDCSupply);
+           
+        uint256 lUSDCSupply = ILoanManager(loanManager).getLPTotalSupply();
+        uint256 lmTokenAmount = ((_amount) / 1e12) * lUSDCSupply / ILoanManager(loanManager).getAssets(lUSDCSupply);
 
-            lmTokenAmount <= lUSDCSupply
-                ? ILoanManager(loanManager).requestRedeem(lmTokenAmount)
-                : ILoanManager(loanManager).requestRedeem(lUSDCSupply);
-        }
+        lmTokenAmount <= lUSDCSupply
+            ? ILoanManager(loanManager).requestRedeem(lmTokenAmount)
+            : ILoanManager(loanManager).requestRedeem(lUSDCSupply);
+
     }
 
     /**
