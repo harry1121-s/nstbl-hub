@@ -8,6 +8,11 @@ import "./interfaces/IATVL.sol";
 import "./interfaces/INSTBLToken.sol";
 
 contract NSTBLHUBStorage {
+
+    /*//////////////////////////////////////////////////////////////
+                                STORAGE
+    //////////////////////////////////////////////////////////////*/
+    
     uint256 versionSlot;
     address public nealthyAddr;
     address public atvl;

@@ -1,40 +1,42 @@
-# nstbl-hub
+# nSTBL Hub
 
-Tasks for Today: 18-OCT
-1. Add staking to the same repo (done)
-2. Complete internal functions : (done)
-3. rewrite UA functions (decouple staking and redemption) (done)
-4. Chainlink: 1 function to return all prices (done)
-5. Add dynamic adjustment of dt, ub, lb (to be called before UA function)
-6. (!!Important): Test cases for staker redemption (1asset failing, 2, 3 + variation of stable balances) (done: fuzz pending)
-7. Refactor params in redeemUnstake (post testing) (pending)
+## Overview
+This repository contains the core contracts of the nSTBL V1 protocol that is the main entry point for the protocol. It handles deposit, redemption, stake and unstake. In addition to this, all the depeg risk hedging mechanisms are also contained here
 
-Tasks (19th Oct)
-1. ATVL burning with tests
-2. ATVL removing profits 
-3. Receive NSTBL into ATVL
-4. Setter functions for ATVL params
+| Contract | Description |
+| -------- | ------- |
+| [`NSTBLHub`](https://github.com/nealthy-labs/nSTBL_V1_Hub/blob/main/contracts/NSTBLHub.sol) | Contains the logic for the Loan Manager |
+| [`NSTBLHUBStorage`](https://github.com/nealthy-labs/nSTBL_V1_Hub/blob/main/contracts/NSTBLHUBStorage.sol) | Contains the storage for the Loan Manager, decoupled to keep track of upgrades |
+| [`INSTBLHub`](https://github.com/nealthy-labs/nSTBL_V1_Hub/blob/main/contracts/INSTBLHub.sol) | The interface for the Loan Manager contract |
+| [`ChainlinkPriceFeed`](https://github.com/nealthy-labs/nSTBL_V1_Hub/blob/main/contracts/ChainlinkPriceFeed.sol) | The wrapper for chainlink price oracle |
+| [`ATVL`](https://github.com/nealthy-labs/nSTBL_V1_Hubl/blob/main/contracts/ATVL.sol) | Contains the functionality for the ATVL which is a buffer for depeg offsets |
+| [`TransparentUpgradeableProxy`](https://github.com/nealthy-labs/nSTBL_V1_Hub/blob/main/contracts/upgradeable/TransparentUpgradeableProxy.sol) | Transparent upgradeable proxy contract with minor change in constructor where we pass the address of proxy admin instead of deploying a new one |
 
-8200 USDC ; CR(1.025) l=8000
-900 USDT : (0.9), l=1000
-900 DAI : (0.9), l=1000
+## Dependencies/Inheritance
+Contracts in this repo inherit and import code from:
+- [`openzeppelin-contracts`](https://github.com/OpenZeppelin/openzeppelin-contracts)
+- [`chainlink`](https://github.com/smartcontractkit/chainlink.git)
+- [`nSTBL_V1_ACLManager`](https://github.com/nealthy-labs/nSTBL_V1_ACLManager.git)
+- [`nSTBL_V1_LoanManager`](https://github.com/nealthy-labs/nSTBL_V1_LoanManager.git)
+- [`nSTBL_V1_nSTBLToken`](https://github.com/nealthy-labs/nSTBL_V1_nSTBLToken.git)
+- [`nSTBL_V1_StakePool`](https://github.com/nealthy-labs/nSTBL_V1_StakePool.git)
 
-eq: 0.225/3 = 0.075
+## Setup
+Run the command ```forge install``` before running any of the make commands. 
 
-if DAI depegs
+## Commands
+To make it easier to perform some tasks within the repo, a few commands are available through a makefile:
 
-8200 USDC ; CR(0.91111) l=9000
-900 USDT : (0.9), l=1000
-900 DAI : (0.9), l=1000 //not included
+### Build Commands
+| Command | Action |
+|---|---|
+| `make test` | Run all tests |
+| `make debug` | Run all tests with debug traces |
+| `make testToken` | Run unit tests for LP Token |
+| `make testStakePoolMock` | Run unit tests for the stake pool |
+| `make clean` | Delete cached files |
+| `make coverage` | Generate coverage report under coverage directory |
+| `make slither` | Run static analyzer |
 
-neqEq = 0.18889/3 = 0.06296
-
-
-if DAI depegs (case 2)
-
-8200 USDC ; CR(1.00122) l=8190
-900 USDT : (0.989), l=910
-900 DAI : (0.9), l=0 //not included
-
-newEq = 0.0122/3 = 0.004066
-
+## About Nealthy
+[Nealthy](https://www.nealthy.com) is a VARA regulated crypto asset management company. Nealthy provides on-chain index products for KYC/KYB individuals and institutions to invest in.

@@ -9,7 +9,7 @@ import { LZEndpointMock } from "@layerzerolabs/contracts/lzApp/mocks/LZEndpointM
 import { ChainLinkPriceFeed } from "../../../contracts/chainlink/ChainlinkPriceFeed.sol";
 import { ACLManager } from "@nstbl-acl-manager/contracts/ACLManager.sol";
 import { NSTBLHub } from "../../../contracts/NSTBLHub.sol";
-import { Atvl } from "../../../contracts/ATVL/atvl.sol";
+import { ATVL } from "../../../contracts/ATVL.sol";
 import { NSTBLHubInternal } from "../../harness/NSTBLHUBInternal.sol";
 import { IPoolManager } from "../../../contracts/interfaces/maple/IPoolManager.sol";
 import { LoanManager } from "@nstbl-loan-manager/contracts/LoanManager.sol";
@@ -34,7 +34,7 @@ contract BaseTest is Test {
 
     //NSTBLHubSetup
     NSTBLHub public nstblHub;
-    Atvl public atvl;
+    ATVL public atvl;
 
     //LoanManager
     LoanManager public lmImplementation;
@@ -147,7 +147,7 @@ contract BaseTest is Test {
         //     deployer,
         //     address(nstblToken)
         // );
-        atvl = new Atvl(
+        atvl = new ATVL(
             deployer
         );
 

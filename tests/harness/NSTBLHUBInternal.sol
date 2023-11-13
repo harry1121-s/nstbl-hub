@@ -20,4 +20,8 @@ contract NSTBLHubInternal is NSTBLHub {
     {
         (_assets, _assetsPrice) = _getSortedAssetsWithPrice();
     }
+
+    function burnNstblFromStakePool(uint256 _amount) external {
+        _burnNstblFromStakePool(_amount);
+    }
 }

@@ -21,6 +21,10 @@ contract NSTBLHub is NSTBLHUBStorage {
         uint256 adjustedDecimals;
     }
 
+    /*//////////////////////////////////////////////////////////////
+    MODIFIERS
+    //////////////////////////////////////////////////////////////*/
+
     modifier onlyAdmin() {
         require(msg.sender == IACLManager(aclManager).admin(), "HUB::NOT_ADMIN");
         _;
@@ -37,6 +41,10 @@ contract NSTBLHub is NSTBLHUBStorage {
         _;
         _locked = 1;
     }
+
+    /*//////////////////////////////////////////////////////////////
+    CONSTRUCTOR
+    //////////////////////////////////////////////////////////////*/
 
     constructor(
         address _nstblToken,
@@ -56,7 +64,10 @@ contract NSTBLHub is NSTBLHUBStorage {
         eqTh = _eqTh;
     }
 
-    ///////////////////////////     DEPOSIT Functions ////////////////////////
+    /*//////////////////////////////////////////////////////////////
+    USER ENDPOINTS
+    //////////////////////////////////////////////////////////////*/
+
     /**
      * @dev Calculates the amount of tokens that will be deposited according to the equilibrium ratio
      * @param _depositAmount The amount of NSTBL to be minted
@@ -97,6 +108,84 @@ contract NSTBLHub is NSTBLHUBStorage {
         }
         IERC20Helper(nstblToken).mint(msg.sender, (_usdcAmt + _usdtAmt) * 1e12 + _daiAmt);
     }
+
+    function redeem(uint256 _amount, address _user) external authorizedCaller nonReentrant {
+        (uint256 p1, uint256 p2, uint256 p3) = IChainlinkPriceFeed(chainLinkPriceFeed).getLatestPrice(); //usdc
+        if (p1 > dt && p2 > dt && p3 > dt) {
+            redeemNormal(_amount);
+        } else {
+            redeemForNonStaker(_amount, _user);
+        }
+    }
+
+    function unstake(address _user, uint8 _trancheId, address _lpOwner) external authorizedCaller nonReentrant {
+        (uint256 p1, uint256 p2, uint256 p3) = IChainlinkPriceFeed(chainLinkPriceFeed).getLatestPrice();
+
+        if (p1 > dt && p2 > dt && p3 > dt) {
+            unstakeNstbl(_user, _trancheId, false, _lpOwner);
+        } else {
+            unstakeAndRedeemNstbl(_user, _trancheId, _lpOwner);
+        }
+    }
+
+    function stake(address _user, uint256 _amount, uint8 _trancheId, address _destAddress)
+        external
+        authorizedCaller
+        nonReentrant
+    {
+        require(
+            _amount + IERC20Helper(nstblToken).balanceOf(stakePool) <= 40 * IERC20Helper(nstblToken).totalSupply() / 100,
+            "HUB: STAKE_LIMIT_EXCEEDED"
+        );
+        IStakePool(stakePool).stake(_user, _amount, _trancheId, _destAddress);
+        INSTBLToken(nstblToken).sendOrReturnPool(msg.sender, stakePool, _amount);
+    }
+
+    /*//////////////////////////////////////////////////////////////
+    ADMIN ONLY
+    //////////////////////////////////////////////////////////////*/
+
+    function updateAssetAllocation(address _asset, uint256 _allocation) external onlyAdmin {
+        assetAllocation[_asset] = _allocation;
+    }
+
+    function updateAssetFeeds(address[3] memory _assetFeeds) external onlyAdmin {
+        assetFeeds[0] = _assetFeeds[0];
+        assetFeeds[1] = _assetFeeds[1];
+        assetFeeds[2] = _assetFeeds[2];
+    }
+
+    /**
+     * @dev Sets the system Params for the Hub
+     * @param _dt The depeg threshold
+     * @param _ub The upper bound
+     * @param _lb The lower bound
+     * @param _liquidPercent The liquid assets percent
+     * @param _tBillPercent The tBill assets percent
+     */
+    function setSystemParams(uint256 _dt, uint256 _ub, uint256 _lb, uint256 _liquidPercent, uint256 _tBillPercent)
+        external
+        onlyAdmin
+    {
+        dt = _dt;
+        ub = _ub;
+        lb = _lb;
+        liquidPercent = _liquidPercent;
+        tBillPercent = _tBillPercent;
+    }
+
+    /**
+     * @dev Processes TBill withdraw from loan manager
+     */
+    function processTBillWithdraw() external authorizedCaller returns (uint256) {
+        require(ILoanManager(loanManager).awaitingRedemption(), "HUB: No redemption requested");
+        return _redeemTBill();
+    }
+
+
+    /*//////////////////////////////////////////////////////////////
+    INTERNALS
+    //////////////////////////////////////////////////////////////*/
 
     /**
      * @dev Validates the system allocation according to the system state
@@ -229,39 +318,6 @@ contract NSTBLHub is NSTBLHUBStorage {
         IERC20Helper(USDC).safeIncreaseAllowance(loanManager, _amt);
         ILoanManager(loanManager).deposit(_amt);
     }
-    ///////////////////////////     redeem Function ////////////////////////
-
-    function redeem(uint256 _amount, address _user) external authorizedCaller nonReentrant {
-        (uint256 p1, uint256 p2, uint256 p3) = IChainlinkPriceFeed(chainLinkPriceFeed).getLatestPrice(); //usdc
-        if (p1 > dt && p2 > dt && p3 > dt) {
-            redeemNormal(_amount);
-        } else {
-            redeemForNonStaker(_amount, _user);
-        }
-    }
-
-    function unstake(address _user, uint8 _trancheId, address _lpOwner) external authorizedCaller nonReentrant {
-        (uint256 p1, uint256 p2, uint256 p3) = IChainlinkPriceFeed(chainLinkPriceFeed).getLatestPrice();
-
-        if (p1 > dt && p2 > dt && p3 > dt) {
-            unstakeNstbl(_user, _trancheId, false, _lpOwner);
-        } else {
-            unstakeAndRedeemNstbl(_user, _trancheId, _lpOwner);
-        }
-    }
-
-    function stake(address _user, uint256 _amount, uint8 _trancheId, address _destAddress)
-        external
-        authorizedCaller
-        nonReentrant
-    {
-        require(
-            _amount + IERC20Helper(nstblToken).balanceOf(stakePool) <= 40 * IERC20Helper(nstblToken).totalSupply() / 100,
-            "HUB: STAKE_LIMIT_EXCEEDED"
-        );
-        IStakePool(stakePool).stake(_user, _amount, _trancheId, _destAddress);
-        INSTBLToken(nstblToken).sendOrReturnPool(msg.sender, stakePool, _amount);
-    }
 
     /**
      * @dev Redeems NSTBL for a non-staker in non-depeg scenario
@@ -310,7 +366,6 @@ contract NSTBLHub is NSTBLHUBStorage {
      * @param _lpOwner The address of the LP owner
      * @notice The NSTBL amount is redeemed till it covers the failing stablecoins, then the remaining NSTBL is unstaked and transferred to staker
      */
-
     function unstakeAndRedeemNstbl(address _user, uint8 _trancheId, address _lpOwner) internal {
         (address[] memory _failedAssets, uint256[] memory _failedAssetsPrice) =
             _failedAssetsOrderWithPrice(_noOfFailedAssets());
@@ -537,16 +592,6 @@ contract NSTBLHub is NSTBLHUBStorage {
         _burnAmount /= precision;
     }
 
-    function updateAssetAllocation(address _asset, uint256 _allocation) external onlyAdmin {
-        assetAllocation[_asset] = _allocation;
-    }
-
-    function updateAssetFeeds(address[3] memory _assetFeeds) external onlyAdmin {
-        assetFeeds[0] = _assetFeeds[0];
-        assetFeeds[1] = _assetFeeds[1];
-        assetFeeds[2] = _assetFeeds[2];
-    }
-
     /**
      * @dev Returns the failed assets and their prices in ascending order
      * @param _size The size of the array (number of assets failed)
@@ -616,24 +661,6 @@ contract NSTBLHub is NSTBLHUBStorage {
         return (_assets, _assetsPrice);
     }
 
-    /**
-     * @dev Sets the system Params for the Hub
-     * @param _dt The depeg threshold
-     * @param _ub The upper bound
-     * @param _lb The lower bound
-     * @param _liquidPercent The liquid assets percent
-     * @param _tBillPercent The tBill assets percent
-     */
-    function setSystemParams(uint256 _dt, uint256 _ub, uint256 _lb, uint256 _liquidPercent, uint256 _tBillPercent)
-        external
-        onlyAdmin
-    {
-        dt = _dt;
-        ub = _ub;
-        lb = _lb;
-        liquidPercent = _liquidPercent;
-        tBillPercent = _tBillPercent;
-    }
 
     /**
      * @dev Burns NSTBL from stake pool
@@ -661,14 +688,6 @@ contract NSTBLHub is NSTBLHUBStorage {
                 ? ILoanManager(loanManager).requestRedeem(lmTokenAmount)
                 : ILoanManager(loanManager).requestRedeem(lUSDCSupply);
         }
-    }
-
-    /**
-     * @dev Processes TBill withdraw from loan manager
-     */
-    function processTBillWithdraw() external authorizedCaller returns (uint256) {
-        require(ILoanManager(loanManager).awaitingRedemption(), "HUB: No redemption requested");
-        return _redeemTBill();
     }
 
     /**

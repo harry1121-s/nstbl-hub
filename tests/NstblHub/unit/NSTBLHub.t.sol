@@ -25,6 +25,55 @@ contract testProxy is BaseTest {
     }
 }
 
+contract testATVL is BaseTest {
+    function setUp() public override {
+        super.setUp();
+    }
+
+    function test_init() external{
+        assertEq(atvl.checkDeployedATVL(), 0);
+        vm.prank(deployer);
+        atvl.init(vm.addr(345));
+        assertEq(atvl.nstblToken(), vm.addr(345));
+
+    }
+
+    function test_setAuthorizedCaller() external {
+        vm.prank(deployer);
+        atvl.setAuthorizedCaller(vm.addr(345), true);
+        assertEq(atvl.authorizedCallers(vm.addr(345)), true);
+    }
+    
+}
+contract testSetters is BaseTest {
+    function setUp() public override {
+        super.setUp();
+    }
+
+    function test_setSytemParams() external {
+        vm.prank(deployer);
+        nstblHub.setSystemParams(99e6, 98e6, 97e6, 2e3, 4e3);
+        assertEq(nstblHub.dt(), 99e6);
+        assertEq(nstblHub.ub(), 98e6);
+        assertEq(nstblHub.lb(), 97e6);
+        assertEq(nstblHub.liquidPercent(), 2e3);
+        assertEq(nstblHub.tBillPercent(), 4e3);
+    }
+    function test_updateAllocation() external {
+        vm.prank(deployer);
+        nstblHub.updateAssetAllocation(USDC, 100);
+        assertEq(nstblHub.assetAllocation(USDC), 100);
+    }
+
+    function test_updateAssetFeeds() external {
+        vm.prank(deployer);
+        nstblHub.updateAssetFeeds([address(usdtPriceFeedMock), address(usdcPriceFeedMock), address(daiPriceFeedMock)]);
+        assertEq(nstblHub.assetFeeds(0), address(usdtPriceFeedMock));
+        assertEq(nstblHub.assetFeeds(1), address(usdcPriceFeedMock));
+        assertEq(nstblHub.assetFeeds(2), address(daiPriceFeedMock));
+    }
+}
+
 contract NSTBLHubTestDeposit is BaseTest {
     using SafeERC20 for IERC20Helper;
 
@@ -382,6 +431,23 @@ contract NSTBLHubTestStakePool is BaseTest {
         super.setUp();
     }
 
+    function test_stake_failing() external {
+        //preConditions
+
+        // nodepeg
+        usdcPriceFeedMock.updateAnswer(982e5);
+        usdtPriceFeedMock.updateAnswer(99e6);
+        daiPriceFeedMock.updateAnswer(985e5);
+
+        //actions
+        _depositNSTBL(10e6 * 1e18);
+        vm.startPrank(nealthyAddr);
+        vm.expectRevert("HUB: STAKE_LIMIT_EXCEEDED");
+        nstblHub.stake(user1, 5e6*1e18, 0, destinationAddress);
+        vm.stopPrank();
+
+        
+    }
     function test_stake() external {
         //preConditions
 
@@ -959,5 +1025,9 @@ contract NSTBLHubInternal is BaseTest {
         assertEq(prices[0], 985e5);
         assertEq(prices[1], 99e6);
         assertEq(prices[2], 999e5);
+    }
+
+    function test_burnStakePool() external {
+        nstblHubHarness.burnNstblFromStakePool(0);
     }
 }
