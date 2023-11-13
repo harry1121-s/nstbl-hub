@@ -17,7 +17,7 @@ contract NSTBLHUBStorage {
     address public nstblToken;
     address public chainLinkPriceFeed;
     uint256 public atvlBurnAmount;
-    uint256 public stakePoolBurnAmount;
+    uint256 public burnedFromStakePool;
 
     uint256 public usdcDeposited;
     uint256 public usdtDeposited;
@@ -56,4 +56,10 @@ contract NSTBLHUBStorage {
     uint256 public liquidPercent;
     uint256 public tBillPercent;
     uint256 public marginPercent;
+
+    ///testting
+    uint256 public burnAmount;
+    uint256 public stakePoolBurnAmount;
+    bool public belowDT;
+    bool public burnFromStakePool;
 }

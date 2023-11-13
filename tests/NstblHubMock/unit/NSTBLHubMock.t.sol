@@ -31,6 +31,37 @@ contract NSTBLHubTestDeposit is BaseTest {
         super.setUp();
     }
 
+    function test_deposit_failing_cases() external {
+  
+        usdcPriceFeedMock.updateAnswer(982e5);
+        usdtPriceFeedMock.updateAnswer(975e5);
+        daiPriceFeedMock.updateAnswer(985e5);
+        deal(USDC, nealthyAddr, 1e6 * 1e6);
+        deal(USDT, nealthyAddr, 1e6 * 1e6);
+        deal(DAI, nealthyAddr, 1e6 * 1e18);
+
+        
+        vm.startPrank(nealthyAddr);
+        IERC20Helper(USDC).safeIncreaseAllowance(address(nstblHub), 1e6 * 1e6);
+        IERC20Helper(USDT).safeIncreaseAllowance(address(nstblHub), 1e6 * 1e6);
+        IERC20Helper(DAI).safeIncreaseAllowance(address(nstblHub), 1e6 * 1e18);
+        vm.expectRevert("HUB: Invalid Deposit");
+        nstblHub.deposit(1e6 * 1e6, 1e6 * 1e6, 1e6 * 1e6);
+        uint256 nstblBalAfter = nstblToken.balanceOf(nealthyAddr);
+        vm.stopPrank();
+
+        usdcPriceFeedMock.updateAnswer(982e5);
+        usdtPriceFeedMock.updateAnswer(981e5);
+        daiPriceFeedMock.updateAnswer(975e5);
+        vm.startPrank(nealthyAddr);
+        IERC20Helper(USDC).safeIncreaseAllowance(address(nstblHub), 1e6 * 1e6);
+        IERC20Helper(USDT).safeIncreaseAllowance(address(nstblHub), 1e6 * 1e6);
+        IERC20Helper(DAI).safeIncreaseAllowance(address(nstblHub), 1e6 * 1e18);
+        vm.expectRevert("HUB: Invalid Deposit");
+        nstblHub.deposit(1e6 * 1e6, 1e6 * 1e6, 1e6 * 1e6);
+        vm.stopPrank();
+    }
+
     function test_deposit_noDepeg() external {
         //nodepeg
         usdcPriceFeedMock.updateAnswer(982e5);
@@ -73,6 +104,10 @@ contract NSTBLHubTestDeposit is BaseTest {
         assertEq((usdcAmt + usdtAmt) * 1e12 + daiAmt, nstblBalAfter - nstblBalBefore);
 
         assertEq((usdcAmt + usdtAmt) * 1e12 + daiAmt, nstblToken.balanceOf(nealthyAddr));
+
+        _depositNSTBL(1e6*1e18);
+        assertEq(nstblToken.totalSupply(), 2e6*1e18);
+
     }
 
     function test_deposit_usdcDepeg() external {
@@ -439,138 +474,154 @@ contract NSTBLHubTestStakePool is BaseTest {
 
     }
 
-    // function test_unstake_noDepeg() external {
+    function test_unstake_noDepeg() external {
 
-    //     //preConditions
-    //      // nodepeg
-    //     usdcPriceFeedMock.updateAnswer(982e5);
-    //     usdtPriceFeedMock.updateAnswer(99e6);
-    //     daiPriceFeedMock.updateAnswer(985e5);
-    //     address stakePoolLP = address(stakePool.lpToken());
-    //     uint256 lpBalBefore = IERC20Helper(stakePoolLP).balanceOf(destinationAddress);
+        //preConditions
+         // nodepeg
+        usdcPriceFeedMock.updateAnswer(982e5);
+        usdtPriceFeedMock.updateAnswer(99e6);
+        daiPriceFeedMock.updateAnswer(985e5);
+        address stakePoolLP = address(stakePool.lpToken());
+        uint256 lpBalBefore = IERC20Helper(stakePoolLP).balanceOf(destinationAddress);
 
-    //     //actions
-    //     _depositNSTBL(3e6 * 1e18);
-    //     stakePool.updateMaturityValue();
-    //     _stakeNSTBL(user1, 1e6*1e18, 0);
-    //     _stakeNSTBL(user2, 1e6*1e18, 1);
+        //actions
+        _depositNSTBL(3e6 * 1e18);
+        stakePool.updateMaturityValue();
+        _stakeNSTBL(user1, 1e6*1e18, 0);
+        _stakeNSTBL(user2, 1e6*1e18, 1);
 
-    //     //postConditions
-    //     uint256 maturityVal = stakePool.oldMaturityVal();
-    //     (uint256 amount, uint256 poolDebt, , uint256 lpTokens,) = stakePool.getStakerInfo(user1, 0);
+        //postConditions
+        uint256 maturityVal = stakePool.oldMaturityVal();
+        (uint256 amount, uint256 poolDebt, , uint256 lpTokens,) = stakePool.getStakerInfo(user1, 0);
 
-    //     vm.warp(block.timestamp + 30 days);
-    //     //restaking
-    //     _stakeNSTBL(user1, 1e6*1e18, 0);
+        vm.warp(block.timestamp + 30 days);
+        //restaking
+        _stakeNSTBL(user1, 1e6*1e18, 0);
 
-    //     uint256 atvlBalBefore = nstblToken.balanceOf(address(atvl));
-    //     uint256 nealthyBalBefore = nstblToken.balanceOf(nealthyAddr);
-    //     ( amount, , , ,) = stakePool.getStakerInfo(user1, 0);
+        uint256 atvlBalBefore = nstblToken.balanceOf(address(atvl));
+        uint256 nealthyBalBefore = nstblToken.balanceOf(nealthyAddr);
+        ( amount, , , ,) = stakePool.getStakerInfo(user1, 0);
 
-    //     //action
-    //     _unstakeNSTBL(user1, 0);
-    //     (uint256 amount2, , , ,) = stakePool.getStakerInfo(user1, 0);
-    //     uint256 nealthyBalAfter = nstblToken.balanceOf(nealthyAddr);
-    //     uint256 atvlBalAfter = nstblToken.balanceOf(address(atvl));
+        //action
+        _unstakeNSTBL(user1, 0);
+        (uint256 amount2, , , ,) = stakePool.getStakerInfo(user1, 0);
+        uint256 nealthyBalAfter = nstblToken.balanceOf(nealthyAddr);
+        uint256 atvlBalAfter = nstblToken.balanceOf(address(atvl));
 
-    //     //postConditions
-    //     assertEq(amount2, 0);
-    //     assertEq(IERC20Helper(stakePoolLP).balanceOf(destinationAddress), 1e6*1e18);
-    //     assertEq(nealthyBalAfter - nealthyBalBefore + (atvlBalAfter-atvlBalBefore), amount);
-    // }
+        //postConditions
+        assertEq(amount2, 0);
+        assertEq(IERC20Helper(stakePoolLP).balanceOf(destinationAddress), 1e6*1e18);
+        assertEq(nealthyBalAfter - nealthyBalBefore + (atvlBalAfter-atvlBalBefore), amount);
+    }
 
-    // function test_unstake_noDepeg_fuzz(uint256 _amount, uint256 _time) external {
-    //     //preConditions
-    //     // nodepeg
-    //     usdcPriceFeedMock.updateAnswer(982e5);
-    //     usdtPriceFeedMock.updateAnswer(99e6);
-    //     daiPriceFeedMock.updateAnswer(985e5);
+    function test_unstake_noDepeg_fuzz(uint256 _amount, uint256 _time) external {
+        //preConditions
+        // nodepeg
+        usdcPriceFeedMock.updateAnswer(982e5);
+        usdtPriceFeedMock.updateAnswer(99e6);
+        daiPriceFeedMock.updateAnswer(985e5);
 
-    //     uint256 tBillInvestUB = loanManager.getDepositUpperBound();
-    //     _amount = bound(_amount, 100 , tBillInvestUB*100/(1e6*70));
-    //     _amount *= 1e18;
-    //     _time = bound(_time, 0, 365 days);
-    //     address stakePoolLP = address(stakePool.lpToken());
-    //     uint256 lpBalBefore = IERC20Helper(stakePoolLP).balanceOf(destinationAddress);
+        uint256 tBillInvestUB = loanManager.getDepositUpperBound();
+        _amount = bound(_amount, 100 , tBillInvestUB*100/(1e6*70));
+        _amount *= 1e18;
+        _time = bound(_time, 0, 365 days);
+        address stakePoolLP = address(stakePool.lpToken());
+        uint256 lpBalBefore = IERC20Helper(stakePoolLP).balanceOf(destinationAddress);
 
-    //     //actions
-    //     _depositNSTBL(_amount);
-    //     stakePool.updateMaturityValue();
-    //     uint256 oldMaturityVal = stakePool.oldMaturityVal();
-    //     _stakeNSTBL(user1, _amount/2, 0); //user1 users _amount/2
-    //     _stakeNSTBL(user2, _amount/4, 1); //user2 users _amount/4
+        //actions
+        _depositNSTBL(_amount);
+        stakePool.updateMaturityValue();
+        uint256 oldMaturityVal = stakePool.oldMaturityVal();
+        _stakeNSTBL(user1, _amount/2, 0); //user1 users _amount/2
+        _stakeNSTBL(user2, _amount/4, 1); //user2 users _amount/4
 
-    //     //time warp
-    //     vm.warp(block.timestamp + _time);
+        //time warp
+        vm.warp(block.timestamp + _time);
 
-    //     uint256 atvlBalBefore = nstblToken.balanceOf(address(atvl));
-    //     //restaking
-    //     _stakeNSTBL(user1, _amount/4, 0);
-
-
-    //     uint256 nealthyBalBefore = nstblToken.balanceOf(nealthyAddr);
-    //     ( uint256 amount, , , ,) = stakePool.getStakerInfo(user1, 0);
-    //     ( uint256 amount3, , , ,) = stakePool.getStakerInfo(user2, 1);
-
-    //     //action
-    //     _unstakeNSTBL(user1, 0);
-    //     _unstakeNSTBL(user2, 1);
-
-    //     //postConditions
-    //     (uint256 amount2, , , ,) = stakePool.getStakerInfo(user1, 0);
-    //     uint256 nealthyBalAfter = nstblToken.balanceOf(nealthyAddr);
-    //     uint256 atvlBalAfter = nstblToken.balanceOf(address(atvl));
-
-    //      assertEq(amount2, 0);
-    //     if ((loanManager.getMaturedAssets() - oldMaturityVal) > 1e18) {
-    //         assertApproxEqAbs(
-    //             nealthyBalAfter - nealthyBalBefore + (atvlBalAfter - atvlBalBefore),
-    //             _amount + (loanManager.getMaturedAssets() - oldMaturityVal),
-    //             1e18,
-    //             "with yield"
-    //         );
-    //     } else {
-    //         assertEq(nealthyBalAfter - nealthyBalBefore + (atvlBalAfter - atvlBalBefore), _amount, "without yield");
-    //     }
-    //     assertEq(IERC20Helper(stakePoolLP).balanceOf(destinationAddress), 0);
+        uint256 atvlBalBefore = nstblToken.balanceOf(address(atvl));
+        //restaking
+        _stakeNSTBL(user1, _amount/4, 0);
 
 
-    // }
+        uint256 nealthyBalBefore = nstblToken.balanceOf(nealthyAddr);
+        ( uint256 amount, , , ,) = stakePool.getStakerInfo(user1, 0);
+        ( uint256 amount3, , , ,) = stakePool.getStakerInfo(user2, 1);
 
-    // function test_unstake_OneDepeg_InsuffLiquidity() external {
-    //     erc20_transfer(address(nstblToken), admin, address(atvl), 12_000 * 1e18);
-    //     uint256 _amount = 1e6 * 1e18;
-    //     _stakeNstbl(nealthyAddr, _amount, 0);
+        //action
+        _unstakeNSTBL(user1, 0);
+        _unstakeNSTBL(user2, 1);
 
-    //     //maintaining exact proportions
-    //     deal(USDC, address(nstblHub), 8e5 * 1e6);
-    //     deal(USDT, address(nstblHub), 1e5 * 1e6);
-    //     deal(DAI, address(nstblHub), 1e5 * 1e18);
+        //postConditions
+        (uint256 amount2, , , ,) = stakePool.getStakerInfo(user1, 0);
+        uint256 nealthyBalAfter = nstblToken.balanceOf(nealthyAddr);
+        uint256 atvlBalAfter = nstblToken.balanceOf(address(atvl));
 
-    //     usdcPriceFeedMock.updateAnswer(981e5);
-    //     usdtPriceFeedMock.updateAnswer(99e6);
-    //     daiPriceFeedMock.updateAnswer(975e5);
+         assertEq(amount2, 0);
+        if ((loanManager.getMaturedAssets() - oldMaturityVal) > 1e18) {
+            assertApproxEqAbs(
+                nealthyBalAfter - nealthyBalBefore + (atvlBalAfter - atvlBalBefore),
+                _amount + (loanManager.getMaturedAssets() - oldMaturityVal),
+                1e18,
+                "with yield"
+            );
+        } else {
+            assertEq(nealthyBalAfter - nealthyBalBefore + (atvlBalAfter - atvlBalBefore), _amount, "without yield");
+        }
+        assertEq(IERC20Helper(stakePoolLP).balanceOf(destinationAddress), 0);
 
-    //     vm.expectRevert("HUB::UNAUTH");
-    //     nstblHub.unstake(0, nealthyAddr);
 
-    //     uint256 atvlBalBefore = nstblToken.balanceOf(address(atvl));
-    //     uint256 stakePoolBalBefore = nstblToken.balanceOf(address(stakePool));
-    //     uint256 nstblSupplyBefore = nstblToken.totalSupply();
-    //     uint256 nealthyBalBefore = nstblToken.balanceOf(nealthyAddr);
+    }
 
-    //     vm.startPrank(nealthyAddr);
-    //     nstblHub.unstake(0, nealthyAddr);
-    //     vm.stopPrank();
+    function test_unstake_oneDepeg() external {
 
-    //     uint256 atvlBalAfter = nstblToken.balanceOf(address(atvl));
-    //     uint256 stakePoolBalAfter = nstblToken.balanceOf(address(stakePool));
-    //     uint256 nstblSupplyAfter = nstblToken.totalSupply();
-    //     uint256 nealthyBalAfter = nstblToken.balanceOf(nealthyAddr);
+        //preConditions
+         // nodepeg
+        usdcPriceFeedMock.updateAnswer(982e5);
+        usdtPriceFeedMock.updateAnswer(99e6);
+        daiPriceFeedMock.updateAnswer(985e5);
+        address stakePoolLP = address(stakePool.lpToken());
 
-    //     assertEq(atvlBalBefore - atvlBalAfter + atvl.pendingNstblBurn(), nstblHub.atvlBurnAmount());
-    //     // assertEq(nstblSupplyBefore - nstblSupplyAfter, 1e23);
-    // }
+        //actions
+        _depositNSTBL(3e6 * 1e18);
+        deal(address(nstblToken), address(atvl), 36e3 * 1e18); //1% of the Total supply
+        stakePool.updateMaturityValue();
+        _stakeNSTBL(user1, 1e6*1e18, 0);
+        _stakeNSTBL(user2, 1e6*1e18, 1);
+
+        //postConditions
+        uint256 maturityVal = stakePool.oldMaturityVal();
+        (uint256 amount, uint256 poolDebt, , uint256 lpTokens,) = stakePool.getStakerInfo(user1, 0);
+
+        vm.warp(block.timestamp + 30 days);
+        //restaking
+        _stakeNSTBL(user1, 1e6*1e18, 0);
+
+        uint256 atvlBalBefore = nstblToken.balanceOf(address(atvl));
+        uint256 nealthyBalBefore = nstblToken.balanceOf(nealthyAddr);
+        ( amount, , , ,) = stakePool.getStakerInfo(user1, 0);
+        uint256 lpBalBefore = IERC20Helper(stakePoolLP).balanceOf(destinationAddress);
+
+        //one asset depegs just before unstaking
+        usdcPriceFeedMock.updateAnswer(982e5);
+        usdtPriceFeedMock.updateAnswer(99e6);
+        daiPriceFeedMock.updateAnswer(975e5);
+
+        uint256 daiBalBefore = IERC20Helper(DAI).balanceOf(address(nstblHub));
+
+        //action
+        _unstakeNSTBL(user1, 0);
+        assertEq(IERC20Helper(DAI).balanceOf(address(nstblHub)), 0); //all the failing stable is drained
+        (uint256 amount2, , , ,) = stakePool.getStakerInfo(user1, 0);
+        assertEq(amount2, 0);
+        assertEq(lpBalBefore - IERC20Helper(stakePoolLP).balanceOf(destinationAddress), 1e6*1e18);
+        // uint256 nealthyBalAfter = nstblToken.balanceOf(nealthyAddr);
+        // uint256 atvlBalAfter = nstblToken.balanceOf(address(atvl));
+
+        // //postConditions
+        // assertEq(amount2, 0);
+        // assertEq(IERC20Helper(stakePoolLP).balanceOf(destinationAddress), 1e6*1e18);
+        // assertEq(nealthyBalAfter - nealthyBalBefore + (atvlBalAfter-atvlBalBefore), amount);
+    }
 }
 
 // contract NSTBLHubTestUnstake is BaseTest {
@@ -703,29 +754,13 @@ contract NSTBLHubTestRedeem is BaseTest {
         daiPriceFeedMock.updateAnswer(985e5);
 
         //first making a deposit
-        (uint256 usdcAmt, uint256 usdtAmt, uint256 daiAmt, uint256 tBillAmt) = nstblHub.previewDeposit(1e6);
-        console.log("usdcAmt: ", usdcAmt);
-        console.log("usdtAmt: ", usdtAmt);
-        console.log("daiAmt: ", daiAmt);
+        _depositNSTBL(_amount);
 
-        deal(USDC, nealthyAddr, usdcAmt);
-        deal(USDT, nealthyAddr, usdtAmt);
-        deal(DAI, nealthyAddr, daiAmt);
-        uint256 nstblBalBefore = nstblToken.balanceOf(nealthyAddr);
-        vm.startPrank(nealthyAddr);
-        IERC20Helper(USDC).safeIncreaseAllowance(address(nstblHub), usdcAmt);
-        IERC20Helper(USDT).safeIncreaseAllowance(address(nstblHub), usdtAmt);
-        IERC20Helper(DAI).safeIncreaseAllowance(address(nstblHub), daiAmt);
-        nstblHub.deposit(usdcAmt, usdtAmt, daiAmt);
-        uint256 nstblBalAfter = nstblToken.balanceOf(nealthyAddr);
-        vm.stopPrank();
-        assertEq(nstblBalAfter - nstblBalBefore, _amount);
-        //deposited
 
         uint256 usdcBalBefore = IERC20Helper(USDC).balanceOf(address(nstblHub));
         uint256 usdtBalBefore = IERC20Helper(USDT).balanceOf(address(nstblHub));
         uint256 daiBalBefore = IERC20Helper(DAI).balanceOf(address(nstblHub));
-        nstblBalBefore = nstblToken.balanceOf(nealthyAddr);
+        uint256 nstblBalBefore = nstblToken.balanceOf(nealthyAddr);
         vm.startPrank(nealthyAddr);
         nstblToken.approve(address(nstblHub), _amount);
         //can redeem only 12.5% of the liquidity
@@ -734,7 +769,7 @@ contract NSTBLHubTestRedeem is BaseTest {
         uint256 usdcBalAfter = IERC20Helper(USDC).balanceOf(address(nstblHub));
         uint256 usdtBalAfter = IERC20Helper(USDT).balanceOf(address(nstblHub));
         uint256 daiBalAfter = IERC20Helper(DAI).balanceOf(address(nstblHub));
-        nstblBalAfter = nstblToken.balanceOf(nealthyAddr);
+        uint256 nstblBalAfter = nstblToken.balanceOf(nealthyAddr);
         //redeemed only 12.5% of the liquidity
         assertEq((_amount*1/10)/10**12, usdcBalBefore - usdcBalAfter);
         assertEq((_amount*125/10000)/10**12, usdtBalBefore - usdtBalAfter);
@@ -773,32 +808,14 @@ contract NSTBLHubTestRedeem is BaseTest {
         daiPriceFeedMock.updateAnswer(981e5);
 
         //first making a deposit
-        (uint256 usdcAmt, uint256 usdtAmt, uint256 daiAmt, uint256 tBillAmt) = nstblHub.previewDeposit(1e6);
-        console.log("usdcAmt: ", usdcAmt);
-        console.log("usdtAmt: ", usdtAmt);
-        console.log("daiAmt: ", daiAmt);
-
-        deal(USDC, nealthyAddr, usdcAmt);
-        deal(USDT, nealthyAddr, usdtAmt);
-        deal(DAI, nealthyAddr, daiAmt);
+        _depositNSTBL(_amount);
         deal(address(nstblToken), address(atvl), _amount*2/100);//2% of the total supply
         assertEq(nstblToken.balanceOf(address(atvl)), _amount*2/100);
-        uint256 nstblBalBefore = nstblToken.balanceOf(nealthyAddr);
-        vm.startPrank(nealthyAddr);
-        IERC20Helper(USDC).safeIncreaseAllowance(address(nstblHub), usdcAmt);
-        IERC20Helper(USDT).safeIncreaseAllowance(address(nstblHub), usdtAmt);
-        IERC20Helper(DAI).safeIncreaseAllowance(address(nstblHub), daiAmt);
-        nstblHub.deposit(usdcAmt, usdtAmt, daiAmt);
-        uint256 nstblBalAfter = nstblToken.balanceOf(nealthyAddr);
-        vm.stopPrank();
-        assertEq(nstblBalAfter - nstblBalBefore, _amount);
-        //deposited
 
         uint256 usdcBalBefore = IERC20Helper(USDC).balanceOf(address(nstblHub));
         uint256 usdtBalBefore = IERC20Helper(USDT).balanceOf(address(nstblHub));
         uint256 daiBalBefore = IERC20Helper(DAI).balanceOf(address(nstblHub));
         uint256 atvlBalBefore = nstblToken.balanceOf(address(atvl));
-        nstblBalBefore = nstblToken.balanceOf(nealthyAddr);
 
         vm.startPrank(nealthyAddr);
 
@@ -811,7 +828,6 @@ contract NSTBLHubTestRedeem is BaseTest {
 
         nstblHub.redeem(10*_amount/100, user1);
         vm.stopPrank();
-        nstblBalAfter = nstblToken.balanceOf(nealthyAddr);
         //redeemed only 10% of the liquidity
         assertEq((_amount*8/100)/10**12, usdcBalBefore - IERC20Helper(USDC).balanceOf(address(nstblHub)), "check USDC balance");
         assertEq((_amount*1/100)/10**12, usdtBalBefore - IERC20Helper(USDT).balanceOf(address(nstblHub)), "check USDT balance");
@@ -829,17 +845,7 @@ contract NSTBLHubTestRedeem is BaseTest {
         daiPriceFeedMock.updateAnswer(981e5);
 
         //first making a deposit
-        (uint256 usdcAmt, uint256 usdtAmt, uint256 daiAmt, uint256 tBillAmt) = nstblHub.previewDeposit(1e6);
-
-        deal(USDC, nealthyAddr, usdcAmt);
-        deal(USDT, nealthyAddr, usdtAmt);
-        deal(DAI, nealthyAddr, daiAmt);
-        vm.startPrank(nealthyAddr);
-        IERC20Helper(USDC).safeIncreaseAllowance(address(nstblHub), usdcAmt);
-        IERC20Helper(USDT).safeIncreaseAllowance(address(nstblHub), usdtAmt);
-        IERC20Helper(DAI).safeIncreaseAllowance(address(nstblHub), daiAmt);
-        nstblHub.deposit(usdcAmt, usdtAmt, daiAmt);
-
+        _depositNSTBL(_amount);
         vm.stopPrank();
         //deposited
 
