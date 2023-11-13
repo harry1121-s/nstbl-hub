@@ -329,7 +329,7 @@ contract NSTBLHub is NSTBLHUBStorage {
     * @param _trancheId The tranche id of the user
     * @param _failedAssets array of all the failed assets
     * @param _failedAssetsPrice array of all the failed assets price
-    * @notice 
+    * @notice Returns the array of assets, array of asset amounts, unstake burn amount and  atvl burn amount
     */
     function _getStakerRedeemParams(
         address _user,
@@ -383,6 +383,14 @@ contract NSTBLHub is NSTBLHUBStorage {
         return (_assets, _assetAmount, _unstakeBurnAmount, _burnAmount);
     }
 
+    /**
+    * @dev Unstakes and burn NSTBL for stakers in depeg scenario
+    * @param _user The address of the user
+    * @param _trancheId The tranche id of the user
+    * @param _lpOwner The address of the LP owner
+    * @param _unstakeBurnAmount The amount of NSTBL to be burned
+    * @notice Unstaked the user's NSTBL and burns the required amount of NSTBL
+    */
     function _unstakeAndBurnNstbl(address _user, uint8 _trancheId, address _lpOwner, uint256 _unstakeBurnAmount) internal {
         uint256 unstakedTokens = IStakePool(stakePool).unstake(_user, _trancheId, true, _lpOwner);
         console.log("Unstake burn AMount", _unstakeBurnAmount);
@@ -392,11 +400,20 @@ contract NSTBLHub is NSTBLHUBStorage {
 
     }
 
+    /**
+    * @dev Burns NSTBL from ATVL
+    * @param _burnAmount The amount of NSTBL to be burned
+    */
     function _burnNstblFromAtvl(uint256 _burnAmount) internal {
         atvlBurnAmount += _burnAmount;
         IATVL(atvl).burnNstbl(_burnAmount);
     }
 
+    /**
+    * @dev Redeems NSTBL for non-stakers in depeg scenario
+    * @param _amount The amount of NSTBL to be redeemed
+    * @param _user The address of the user
+    */
     function redeemForNonStaker(uint256 _amount, address _user) internal {
         localVars memory vars;
         uint256 precisionAmount = _amount * precision;
@@ -449,6 +466,14 @@ contract NSTBLHub is NSTBLHUBStorage {
 
     }
 
+    /**
+    * @dev transfers assets to non-stakers if the asset is above depeg threshold 
+    * @param _user The address of the user
+    * @param _asset The address of the asset
+    * @param _assetRequired The amount of asset required
+    * @param _assetBalance The balance of the asset
+    * @param _adjustedDecimals The adjusted decimals of the asset
+    */
     function _transferNormal(
         address _user,
         address _asset,
@@ -466,6 +491,16 @@ contract NSTBLHub is NSTBLHUBStorage {
         }
     }
 
+    /**
+    * @dev transfers assets to non-stakers if the asset is below depeg threshold 
+    * @param _user The address of the user
+    * @param _asset The address of the asset
+    * @param _assetRequired The amount of asset required
+    * @param _assetBalance The balance of the asset
+    * @param _adjustedDecimals The adjusted decimals of the asset
+    * @param _burnAmount The amount of NSTBL to be burned
+    * @param _assetPrice The price of the asset
+    */
     function _transferBelowDepeg(
         address _user,
         address _asset,
@@ -492,6 +527,12 @@ contract NSTBLHub is NSTBLHUBStorage {
         return(_remainingNstbl, _burnAmount);
     }
 
+    /**
+    * @dev Calculates the amount of NSTBL to be burned from stake pool in case asset is below lowerBound
+    * @param _remNSTBL The remaining NSTBL
+    * @param _assetRequired The amount of asset required
+    * @param _assetProportion The proportion of asset required
+    */
     function _stakePoolBurnAmount(uint256 _remNSTBL, uint256 _assetRequired, uint256 _assetProportion)
         internal
         view
@@ -512,6 +553,11 @@ contract NSTBLHub is NSTBLHUBStorage {
         assetFeeds[2] = _assetFeeds[2];
     }
 
+    /**
+    * @dev Returns the failed assets and their prices in ascending order
+    * @param _size The size of the array (number of assets failed)
+    * @notice returns the array of failed assets and their prices
+    */
     function _failedAssetsOrderWithPrice(uint256 _size) internal view returns (address[] memory, uint256[] memory) {
         uint256 count;
         address[] memory _assetsList = new address[](_size);
@@ -538,6 +584,9 @@ contract NSTBLHub is NSTBLHUBStorage {
         return (_assetsList, _assetsPrice);
     }
 
+    /**
+    * @dev Returns the number of failed assets
+    */
     function _noOfFailedAssets() internal view returns (uint256) {
         uint256 count;
         for (uint256 i = 0; i < assetFeeds.length; i++) {
@@ -548,6 +597,9 @@ contract NSTBLHub is NSTBLHUBStorage {
         return count;
     }
 
+    /**
+    * @dev Returns the sorted assets and their prices in ascending order
+    */
     function _getSortedAssetsWithPrice() internal view returns (address[] memory, uint256[] memory) {
         address[] memory _assets = new address[](assets.length);
         uint256[] memory _assetsPrice = new uint256[](assets.length);
@@ -570,6 +622,14 @@ contract NSTBLHub is NSTBLHUBStorage {
         return (_assets, _assetsPrice);
     }
 
+    /**
+    * @dev Sets the system Params for the Hub
+    * @param _dt The depeg threshold
+    * @param _ub The upper bound
+    * @param _lb The lower bound
+    * @param _liquidPercent The liquid assets percent
+    * @param _tBillPercent The tBill assets percent
+    */
     function setSystemParams(uint256 _dt, uint256 _ub, uint256 _lb, uint256 _liquidPercent, uint256 _tBillPercent)
         external
         onlyAdmin
@@ -581,6 +641,10 @@ contract NSTBLHub is NSTBLHUBStorage {
         tBillPercent = _tBillPercent;
     }
 
+    /**
+    * @dev Burns NSTBL from stake pool
+    * @param _amount The amount of NSTBL to be burned
+    */
     function _burnNstblFromStakePool(uint256 _amount) internal { 
         burnedFromStakePool += _amount;
         if(_amount != 0){
@@ -588,6 +652,10 @@ contract NSTBLHub is NSTBLHUBStorage {
         }
     }
 
+    /**
+    * @dev Requests TBill withdraw from loan manager (only at redemption)
+    * @param _amount The amount of USDC to be withdrawn
+    */
     function requestTBillWithdraw(uint256 _amount) internal {  
         if(ILoanManager(loanManager).awaitingRedemption()){
             uint256 usdcReceived = _redeemTBill();
@@ -601,11 +669,17 @@ contract NSTBLHub is NSTBLHUBStorage {
         
     }
 
+    /**
+    * @dev Processes TBill withdraw from loan manager
+    */
     function processTBillWithdraw() external authorizedCaller returns(uint256){ 
         require(ILoanManager(loanManager).awaitingRedemption(), "HUB: No redemption requested");
         return _redeemTBill();
     }
 
+    /**
+    * @dev Redeems TBill from loan manager
+    */
     function _redeemTBill() internal returns(uint256){
         uint256 balBefore = IERC20Helper(USDC).balanceOf(address(this));
         ILoanManager(loanManager).redeem();
@@ -615,7 +689,4 @@ contract NSTBLHub is NSTBLHUBStorage {
         return(balAfter - balBefore);
     }
 
-    function retrieveFunds(address _asset, uint256 _amount) external onlyAdmin {
-        IERC20Helper(_asset).safeTransfer(msg.sender, _amount);
-    }
 }
