@@ -10,6 +10,18 @@ contract NSTBLHub is NSTBLHUBStorage {
 
     uint256 private _locked = 1;
 
+    struct localVars {
+        bool belowDT;
+        bool burnFromStakePool;
+        uint256 burnAmount;
+        uint256 stakePoolBurnAmount;
+        uint256 assetBalance;
+        uint256 assetProportion;
+        uint256 assetRequired;
+        uint256 remainingNstbl;
+        uint256 adjustedDecimals;
+    }
+
     modifier onlyAdmin() {
         require(msg.sender == IACLManager(aclManager).admin(), "HUB::NOT_ADMIN");
         _;
@@ -221,7 +233,7 @@ contract NSTBLHub is NSTBLHUBStorage {
     }
 
     function stake(address _user, uint256 _amount, uint8 _trancheId, address _destAddress) external authorizedCaller nonReentrant {
-        require(_amount + IERC20Helper(nstblToken).balanceOf(stakePool) <= 40*IERC20Helper(nstblToken).totalSupply()/100, "HUB::STAKE_LIMIT_EXCEEDED");
+        require(_amount + IERC20Helper(nstblToken).balanceOf(stakePool) <= 40*IERC20Helper(nstblToken).totalSupply()/100, "HUB: STAKE_LIMIT_EXCEEDED");
         // IERC20Helper(nstblToken).safeTransferFrom(msg.sender, address(this), _amount);
         // IERC20Helper(nstblToken).safeIncreaseAllowance(stakePool, _amount);
         IStakePool(stakePool).stake(_user, _amount, _trancheId, _destAddress);
@@ -353,17 +365,19 @@ contract NSTBLHub is NSTBLHUBStorage {
     }
 
     function redeemForNonStaker(uint256 _amount, address _user) internal {
-        
-        uint256 burnAmount;
-        uint256 stakePoolBurnAmount;
-        bool belowDT;
-        bool burnFromStakePool;
+        localVars memory vars;
         uint256 precisionAmount = _amount * precision;
-        uint256 assetBalance;
-        uint256 assetProportion;
-        uint256 assetRequired;
-        uint256 remainingNstbl;
-        uint256 adjustedDecimals;
+
+        // uint256 vars.burnAmount;
+        // uint256 vars.stakePoolBurnAmount;
+        // bool vars.belowDT;
+        // bool vars.burnFromStakePool;
+        // uint256 vars.precisionAmount = _amount * precision;
+        // uint256 vars.assetBalance;
+        // uint256 vars.assetProportion;
+        // uint256 vars.assetRequired;
+        // uint256 vars.remainingNstbl;
+        // uint256 vars.adjustedDecimals;
 
         console.log("Redeem For Non-Staker");
         IERC20Helper(nstblToken).burn(msg.sender, _amount);
@@ -371,45 +385,45 @@ contract NSTBLHub is NSTBLHUBStorage {
         for (uint256 i = 0; i < sortedAssets.length; i++) {
             
             if (sortedAssetsPrice[i] <= dt) {
-                belowDT = true;
+                vars.belowDT = true;
                 if (sortedAssetsPrice[i] <= lb) {
-                    burnFromStakePool = true;
+                    vars.burnFromStakePool = true;
                 } else {
-                    burnFromStakePool = false;
+                    vars.burnFromStakePool = false;
                 }
             } else {
-                belowDT = false;
+                vars.belowDT = false;
             }
 
-            assetBalance = IERC20Helper(sortedAssets[i]).balanceOf(address(this)) * precision;
-            adjustedDecimals = IERC20Helper(nstblToken).decimals() - IERC20Helper(sortedAssets[i]).decimals();
-            if (!belowDT) {
-                assetRequired = (assetAllocation[sortedAssets[i]] * precisionAmount / 1e5) + remainingNstbl;
-                remainingNstbl = _transferNormal(_user, sortedAssets[i], assetRequired, assetBalance, adjustedDecimals);
+            vars.assetBalance = IERC20Helper(sortedAssets[i]).balanceOf(address(this)) * precision;
+            vars.adjustedDecimals = IERC20Helper(nstblToken).decimals() - IERC20Helper(sortedAssets[i]).decimals();
+            if (!vars.belowDT) {
+                vars.assetRequired = (assetAllocation[sortedAssets[i]] * precisionAmount / 1e5) + vars.remainingNstbl;
+                vars.remainingNstbl = _transferNormal(_user, sortedAssets[i], vars.assetRequired, vars.assetBalance, vars.adjustedDecimals);
             } else {
 
-                assetProportion = (
-                    (assetAllocation[sortedAssets[i]] * precisionAmount / 1e5) + remainingNstbl 
-                ) / 10 ** adjustedDecimals;
-                assetRequired = assetProportion * dt / sortedAssetsPrice[i];
+                vars.assetProportion = (
+                    (assetAllocation[sortedAssets[i]] * precisionAmount / 1e5) + vars.remainingNstbl 
+                ) / 10 ** vars.adjustedDecimals;
+                vars.assetRequired = vars.assetProportion * dt / sortedAssetsPrice[i];
 
-                (remainingNstbl, burnAmount) = _transferBelowDepeg(
+                (vars.remainingNstbl, vars.burnAmount) = _transferBelowDepeg(
                     _user,
                     sortedAssets[i],
-                    assetProportion,
-                    assetRequired,
-                    assetBalance,
-                    adjustedDecimals,
-                    burnAmount,
+                    vars.assetProportion,
+                    vars.assetRequired,
+                    vars.assetBalance,
+                    vars.adjustedDecimals,
+                    vars.burnAmount,
                     sortedAssetsPrice[i]
                 );
                 
-                stakePoolBurnAmount +=
-                    burnFromStakePool ? _stakePoolBurnAmount(remainingNstbl, assetRequired, assetProportion) : 0;
+                vars.stakePoolBurnAmount +=
+                    vars.burnFromStakePool ? _stakePoolBurnAmount(vars.remainingNstbl, vars.assetRequired, vars.assetProportion) : 0;
             }
         }
-        _burnNstblFromAtvl((burnAmount - stakePoolBurnAmount));
-        _burnNstblFromStakePool(stakePoolBurnAmount);
+        _burnNstblFromAtvl((vars.burnAmount - vars.stakePoolBurnAmount));
+        _burnNstblFromStakePool(vars.stakePoolBurnAmount);
         requestTBillWithdraw(_amount * 7e4 / 1e5);
 
     }
