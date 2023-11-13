@@ -327,8 +327,9 @@ contract NSTBLHub is NSTBLHUBStorage {
     * @dev Calculates redeem parameters for staker in depeg scenario
     * @param _user The address of the user
     * @param _trancheId The tranche id of the user
-    * @param _lpOwner The address of the LP owner
-    * @notice The NSTBL amount is redeemed till it covers the failing stablecoins, then the remaining NSTBL is unstaked and transferred to staker
+    * @param _failedAssets array of all the failed assets
+    * @param _failedAssetsPrice array of all the failed assets price
+    * @notice 
     */
     function _getStakerRedeemParams(
         address _user,
