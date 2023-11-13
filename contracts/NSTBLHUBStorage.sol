@@ -58,8 +58,5 @@ contract NSTBLHUBStorage {
     uint256 public marginPercent;
 
     ///testting
-    uint256 public burnAmount;
-    uint256 public stakePoolBurnAmount;
-    bool public belowDT;
-    bool public burnFromStakePool;
+    
 }

@@ -81,7 +81,7 @@ contract NSTBLHub is NSTBLHUBStorage {
             daiDeposited += _daiAmt;
         }
         console.log("Before investUSDC");
-        // IStakePool(stakePool).updatePoolFromHub(false, 0, 7e3 * _usdcAmt / _a1);
+        IStakePool(stakePool).updatePoolFromHub(false, 0, 7e3 * _usdcAmt / _a1);
         _investUSDC(7e3 * _usdcAmt / _a1);
         console.log("USDC balance after invest: ", IERC20Helper(USDC).balanceOf(address(this)));
         IERC20Helper(nstblToken).mint(msg.sender, (_usdcAmt + _usdtAmt) * 1e12 + _daiAmt);
@@ -354,7 +354,10 @@ contract NSTBLHub is NSTBLHUBStorage {
 
     function redeemForNonStaker(uint256 _amount, address _user) internal {
         
-        
+        uint256 burnAmount;
+        uint256 stakePoolBurnAmount;
+        bool belowDT;
+        bool burnFromStakePool;
         uint256 precisionAmount = _amount * precision;
         uint256 assetBalance;
         uint256 assetProportion;
@@ -597,7 +600,7 @@ contract NSTBLHub is NSTBLHUBStorage {
         ILoanManager(loanManager).redeem();
         uint256 balAfter = IERC20Helper(USDC).balanceOf(address(this));
         usdcRedeemed += (balAfter - balBefore);
-        // IStakePool(stakePool).updatePoolFromHub(true, balAfter - balBefore, 0);
+        IStakePool(stakePool).updatePoolFromHub(true, balAfter - balBefore, 0);
         return(balAfter - balBefore);
     }
 
