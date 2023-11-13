@@ -13,4 +13,5 @@ interface ILoanManager {
     function getMaturedAssets() external view returns (uint256);
     function awaitingRedemption() external view returns (bool);
     function getLPTotalSupply() external view returns (uint256);
+    function getRedemptionWindow() external view returns (uint256, uint256);
 }

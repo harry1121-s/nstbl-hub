@@ -11,7 +11,7 @@ import { ChainLinkPriceFeedMock } from "../../../contracts/mocks/chainlink/Chain
 import { ACLManager } from "@nstbl-acl-manager/contracts/ACLManager.sol";
 import { NSTBLHub } from "../../../contracts/NSTBLHub.sol";
 import { Atvl } from "../../../contracts/ATVL/atvl.sol";
-// import { NSTBLHubInternal } from "../../harness/NSTBLHUBInternal.sol";
+import { NSTBLHubInternal } from "../../harness/NSTBLHUBInternal.sol";
 import { IPoolManager } from "../../../contracts/interfaces/maple/IPoolManager.sol";
 import { LoanManager } from "@nstbl-loan-manager/contracts/LoanManager.sol";
 import { ProxyAdmin } from "../../../contracts/upgradeable/ProxyAdmin.sol";
@@ -53,7 +53,8 @@ contract BaseTest is Test{
 
     ChainLinkPriceFeedMock public priceFeed;
 
-    // StakePoolMock public stakePool;
+    NSTBLHubInternal public nstblHubHarness;
+
 
     MockV3Aggregator public usdcPriceFeedMock;
     MockV3Aggregator public usdtPriceFeedMock;
@@ -210,6 +211,22 @@ contract BaseTest is Test{
 
         aclManager.setAuthorizedCallerHub(nealthyAddr, true);
 
+        //harness for testing internal functions
+        nstblHubHarness = new NSTBLHubInternal(
+            address(nstblToken),
+            address(stakePool),
+            address(priceFeed),
+            address(atvl),
+            address(loanManager),
+            address(aclManager),
+            2*1e24
+        );
+
+        nstblHubHarness.setSystemParams(dt, ub, lb, 1e3, 7e3);
+        nstblHubHarness.updateAssetFeeds(
+            [address(usdcPriceFeedMock), address(usdtPriceFeedMock), address(daiPriceFeedMock)]
+        );
+
         vm.stopPrank();
 
         lmLPToken = address(loanManager.lUSDC());
@@ -217,6 +234,9 @@ contract BaseTest is Test{
         //setting NSTBLHub as allowed lender
         poolManagerUSDC = IPoolManager(MAPLE_POOL_MANAGER_USDC);
         _setAllowedLender();
+
+        
+
     }
 
      function _setAllowedLender() internal {

@@ -24,8 +24,8 @@ contract NSTBLHUBStorage {
     uint256 public daiDeposited;
     uint256 public usdcInvested;
 
-    uint256 usdcRequestedForRedeem;
     uint256 public usdcRedeemed;
+    uint256 public pendingUsdcRedemption;
 
     mapping(address => uint256) public assetAllocation;
 
@@ -56,7 +56,5 @@ contract NSTBLHUBStorage {
     uint256 public liquidPercent;
     uint256 public tBillPercent;
     uint256 public marginPercent;
-
-    ///testting
     
 }
