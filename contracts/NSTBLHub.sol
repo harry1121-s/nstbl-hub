@@ -2,6 +2,7 @@ pragma solidity 0.8.21;
 
 import { IACLManager } from "@nstbl-acl-manager/contracts/IACLManager.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import { Test, console } from "forge-std/Test.sol";
 import "./NSTBLHUBStorage.sol";
 
 contract NSTBLHub is NSTBLHUBStorage {
@@ -163,7 +164,7 @@ contract NSTBLHub is NSTBLHUBStorage {
      * @param _liquidPercent The liquid assets percent
      * @param _tBillPercent The tBill assets percent
      */
-    function setSystemParams(uint256 _dt, uint256 _ub, uint256 _lb, uint256 _liquidPercent, uint256 _tBillPercent)
+    function setSystemParams(uint256 _dt, uint256 _ub, uint256 _lb, uint256 _liquidPercent, uint256 _tBillPercent, uint256 _eqTh)
         external
         onlyAdmin
     {
@@ -172,6 +173,7 @@ contract NSTBLHub is NSTBLHUBStorage {
         lb = _lb;
         liquidPercent = _liquidPercent;
         tBillPercent = _tBillPercent;
+        eqTh = _eqTh;
     }
 
     /**

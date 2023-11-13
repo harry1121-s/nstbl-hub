@@ -143,15 +143,10 @@ contract BaseTest is Test {
 
         token_src.setAuthorizedChain(block.chainid, true);
 
-        // stakePool = new StakePoolMock(
-        //     deployer,
-        //     address(nstblToken)
-        // );
+    
         atvl = new ATVL(
             deployer
         );
-
-        // loanManager = new LoanManagerMock(deployer);
 
         //LoanManager
         proxyAdmin = new ProxyAdmin(owner);
@@ -197,7 +192,7 @@ contract BaseTest is Test {
         atvl.setAuthorizedCaller(address(nstblHub), true);
         stakePool.setupStakePool([300, 200, 100], [700, 500, 300], [30, 90, 180]);
 
-        nstblHub.setSystemParams(dt, ub, lb, 1e3, 7e3);
+        nstblHub.setSystemParams(dt, ub, lb, 1e3, 7e3, 2*1e24);
         nstblHub.updateAssetFeeds([address(usdcPriceFeedMock), address(usdtPriceFeedMock), address(daiPriceFeedMock)]);
         nstblHub.updateAssetAllocation(USDC, 8e4);
         nstblHub.updateAssetAllocation(USDT, 1e4);
@@ -216,7 +211,7 @@ contract BaseTest is Test {
             2*1e24
         );
 
-        nstblHubHarness.setSystemParams(dt, ub, lb, 1e3, 7e3);
+        nstblHubHarness.setSystemParams(dt, ub, lb, 1e3, 7e3, 2*1e24);
         nstblHubHarness.updateAssetFeeds(
             [address(usdcPriceFeedMock), address(usdtPriceFeedMock), address(daiPriceFeedMock)]
         );

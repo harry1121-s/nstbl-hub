@@ -52,7 +52,7 @@ contract testSetters is BaseTest {
 
     function test_setSytemParams() external {
         vm.prank(deployer);
-        nstblHub.setSystemParams(99e6, 98e6, 97e6, 2e3, 4e3);
+        nstblHub.setSystemParams(99e6, 98e6, 97e6, 2e3, 4e3, 2*1e24);
         assertEq(nstblHub.dt(), 99e6);
         assertEq(nstblHub.ub(), 98e6);
         assertEq(nstblHub.lb(), 97e6);
@@ -84,7 +84,7 @@ contract NSTBLHubTestDeposit is BaseTest {
     function test_deposit_failing_cases() external {
         usdcPriceFeedMock.updateAnswer(982e5);
         usdtPriceFeedMock.updateAnswer(975e5);
-        daiPriceFeedMock.updateAnswer(985e5);
+        daiPriceFeedMock.updateAnswer(975e5);
         deal(USDC, nealthyAddr, 1e6 * 1e6);
         deal(USDT, nealthyAddr, 1e6 * 1e6);
         deal(DAI, nealthyAddr, 1e6 * 1e18);
@@ -107,7 +107,37 @@ contract NSTBLHubTestDeposit is BaseTest {
         vm.expectRevert("HUB: Invalid Deposit");
         nstblHub.deposit(1e6 * 1e6, 1e6 * 1e6, 1e6 * 1e6);
         vm.stopPrank();
+
+
     }
+
+    function test_deposit_fail_eqRevert() external {
+        
+        usdcPriceFeedMock.updateAnswer(982e5);
+        usdtPriceFeedMock.updateAnswer(975e5);
+        daiPriceFeedMock.updateAnswer(985e5);
+
+        vm.prank(deployer);
+        nstblHub.setSystemParams(dt, ub, lb, 1e3, 7e3, 0);
+
+        uint256 usdcAmt;
+        uint256 usdtAmt;
+        uint256 daiAmt;
+
+        (usdcAmt, usdtAmt, daiAmt,) = nstblHub.previewDeposit(1e6);
+        deal(USDC, nealthyAddr, usdcAmt);
+        deal(USDT, nealthyAddr, usdtAmt);
+        deal(DAI, nealthyAddr, daiAmt);
+
+        vm.startPrank(nealthyAddr);
+        IERC20Helper(USDC).safeIncreaseAllowance(address(nstblHub), usdcAmt);
+        IERC20Helper(USDT).safeIncreaseAllowance(address(nstblHub), usdtAmt);
+        IERC20Helper(DAI).safeIncreaseAllowance(address(nstblHub), daiAmt);
+        vm.expectRevert("HUB::Deposit Not Allowed");
+        nstblHub.deposit(usdcAmt, usdtAmt, daiAmt);
+        vm.stopPrank();
+    }
+        
 
     function test_deposit_noDepeg() external {
         //nodepeg
@@ -668,6 +698,43 @@ contract NSTBLHubTestStakePool is BaseTest {
         assertEq(IERC20Helper(stakePoolLP).balanceOf(destinationAddress), 1e6 * 1e18);
     }
 
+    function test_unstake_AllDepeg() external {
+        //preConditions
+        // nodepeg
+        usdcPriceFeedMock.updateAnswer(982e5);
+        usdtPriceFeedMock.updateAnswer(99e6);
+        daiPriceFeedMock.updateAnswer(985e5);
+        address stakePoolLP = address(stakePool.lpToken());
+
+        //actions
+        _depositNSTBL(10e6 * 1e18);
+        deal(address(nstblToken), address(atvl), 36e3 * 1e18); //1% of the Total supply
+
+        _stakeNSTBL(user1, 1e6 * 1e18, 0);
+        _stakeNSTBL(user2, 1e6 * 1e18, 1);
+
+        //postConditions
+        (uint256 amount,,,,) = stakePool.getStakerInfo(user1, 0);
+
+        vm.warp(block.timestamp + 30 days);
+        //restaking
+        _stakeNSTBL(user1, 1e6 * 1e18, 0);
+
+        (amount,,,,) = stakePool.getStakerInfo(user1, 0);
+
+        //all assets depeg just before unstaking
+        usdcPriceFeedMock.updateAnswer(979e5);
+        usdtPriceFeedMock.updateAnswer(976e5);
+        daiPriceFeedMock.updateAnswer(973e5);
+
+        //action
+        _unstakeNSTBL(user1, 0);
+        assertEq(IERC20Helper(DAI).balanceOf(address(nstblHub)), 0); //all the failing stable is drained
+        (uint256 amount2,,,,) = stakePool.getStakerInfo(user1, 0);
+        assertEq(amount2, 0);
+        assertEq(IERC20Helper(stakePoolLP).balanceOf(destinationAddress), 1e6 * 1e18);
+    }
+
     function test_unstake_Depeg_belowUB() external {
         //preConditions
         // nodepeg
@@ -770,6 +837,31 @@ contract NSTBLHubTestRedeem is BaseTest {
         stablesRedeemed = nstblHub.processTBillWithdraw();
 
         assertEq(stablesRedeemed, IERC20Helper(USDC).balanceOf(address(nstblHub)));
+    }
+
+    function test_redeem_noDepeg_insuffLiquidity() external {
+        //noDepeg
+        usdcPriceFeedMock.updateAnswer(992e5);
+        usdtPriceFeedMock.updateAnswer(981e5);
+        daiPriceFeedMock.updateAnswer(975e5);
+
+        _depositNSTBL(1e6*1e18);
+
+        //first making a deposit
+        deal(address(nstblToken), nealthyAddr, 1e6 * 1e18);
+        deal(USDC, address(nstblHub), 1e6 * 1e6);
+        deal(USDT, address(nstblHub), 5e3 * 1e6);
+        deal(DAI, address(nstblHub), 5e3 * 1e18);
+
+        uint256 usdcBalBefore = IERC20Helper(USDC).balanceOf(address(nstblHub));
+        uint256 usdtBalBefore = IERC20Helper(USDT).balanceOf(address(nstblHub));
+        uint256 daiBalBefore = IERC20Helper(DAI).balanceOf(address(nstblHub));
+        vm.startPrank(nealthyAddr);
+        nstblHub.redeem(1e6*1e18, user1);
+
+        assertEq(IERC20Helper(USDT).balanceOf(address(nstblHub)), 0);
+        assertEq(IERC20Helper(DAI).balanceOf(address(nstblHub)), 0);
+
     }
 
     function test_redeem_daiDepeg_suffLiquidity() external {
