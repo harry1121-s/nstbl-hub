@@ -884,19 +884,7 @@ contract NSTBLHubTestRedeem is BaseTest {
         daiPriceFeedMock.updateAnswer(981e5);
 
         //first making a deposit
-        (uint256 usdcAmt, uint256 usdtAmt, uint256 daiAmt, uint256 tBillAmt) = nstblHub.previewDeposit(1e6);
-
-        deal(USDC, nealthyAddr, usdcAmt);
-        deal(USDT, nealthyAddr, usdtAmt);
-        deal(DAI, nealthyAddr, daiAmt);
-        vm.startPrank(nealthyAddr);
-        IERC20Helper(USDC).safeIncreaseAllowance(address(nstblHub), usdcAmt);
-        IERC20Helper(USDT).safeIncreaseAllowance(address(nstblHub), usdtAmt);
-        IERC20Helper(DAI).safeIncreaseAllowance(address(nstblHub), daiAmt);
-        nstblHub.deposit(usdcAmt, usdtAmt, daiAmt);
-
-        vm.stopPrank();
-        //deposited
+        _depositNSTBL(_amount);
 
         uint256 usdcBalBefore = IERC20Helper(USDC).balanceOf(address(nstblHub));
         uint256 usdtBalBefore = IERC20Helper(USDT).balanceOf(address(nstblHub));
@@ -933,22 +921,9 @@ contract NSTBLHubTestRedeem is BaseTest {
         daiPriceFeedMock.updateAnswer(981e5);
 
         //first making a deposit
-        (uint256 usdcAmt, uint256 usdtAmt, uint256 daiAmt, uint256 tBillAmt) = nstblHub.previewDeposit(1e6);
-
-        deal(USDC, nealthyAddr, usdcAmt);
-        deal(USDT, nealthyAddr, usdtAmt);
-        deal(DAI, nealthyAddr, daiAmt);
+        _depositNSTBL(_amount);
         deal(address(nstblToken), address(atvl), _amount*12/1000); //1.2% of the total supply
-        vm.startPrank(nealthyAddr);
-        IERC20Helper(USDC).safeIncreaseAllowance(address(nstblHub), usdcAmt);
-        IERC20Helper(USDT).safeIncreaseAllowance(address(nstblHub), usdtAmt);
-        IERC20Helper(DAI).safeIncreaseAllowance(address(nstblHub), daiAmt);
-        nstblHub.deposit(usdcAmt, usdtAmt, daiAmt);
-        stakePool.updateMaturityValue();
-        _stakeNSTBL(user1, 1e5*1e18, 0);
 
-        vm.stopPrank();
-        //deposited
 
         uint256 usdcBalBefore = IERC20Helper(USDC).balanceOf(address(nstblHub));
         uint256 usdtBalBefore = IERC20Helper(USDT).balanceOf(address(nstblHub));
@@ -987,22 +962,9 @@ contract NSTBLHubTestRedeem is BaseTest {
         daiPriceFeedMock.updateAnswer(981e5);
 
         //first making a deposit
-        (uint256 usdcAmt, uint256 usdtAmt, uint256 daiAmt, uint256 tBillAmt) = nstblHub.previewDeposit(1e6);
-
-        deal(USDC, nealthyAddr, usdcAmt);
-        deal(USDT, nealthyAddr, usdtAmt);
-        deal(DAI, nealthyAddr, daiAmt);
+        _depositNSTBL(_amount);
         deal(address(nstblToken), address(atvl), _amount*12/1000); //1.2% of the total supply
-        vm.startPrank(nealthyAddr);
-        IERC20Helper(USDC).safeIncreaseAllowance(address(nstblHub), usdcAmt);
-        IERC20Helper(USDT).safeIncreaseAllowance(address(nstblHub), usdtAmt);
-        IERC20Helper(DAI).safeIncreaseAllowance(address(nstblHub), daiAmt);
-        nstblHub.deposit(usdcAmt, usdtAmt, daiAmt);
-        stakePool.updateMaturityValue();
-        _stakeNSTBL(user1, 1e5*1e18, 0);
-
-        vm.stopPrank();
-        //deposited
+        
 
         uint256 usdcBalBefore = IERC20Helper(USDC).balanceOf(address(nstblHub));
         uint256 usdtBalBefore = IERC20Helper(USDT).balanceOf(address(nstblHub));

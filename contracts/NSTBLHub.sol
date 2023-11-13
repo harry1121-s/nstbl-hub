@@ -222,7 +222,7 @@ contract NSTBLHub is NSTBLHUBStorage {
 
     function stake(address _user, uint256 _amount, uint8 _trancheId, address _destAddress) external authorizedCaller nonReentrant {
         (uint256 p1, uint256 p2, uint256 p3) = IChainlinkPriceFeed(chainLinkPriceFeed).getLatestPrice();
-        require(p1 > dt && p2 > dt && p3 > dt, "VAULT:STAKING_SUSPENDED");
+        require(p1 > dt && p2 > dt && p3 > dt, "HUB: STAKING_SUSPENDED");
         // IERC20Helper(nstblToken).safeTransferFrom(msg.sender, address(this), _amount);
         // IERC20Helper(nstblToken).safeIncreaseAllowance(stakePool, _amount);
         IStakePool(stakePool).stake(_user, _amount, _trancheId, _destAddress);
