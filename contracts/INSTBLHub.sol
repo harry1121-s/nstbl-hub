@@ -3,7 +3,7 @@ pragma solidity 0.8.21;
 interface INSTBLHub {
     /**
      * @dev Calculates the amount of USDC, USDT and DAI that will be deposited
-     * @param _depositAmount The amount of tokens to be deposited
+     * @param _depositAmount The amount of tokens to be deposited 
      * @return _amt1 The amount of USDC to be deposited
      * @return _amt2 The amount of USDT to be deposited
      * @return _amt3 The amount of DAI to be deposited

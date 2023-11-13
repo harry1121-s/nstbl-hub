@@ -58,6 +58,11 @@ contract NSTBLHub is NSTBLHUBStorage {
     }
 
     ///////////////////////////     DEPOSIT Functions ////////////////////////
+     /**
+     * @dev Calculates the amount of tokens that will be deposited according to the equilibrium ratio
+     * @param _depositAmount The amount of NSTBL to be minted 
+     * @notice the deposit Amount is given without decimals
+     */
     function previewDeposit(uint256 _depositAmount)
         external
         view
@@ -96,6 +101,13 @@ contract NSTBLHub is NSTBLHUBStorage {
         IERC20Helper(nstblToken).mint(msg.sender, (_usdcAmt + _usdtAmt) * 1e12 + _daiAmt);
     }
 
+    /**
+    * @dev Validates the system allocation according to the system state
+    * @param _usdcAmt The amount of USDC to be deposited
+    * @param _usdtAmt The amount of USDT to be deposited
+    * @param _daiAmt The amount of DAI to be deposited 
+    * @notice returns the system allocations for USDC, USDT and DAI
+    */
     function _validateSystemAllocation(uint256 _usdcAmt, uint256 _usdtAmt, uint256 _daiAmt)
         internal
         view
@@ -107,6 +119,10 @@ contract NSTBLHub is NSTBLHUBStorage {
         require(_usdcAmt + _usdtAmt + _daiAmt != 0, "HUB: Invalid Deposit");
     }
 
+    /**
+    * @dev Returns the system allocation according to the system state
+    * @notice returns the system allocations for USDC, USDT and DAI
+    */
     function _getSystemAllocation() internal view returns (uint256 _a1, uint256 _a2, uint256 _a3) {
         (uint256 p1, uint256 p2, uint256 p3) = IChainlinkPriceFeed(chainLinkPriceFeed).getLatestPrice();
 
@@ -131,6 +147,16 @@ contract NSTBLHub is NSTBLHUBStorage {
         }
     }
 
+    /**
+    * @dev Validates the system equilibrium 
+    * @param _a1 The system allocation for USDC
+    * @param _a2 The system allocation for USDT
+    * @param _a3 The system allocation for DAI
+    * @param _usdcAmt The amount of USDC to be deposited
+    * @param _usdtAmt The amount of USDT to be deposited
+    * @param _daiAmt The amount of DAI to be deposited 
+    * @notice checks the equilibrium using coverage ratio of each asset
+    */
     function _checkEquilibrium(
         uint256 _a1,
         uint256 _a2,
@@ -166,6 +192,13 @@ contract NSTBLHub is NSTBLHUBStorage {
         }
     }
 
+    /**
+    * @dev Calculates the equilibrium according to the coverage ratio of each asset
+    * @param cr1 The coverage ratio of USDC
+    * @param cr2 The coverage ratio of USDT
+    * @param cr3 The coverage ratio of DAI
+    * @notice returns the calculated equilibrium
+    */
     function _calcEq(uint256 cr1, uint256 cr2, uint256 cr3) internal view returns (uint256 _eq) {
         _eq = (_modSub(cr1) + _modSub(cr2) + _modSub(cr3)) / 3;
     }
@@ -178,6 +211,9 @@ contract NSTBLHub is NSTBLHUBStorage {
         }
     }
 
+    /**
+    * @dev Returns the system balances for USDC< USDT, DAI
+    */
     function _getAssetBalances() internal view returns (uint256[] memory) {
         uint256[] memory balances = new uint256[](3);
         balances[0] = ILoanManager(loanManager).getMaturedAssets() + usdcDeposited * 1e12;
@@ -187,8 +223,11 @@ contract NSTBLHub is NSTBLHUBStorage {
         return balances;
     }
 
+    /**
+    * @dev Invests USDC in the loan manager
+    * @param _amt The amount of USDC to be invested
+    */
     function _investUSDC(uint256 _amt) internal {
-        //@TODO: integration with stakePool
         usdcInvested += _amt;
         IERC20Helper(USDC).safeIncreaseAllowance(loanManager, _amt);
         ILoanManager(loanManager).deposit(_amt);
@@ -219,6 +258,11 @@ contract NSTBLHub is NSTBLHUBStorage {
         INSTBLToken(nstblToken).sendOrReturnPool(msg.sender, stakePool, _amount);
     }
 
+    /**
+    * @dev Redeems NSTBL for a non-staker in non-depeg scenario
+    * @param _amount The amount of NSTBL to be redeemed
+    * @param _user The address of the user
+    */
     function redeemNormal(uint256 _amount, address _user) internal {
         uint256 liquidTokens = liquidPercent * _amount / 1e4;
         uint256 tBillTokens = tBillPercent * _amount / 1e4;
@@ -244,11 +288,24 @@ contract NSTBLHub is NSTBLHUBStorage {
         requestTBillWithdraw(tBillTokens);
     }
 
+     /**
+    * @dev Unstakes NSTBL for staker in non-depeg scenario
+    * @param _user The address of the user
+    * @param _trancheId The tranche id of the user
+    * @param _depeg The depeg status of the system
+    * @param _lpOwner The address of the LP owner
+    */
     function unstakeNstbl(address _user, uint8 _trancheId, bool _depeg, address _lpOwner) internal {
         uint256 tokensUnstaked = IStakePool(stakePool).unstake(_user, _trancheId, _depeg, _lpOwner);
         INSTBLToken(nstblToken).sendOrReturnPool(stakePool, msg.sender, tokensUnstaked);
     }
-
+    /**
+    * @dev Unstakes and redeems NSTBL for staker in depeg scenario
+    * @param _user The address of the user
+    * @param _trancheId The tranche id of the user
+    * @param _lpOwner The address of the LP owner
+    * @notice The NSTBL amount is redeemed till it covers the failing stablecoins, then the remaining NSTBL is unstaked and transferred to staker
+    */
     function unstakeAndRedeemNstbl(address _user, uint8 _trancheId, address _lpOwner) internal {
 
         (address[] memory _failedAssets, uint256[] memory _failedAssetsPrice) =
@@ -266,6 +323,13 @@ contract NSTBLHub is NSTBLHUBStorage {
         }
     }
 
+    /**
+    * @dev Calculates redeem parameters for staker in depeg scenario
+    * @param _user The address of the user
+    * @param _trancheId The tranche id of the user
+    * @param _lpOwner The address of the LP owner
+    * @notice The NSTBL amount is redeemed till it covers the failing stablecoins, then the remaining NSTBL is unstaked and transferred to staker
+    */
     function _getStakerRedeemParams(
         address _user,
         uint8 _trancheId,
