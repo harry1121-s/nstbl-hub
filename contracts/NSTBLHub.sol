@@ -612,7 +612,7 @@ contract NSTBLHub is NSTBLHUBStorage, VersionedInitializable {
         view
         returns (uint256 burnAmount_)
     {
-        burnAmount_ = (assetRequired_ - assetProportion_) - (assetProportion_ * dt / ub - assetProportion_);
+        burnAmount_ = (assetRequired_ - assetProportion_) - (assetProportion_ * dt / lb - assetProportion_);
         burnAmount_ /= precision;
     }
 
