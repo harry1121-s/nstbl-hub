@@ -2,6 +2,7 @@ pragma solidity 0.8.21;
 
 import { IACLManager } from "@nstbl-acl-manager/contracts/IACLManager.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import { Test, console } from "forge-std/Test.sol";
 import "./upgradeable/VersionedInitializable.sol";
 import "./NSTBLHUBStorage.sol";
 
@@ -117,12 +118,24 @@ contract NSTBLHub is NSTBLHUBStorage, VersionedInitializable {
         IERC20Helper(nstblToken).mint(msg.sender, (usdcAmt_ + usdtAmt_) * 1e12 + daiAmt_);
     }
 
+    function _getRedeemAllocParams() public view returns(uint256[] memory){
+        uint256[] memory alloc = new uint256[](3);
+        uint256[] memory balances = _getAssetBalances();
+        uint256 tvl = balances[0] + balances[1] + balances[2];
+        alloc[0] = balances[0]*1e18 / tvl;
+        alloc[1] = balances[1]*1e18 / tvl;
+        alloc[2] = balances[2]*1e18 / tvl;
+        return alloc;
+
+    }
+
     function redeem(uint256 amount_, address user_) external authorizedCaller nonReentrant {
-        (uint256 p1, uint256 p2, uint256 p3) = IChainlinkPriceFeed(chainLinkPriceFeed).getLatestPrice(); //usdc
+        (uint256 p1, uint256 p2, uint256 p3) = IChainlinkPriceFeed(chainLinkPriceFeed).getLatestPrice(); 
+        uint256[] memory allocations = _getRedeemAllocParams();
         if (p1 > dt && p2 > dt && p3 > dt) {
-            redeemNormal(amount_);
+            redeemNormal(amount_, allocations);
         } else {
-            redeemForNonStaker(amount_, user_);
+            redeemForNonStaker(amount_, user_, allocations);
         }
     }
 
@@ -325,9 +338,9 @@ contract NSTBLHub is NSTBLHUBStorage, VersionedInitializable {
      */
     function _getAssetBalances() internal view returns (uint256[] memory) {
         uint256[] memory balances = new uint256[](3);
-        balances[0] = ILoanManager(loanManager).getMaturedAssets() + usdcDeposited * 1e12;
-        balances[1] = usdtDeposited * 1e12;
-        balances[2] = daiDeposited;
+        balances[0] = ILoanManager(loanManager).getMaturedAssets() + IERC20Helper(USDC).balanceOf(address(this)) * 1e12;
+        balances[1] = IERC20Helper(USDT).balanceOf(address(this)) * 1e12;
+        balances[2] = IERC20Helper(DAI).balanceOf(address(this));
 
         return balances;
     }
@@ -346,29 +359,20 @@ contract NSTBLHub is NSTBLHUBStorage, VersionedInitializable {
      * @dev Redeems NSTBL for a non-staker in non-depeg scenario
      * @param amount_ The amount of NSTBL to be redeemed
      */
-    function redeemNormal(uint256 amount_) internal {
-        uint256 liquidTokens = liquidPercent * amount_ / 1e4;
-        uint256 tBillTokens = tBillPercent * amount_ / 1e4;
+    function redeemNormal(uint256 amount_, uint256[] memory allocations_) internal {
         uint256 availAssets;
-        uint256 assetsLeft = amount_;
         uint256 adjustedDecimals;
         IERC20Helper(nstblToken).burn(msg.sender, amount_);
         for (uint256 i = 0; i < assets.length; i++) {
             adjustedDecimals = IERC20Helper(nstblToken).decimals() - IERC20Helper(assets[i]).decimals();
-            if (i == 0) {
-                availAssets = (liquidTokens + tBillTokens) / 10 ** adjustedDecimals
+    
+            availAssets = (amount_ * allocations_[i])/(1e18 * 10 ** adjustedDecimals)
                     <= IERC20Helper(assets[i]).balanceOf(address(this))
-                    ? liquidTokens + tBillTokens
+                    ? (amount_ * allocations_[i])/(1e18 * 10 ** adjustedDecimals)
                     : IERC20Helper(assets[i]).balanceOf(address(this));
-            } else {
-                availAssets = liquidTokens / 10 ** adjustedDecimals <= IERC20Helper(assets[i]).balanceOf(address(this))
-                    ? liquidTokens
-                    : IERC20Helper(assets[i]).balanceOf(address(this));
-            }
-            IERC20Helper(assets[i]).safeTransfer(msg.sender, availAssets / 10 ** adjustedDecimals);
-            assetsLeft -= availAssets;
+            IERC20Helper(assets[i]).safeTransfer(msg.sender, availAssets);
         }
-        requestTBillWithdraw(tBillTokens);
+        requestTBillWithdraw(7e3 * amount_ / 1e4);
     }
 
     /**
@@ -488,7 +492,7 @@ contract NSTBLHub is NSTBLHUBStorage, VersionedInitializable {
      * @param amount_ The amount of NSTBL to be redeemed
      * @param user_ The address of the user
      */
-    function redeemForNonStaker(uint256 amount_, address user_) internal {
+    function redeemForNonStaker(uint256 amount_, address user_, uint256[] memory allocations_) internal {
         localVars memory vars;
         uint256 precisionAmount = amount_ * precision;
 
