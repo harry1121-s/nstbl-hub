@@ -201,9 +201,6 @@ contract BaseTest is Test {
 
         nstblHub.setSystemParams(dt, ub, lb, 1e3, 7e3, 2*1e24);
         nstblHub.updateAssetFeeds([address(usdcPriceFeedMock), address(usdtPriceFeedMock), address(daiPriceFeedMock)]);
-        nstblHub.updateAssetAllocation(USDC, 8e4);
-        nstblHub.updateAssetAllocation(USDT, 1e4);
-        nstblHub.updateAssetAllocation(DAI, 1e4);
 
         aclManager.setAuthorizedCallerHub(nealthyAddr, true);
 
@@ -248,7 +245,7 @@ contract BaseTest is Test {
         IERC20Helper(USDC).safeIncreaseAllowance(address(nstblHub), usdcAmt);
         IERC20Helper(USDT).safeIncreaseAllowance(address(nstblHub), usdtAmt);
         IERC20Helper(DAI).safeIncreaseAllowance(address(nstblHub), daiAmt);
-        nstblHub.deposit(usdcAmt, usdtAmt, daiAmt);
+        nstblHub.deposit(usdcAmt, usdtAmt, daiAmt, nealthyAddr);
         vm.stopPrank();
     }
 
