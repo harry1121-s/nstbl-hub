@@ -100,14 +100,17 @@ contract NSTBLHub is NSTBLHUBStorage, VersionedInitializable {
 
         //Deposit required Tokens
         IERC20Helper(USDC).safeTransferFrom(msg.sender, address(this), usdcAmt_);
-        usdcDeposited += usdcAmt_;
+        stablesBalances[USDC] += (usdcAmt_ - (7e3 * usdcAmt_ / a1_));
+        // usdcDeposited += usdcAmt_;
         if (a2_ != 0) {
             IERC20Helper(USDT).safeTransferFrom(msg.sender, address(this), usdtAmt_);
-            usdtDeposited += usdtAmt_;
+            stablesBalances[USDT] += usdtAmt_;
+            // usdtDeposited += usdtAmt_;
         }
         if (a3_ != 0) {
             IERC20Helper(DAI).safeTransferFrom(msg.sender, address(this), daiAmt_);
-            daiDeposited += daiAmt_;
+            stablesBalances[DAI] += daiAmt_;
+            // daiDeposited += daiAmt_;
         }
         IStakePool(stakePool).updatePoolFromHub(false, 0, 7e3 * usdcAmt_ / a1_);
         _investUSDC(7e3 * usdcAmt_ / a1_);
@@ -279,8 +282,8 @@ contract NSTBLHub is NSTBLHUBStorage, VersionedInitializable {
         uint256[] memory cr = new uint256[](3);
         uint256 oldEq;
         if (tvlOld != 0) {
-            cr[0] = a1_ != 0 ? (balances[0] * 1e12 * tAlloc * precision) / (a1_ * tvlOld) : 0;
-            cr[1] = a2_ != 0 ? (balances[1] * 1e12 * tAlloc * precision) / (a2_ * tvlOld) : 0;
+            cr[0] = a1_ != 0 ? (balances[0] * tAlloc * precision) / (a1_ * tvlOld) : 0;
+            cr[1] = a2_ != 0 ? (balances[1] * tAlloc * precision) / (a2_ * tvlOld) : 0;
             cr[2] = a3_ != 0 ? (balances[2] * tAlloc * precision) / (a3_ * tvlOld) : 0;
             oldEq = _calcEq(cr[0], cr[1], cr[2]);
         }
@@ -288,8 +291,8 @@ contract NSTBLHub is NSTBLHUBStorage, VersionedInitializable {
             oldEq = 0;
         }
 
-        cr[0] = a1_ != 0 ? ((balances[0] + usdcAmt_) * 1e12 * tAlloc * precision) / (a1_ * tvlNew) : 0;
-        cr[1] = a2_ != 0 ? ((balances[1] + usdtAmt_) * 1e12 * tAlloc * precision) / (a2_ * tvlNew) : 0;
+        cr[0] = a1_ != 0 ? ((balances[0] + usdcAmt_ * 1e12) * tAlloc * precision) / (a1_ * tvlNew) : 0;
+        cr[1] = a2_ != 0 ? ((balances[1] + usdtAmt_ * 1e12) * tAlloc * precision) / (a2_ * tvlNew) : 0;
         cr[2] = a3_ != 0 ? ((balances[2] + daiAmt_) * tAlloc * precision) / (a3_ * tvlNew) : 0;
 
         uint256 newEq = _calcEq(cr[0], cr[1], cr[2]);
@@ -321,13 +324,13 @@ contract NSTBLHub is NSTBLHUBStorage, VersionedInitializable {
     }
 
     /**
-     * @dev Returns the system balances for USDC< USDT, DAI
+     * @dev Returns the system balances for USDC, USDT, DAI
      */
     function _getAssetBalances() internal view returns (uint256[] memory) {
         uint256[] memory balances = new uint256[](3);
-        balances[0] = ILoanManager(loanManager).getMaturedAssets() + usdcDeposited * 1e12;
-        balances[1] = usdtDeposited * 1e12;
-        balances[2] = daiDeposited;
+        balances[0] = ILoanManager(loanManager).getMaturedAssets() + stablesBalances[assets[0]] * 1e12;
+        balances[1] = stablesBalances[assets[1]] * 1e12;
+        balances[2] = stablesBalances[assets[2]];
 
         return balances;
     }
@@ -366,6 +369,7 @@ contract NSTBLHub is NSTBLHUBStorage, VersionedInitializable {
                     : IERC20Helper(assets[i]).balanceOf(address(this));
             }
             IERC20Helper(assets[i]).safeTransfer(msg.sender, availAssets / 10 ** adjustedDecimals);
+            
             assetsLeft -= availAssets;
         }
         requestTBillWithdraw(tBillTokens);
