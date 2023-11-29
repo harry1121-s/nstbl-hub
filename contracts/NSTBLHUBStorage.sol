@@ -57,7 +57,7 @@ contract NSTBLHUBStorage {
     uint256 public eqTh;
     uint256 public precision;
 
-    uint256 public liquidPercent;
-    uint256 public tBillPercent;
+    uint256 public liquidPercent; // to be removed
+    uint256 public tBillPercent; // to be removed
     uint256 public marginPercent;
 }
