@@ -494,7 +494,7 @@ contract NSTBLHub is NSTBLHUBStorage, VersionedInitializable {
      * @param amount_ The amount of NSTBL to be redeemed
      * @param user_ The address of the user
      */
-    function redeemForNonStaker(uint256 amount_, address user_, uint256 allocations_) internal {
+    function redeemForNonStaker(uint256 amount_, address user_, uint256[] memory allocations_) internal {
         localVars memory vars;
         uint256 precisionAmount = amount_ * precision;
 
