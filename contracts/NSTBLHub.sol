@@ -108,13 +108,22 @@ contract NSTBLHub is NSTBLHUBStorage, VersionedInitializable {
         _tBillAmt = 7e3 * _amt1 / a1_;
     }
 
+    function _calculateTBillsAmount(uint256 usdcAmt_, uint256 usdtAmt_, uint256 daiAmt_) internal view returns (uint256 tBillsAmount_) {
+        uint256 tBillAssets = ILoanManager(loanManager).getMaturedAssets();
+        uint256 targetSupply = (stablesBalances[USDC] + stablesBalances[USDT]) * 1e12 + stablesBalances[DAI] + tBillAssets + (usdcAmt_ + usdtAmt_) * 1e12 + daiAmt_;
+        uint256 tBillsRequired = 7e3 * targetSupply / 1e4;
+        tBillsAmount_ = tBillsRequired > tBillAssets ? (tBillsRequired - tBillAssets) : 0; //case when there are already sufficient stables deposited in TBills
+        tBillsAmount_ = (usdcAmt_ * 1e12) > tBillsAmount_ ? tBillsAmount_/1e12 : usdcAmt_; //hypothetical case when usdc deposit amount is extermely small
+    }
+
     function deposit(uint256 usdcAmt_, uint256 usdtAmt_, uint256 daiAmt_, address destAddress_) external authorizedCaller {
         (uint256 a1_, uint256 a2_, uint256 a3_) = _validateSystemAllocation(usdcAmt_, usdtAmt_, daiAmt_);
         _checkEquilibrium(a1_, a2_, a3_, usdcAmt_, usdtAmt_, daiAmt_);
-
+        uint256 tBillsAmount = _calculateTBillsAmount(usdcAmt_, usdtAmt_, daiAmt_);
         //Deposit required Tokens
         IERC20Helper(USDC).safeTransferFrom(msg.sender, address(this), usdcAmt_);
-        stablesBalances[USDC] += (usdcAmt_ - (7e3 * usdcAmt_ / a1_));
+        // stablesBalances[USDC] += (usdcAmt_ - (7e3 * usdcAmt_ / a1_));
+        stablesBalances[USDC] += (usdcAmt_ - tBillsAmount);
         // usdcDeposited += usdcAmt_;
         if (a2_ != 0) {
             IERC20Helper(USDT).safeTransferFrom(msg.sender, address(this), usdtAmt_);
@@ -126,8 +135,8 @@ contract NSTBLHub is NSTBLHUBStorage, VersionedInitializable {
             stablesBalances[DAI] += daiAmt_;
             // daiDeposited += daiAmt_;
         }
-        IStakePool(stakePool).updatePoolFromHub(false, 0, 7e3 * usdcAmt_ / a1_);
-        _investUSDC(7e3 * usdcAmt_ / a1_);
+        IStakePool(stakePool).updatePoolFromHub(false, 0, tBillsAmount);
+        _investUSDC(tBillsAmount);
         if (IERC20Helper(nstblToken).totalSupply() == 0) {
             IStakePool(stakePool).updateMaturityValue();
         }
@@ -218,6 +227,7 @@ contract NSTBLHub is NSTBLHUBStorage, VersionedInitializable {
      * @param tBillPercent_ The tBill assets percent
      * @param eqTh_ The equilibrium threshold
      */
+     //updates TBD here
     function setSystemParams(uint256 dt_, uint256 ub_, uint256 lb_, uint256 liquidPercent_, uint256 tBillPercent_, uint256 eqTh_)
         external
         onlyAdmin
@@ -323,13 +333,16 @@ contract NSTBLHub is NSTBLHUBStorage, VersionedInitializable {
         else{
             oldEq = 0;
         }
+        console.log(cr[0], cr[1], cr[2]);
+        console.log("Old Eq = ", oldEq);
 
         cr[0] = a1_ != 0 ? ((balances[0] + usdcAmt_ * 1e12) * tAlloc * precision) / (a1_ * tvlNew) : 0;
         cr[1] = a2_ != 0 ? ((balances[1] + usdtAmt_ * 1e12) * tAlloc * precision) / (a2_ * tvlNew) : 0;
         cr[2] = a3_ != 0 ? ((balances[2] + daiAmt_) * tAlloc * precision) / (a3_ * tvlNew) : 0;
 
         uint256 newEq = _calcEq(cr[0], cr[1], cr[2]);
-
+        console.log(cr[0], cr[1], cr[2]);
+        console.log("New Eq = ", newEq);
         if (oldEq == 0) {
             require(newEq < eqTh, "HUB::Deposit Not Allowed");
         } else {
@@ -373,7 +386,9 @@ contract NSTBLHub is NSTBLHUBStorage, VersionedInitializable {
     function _investUSDC(uint256 amt_) internal {
         usdcInvested += amt_;
         IERC20Helper(USDC).safeIncreaseAllowance(loanManager, amt_);
-        ILoanManager(loanManager).deposit(amt_);
+        if(amt_ != 0){
+            ILoanManager(loanManager).deposit(amt_);
+        }
     }
 
     /**
@@ -586,6 +601,7 @@ contract NSTBLHub is NSTBLHUBStorage, VersionedInitializable {
                 vars.stakePoolBurnAmount += vars.burnFromStakePool
                     ? _stakePoolBurnAmount(vars.assetRequired, vars.assetProportion)
                     : 0;
+                console.log("stake pool burn ", sortedAssets[i], vars.stakePoolBurnAmount);
             }
         }
         _burnNstblFromAtvl((vars.burnAmount - vars.stakePoolBurnAmount));

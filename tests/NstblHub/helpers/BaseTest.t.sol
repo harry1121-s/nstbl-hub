@@ -199,7 +199,7 @@ contract BaseTest is Test {
         atvl.setAuthorizedCaller(address(nstblHub), true);
         stakePool.setupStakePool([300, 200, 100], [700, 500, 300], [30, 90, 180]);
 
-        nstblHub.setSystemParams(dt, ub, lb, 1e3, 7e3, 2*1e24);
+        nstblHub.setSystemParams(dt, ub, lb, 1e3, 7e3, 2e22);
         nstblHub.updateAssetFeeds([address(usdcPriceFeedMock), address(usdtPriceFeedMock), address(daiPriceFeedMock)]);
 
         aclManager.setAuthorizedCallerHub(nealthyAddr, true);
@@ -245,8 +245,38 @@ contract BaseTest is Test {
         IERC20Helper(USDC).safeIncreaseAllowance(address(nstblHub), usdcAmt);
         IERC20Helper(USDT).safeIncreaseAllowance(address(nstblHub), usdtAmt);
         IERC20Helper(DAI).safeIncreaseAllowance(address(nstblHub), daiAmt);
+        if(usdcAmt + usdtAmt + daiAmt == 0) {
+            vm.expectRevert("HUB: Invalid Deposit");
+        }
         nstblHub.deposit(usdcAmt, usdtAmt, daiAmt, nealthyAddr);
         vm.stopPrank();
+    }
+
+    function _randomizeDepositAmounts(uint256 _amount) internal returns(uint256 usdcAmt, uint256 usdtAmt, uint256 daiAmt) {
+
+        (usdcAmt, usdtAmt, daiAmt,) = nstblHub.previewDeposit(_amount / 1e18);
+
+        if(_amount%2 == 0){
+            usdcAmt += (5e3*usdcAmt/1e5);
+        }
+        else{
+            usdcAmt -= (5e3*usdcAmt/1e5);
+        }
+
+        if((_amount>>10*8)%2 == 0){
+            usdtAmt -= (5e3*usdtAmt/1e5);
+        }
+        else{
+            usdtAmt += (5e3*usdtAmt/1e5);
+        }
+
+        if((_amount>>20*8)%2 == 0){
+            daiAmt += (5e3*daiAmt/1e5);
+        }
+        else{
+            daiAmt -= (5e3*daiAmt/1e5);
+        }
+
     }
 
     function _unstakeNSTBL(address _user, uint8 _trancheId) internal {
