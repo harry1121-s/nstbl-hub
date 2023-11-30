@@ -254,23 +254,24 @@ contract BaseTest is Test {
 
     function _randomizeDepositAmounts(uint256 _amount) internal returns(uint256 usdcAmt, uint256 usdtAmt, uint256 daiAmt) {
 
+        uint256 _randAmount = _amount*314159265358979323846; // multiplying with pi(without decimal)
         (usdcAmt, usdtAmt, daiAmt,) = nstblHub.previewDeposit(_amount / 1e18);
 
-        if(_amount%2 == 0){
+        if(_randAmount%2 == 0){
             usdcAmt += (5e3*usdcAmt/1e5);
         }
         else{
             usdcAmt -= (5e3*usdcAmt/1e5);
         }
 
-        if((_amount>>10*8)%2 == 0){
+        if((_randAmount>>10*8)%2 == 0){
             usdtAmt -= (5e3*usdtAmt/1e5);
         }
         else{
             usdtAmt += (5e3*usdtAmt/1e5);
         }
 
-        if((_amount>>20*8)%2 == 0){
+        if((_randAmount>>20*8)%2 == 0){
             daiAmt += (5e3*daiAmt/1e5);
         }
         else{
