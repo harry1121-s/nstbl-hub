@@ -248,34 +248,34 @@ contract BaseTest is Test {
         if(usdcAmt + usdtAmt + daiAmt == 0) {
             vm.expectRevert("HUB: Invalid Deposit");
         }
-        nstblHub.deposit(usdcAmt, usdtAmt, daiAmt, nealthyAddr);
+        nstblHub.deposit(usdcAmt, usdtAmt, daiAmt);
         vm.stopPrank();
     }
 
-    function _randomizeDepositAmounts(uint256 _amount) internal returns(uint256 usdcAmt, uint256 usdtAmt, uint256 daiAmt) {
+    function _randomizeDepositAmounts(uint256 _amount) internal view returns(uint256 usdcAmt, uint256 usdtAmt, uint256 daiAmt) {
 
         uint256 _randAmount = _amount*314159265358979323846; // multiplying with pi(without decimal)
         (usdcAmt, usdtAmt, daiAmt,) = nstblHub.previewDeposit(_amount / 1e18);
 
-        if(_randAmount%2 == 0){
-            usdcAmt += (5e3*usdcAmt/1e5);
+        if(uint(keccak256(abi.encode(_randAmount)))%2 == 0){
+            usdcAmt += (1e3*usdcAmt/1e5);
         }
         else{
-            usdcAmt -= (5e3*usdcAmt/1e5);
+            usdcAmt -= (1e3*usdcAmt/1e5);
         }
 
-        if((_randAmount>>10*8)%2 == 0){
-            usdtAmt -= (5e3*usdtAmt/1e5);
+        if((uint(keccak256(abi.encode(_randAmount)))>>10*8)%2 == 0){
+            usdtAmt -= (1e3*usdtAmt/1e5);
         }
         else{
-            usdtAmt += (5e3*usdtAmt/1e5);
+            usdtAmt += (1e3*usdtAmt/1e5);
         }
 
-        if((_randAmount>>20*8)%2 == 0){
-            daiAmt += (5e3*daiAmt/1e5);
+        if((uint(keccak256(abi.encode(_randAmount)))>>20*8)%2 == 0){
+            daiAmt += (1e3*daiAmt/1e5);
         }
         else{
-            daiAmt -= (5e3*daiAmt/1e5);
+            daiAmt -= (1e3*daiAmt/1e5);
         }
 
     }
