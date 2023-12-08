@@ -1,15 +1,17 @@
 pragma solidity 0.8.21;
 
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import { IACLManager } from "@nstbl-acl-manager/contracts/IACLManager.sol";
 import "./interfaces/IERC20Helper.sol";
 
 contract ATVL {
     mapping(address => bool) public authorizedCallers;
-    address public _admin;
+    address public aclManager;
     address public nstblToken;
     uint256 public totalNstblReceived;
     uint256 public totalNstblBurned;
     uint256 public pendingNstblBurn;
+    uint256 public atvlThreshold;
 
     /*//////////////////////////////////////////////////////////////
     MODIFIERS
@@ -21,7 +23,7 @@ contract ATVL {
     }
 
     modifier onlyAdmin() {
-        require(msg.sender == _admin, "ATVL::NOT ADMIN");
+        require(msg.sender == IACLManager(aclManager).admin(), "HUB::NOT_ADMIN");
         _;
     }
 
@@ -29,16 +31,18 @@ contract ATVL {
     CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
 
-    constructor(address _admin_) {
-        _admin = _admin_;
+    constructor(address aclManager_) {
+        aclManager = aclManager_;
+
     }
 
     /*//////////////////////////////////////////////////////////////
     ADMIN SETTERS
     //////////////////////////////////////////////////////////////*/
 
-    function init(address _nstblToken) external onlyAdmin {
-        nstblToken = _nstblToken;
+    function init(address nstblToken_, uint256 atvlThreshold_) external onlyAdmin {
+        nstblToken = nstblToken_;
+        atvlThreshold = atvlThreshold_;
     }
 
     function setAuthorizedCaller(address _caller, bool _isAuthorized) external onlyAdmin {
@@ -58,6 +62,16 @@ contract ATVL {
         IERC20Helper(nstblToken).burn(address(this), burnAmount);
     }
 
+    /*//////////////////////////////////////////////////////////////
+    SKIM PROFITS
+    //////////////////////////////////////////////////////////////*/
+
+    function skimProfits(address destinationAddress_) external onlyAdmin returns(uint256 skimAmount_){
+        uint256 atvlBalance = IERC20Helper(nstblToken).balanceOf(address(this));
+        uint256 thresholdBalance = atvlThreshold * IERC20Helper(nstblToken).totalSupply() / 1e5;
+        skimAmount_ = atvlBalance > thresholdBalance ? (atvlBalance-thresholdBalance) : 0;
+        IERC20Helper(nstblToken).transfer(destinationAddress_, skimAmount_);
+    }
     /*//////////////////////////////////////////////////////////////
     VIEWS
     //////////////////////////////////////////////////////////////*/

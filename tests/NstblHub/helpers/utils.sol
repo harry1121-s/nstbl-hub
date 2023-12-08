@@ -11,6 +11,8 @@ contract Utils is Test {
     address USDC = address(0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48);
     address USDT = address(0xdAC17F958D2ee523a2206206994597C13D831ec7);
     address DAI = address(0x6B175474E89094C44Da98b954EedeAC495271d0F);
+    address public MAPLE_USDC_CASH_POOL = 0xfe119e9C24ab79F1bDd5dd884B86Ceea2eE75D92;
+    address public MAPLE_POOL_MANAGER_USDC = 0x219654A61a0BC394055652986BE403fa14405Bb8;
 
     address public admin = address(123);
     address public nealthyAddr = address(456);

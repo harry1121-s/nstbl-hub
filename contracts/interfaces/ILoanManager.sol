@@ -14,4 +14,5 @@ interface ILoanManager {
     function awaitingRedemption() external view returns (bool);
     function getLPTotalSupply() external view returns (uint256);
     function getRedemptionWindow() external view returns (uint256, uint256);
+    function isValidDepositAmount(uint256 _amount) external view returns(bool);
 }

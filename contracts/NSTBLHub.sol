@@ -105,13 +105,22 @@ contract NSTBLHub is NSTBLHUBStorage, VersionedInitializable {
         _amt1 = a1_ * depositAmount_ * 10 ** IERC20Helper(USDC).decimals() / tAlloc;
         _amt2 = a2_ * depositAmount_ * 10 ** IERC20Helper(USDT).decimals() / tAlloc;
         _amt3 = a3_ * depositAmount_ * 10 ** IERC20Helper(DAI).decimals() / tAlloc;
-        _tBillAmt = 7e3 * _amt1 / a1_;
+        console.log("amounts: ", _amt1, _amt2, _amt3);
+        _tBillAmt = _calculateTBillsAmount(_amt1, _amt2, _amt3);
+        console.log("TBILL AMOUNT: ", _tBillAmt);
+        if(_tBillAmt > 0){
+            require(ILoanManager(loanManager).isValidDepositAmount(_tBillAmt), "HUB: Invalid Investment Amount");
+        }
+        
     }
 
     function _calculateTBillsAmount(uint256 usdcAmt_, uint256 usdtAmt_, uint256 daiAmt_) internal view returns (uint256 tBillsAmount_) {
         uint256 tBillAssets = ILoanManager(loanManager).getMaturedAssets();
+        uint256 oldSupply = (stablesBalances[USDC] + stablesBalances[USDT]) * 1e12 + stablesBalances[DAI] + tBillAssets;
+        console.log("existing tbills", tBillAssets, oldSupply);
         uint256 targetSupply = (stablesBalances[USDC] + stablesBalances[USDT]) * 1e12 + stablesBalances[DAI] + tBillAssets + (usdcAmt_ + usdtAmt_) * 1e12 + daiAmt_;
         uint256 tBillsRequired = 7e3 * targetSupply / 1e4;
+        console.log("Tbill calc", tBillsRequired, tBillAssets);
         tBillsAmount_ = tBillsRequired > tBillAssets ? (tBillsRequired - tBillAssets) : 0; //case when there are already sufficient stables deposited in TBills
         tBillsAmount_ = (usdcAmt_ * 1e12) > tBillsAmount_ ? tBillsAmount_/1e12 : usdcAmt_; //hypothetical case when usdc deposit amount is extermely small
     }
@@ -120,20 +129,19 @@ contract NSTBLHub is NSTBLHUBStorage, VersionedInitializable {
         (uint256 a1_, uint256 a2_, uint256 a3_) = _validateSystemAllocation(usdcAmt_, usdtAmt_, daiAmt_);
         _checkEquilibrium(a1_, a2_, a3_, usdcAmt_, usdtAmt_, daiAmt_);
         uint256 tBillsAmount = _calculateTBillsAmount(usdcAmt_, usdtAmt_, daiAmt_);
+        if(tBillsAmount > 0){
+            require(ILoanManager(loanManager).isValidDepositAmount(tBillsAmount), "HUB: Invalid Investment");
+        }
         //Deposit required Tokens
         IERC20Helper(USDC).safeTransferFrom(msg.sender, address(this), usdcAmt_);
-        // stablesBalances[USDC] += (usdcAmt_ - (7e3 * usdcAmt_ / a1_));
         stablesBalances[USDC] += (usdcAmt_ - tBillsAmount);
-        // usdcDeposited += usdcAmt_;
         if (a2_ != 0) {
             IERC20Helper(USDT).safeTransferFrom(msg.sender, address(this), usdtAmt_);
             stablesBalances[USDT] += usdtAmt_;
-            // usdtDeposited += usdtAmt_;
         }
         if (a3_ != 0) {
             IERC20Helper(DAI).safeTransferFrom(msg.sender, address(this), daiAmt_);
             stablesBalances[DAI] += daiAmt_;
-            // daiDeposited += daiAmt_;
         }
         IStakePool(stakePool).updatePoolFromHub(false, 0, tBillsAmount);
         _investUSDC(tBillsAmount);
@@ -154,17 +162,17 @@ contract NSTBLHub is NSTBLHUBStorage, VersionedInitializable {
 
    
 
-    function unstake(address user_, uint8 trancheId_, address lpOwner_) external authorizedCaller nonReentrant {
+    function unstake(address user_, uint8 trancheId_) external authorizedCaller nonReentrant {
         (uint256 p1, uint256 p2, uint256 p3) = IChainlinkPriceFeed(chainLinkPriceFeed).getLatestPrice();
 
         if (p1 > dt && p2 > dt && p3 > dt) {
-            unstakeNstbl(user_, trancheId_, false, lpOwner_);
+            unstakeNstbl(user_, trancheId_, false);
         } else {
-            unstakeAndRedeemNstbl(user_, trancheId_, lpOwner_);
+            unstakeAndRedeemNstbl(user_, trancheId_);
         }
     }
 
-    function stake(address user_, uint256 amount_, uint8 trancheId_, address destAddress_)
+    function stake(address user_, uint256 amount_, uint8 trancheId_)
         external
         authorizedCaller
         nonReentrant
@@ -173,7 +181,7 @@ contract NSTBLHub is NSTBLHUBStorage, VersionedInitializable {
             amount_ + IERC20Helper(nstblToken).balanceOf(stakePool) <= 40 * IERC20Helper(nstblToken).totalSupply() / 100,
             "HUB: STAKE_LIMIT_EXCEEDED"
         );
-        IStakePool(stakePool).stake(user_, amount_, trancheId_, destAddress_);
+        IStakePool(stakePool).stake(user_, amount_, trancheId_);
         INSTBLToken(nstblToken).sendOrReturnPool(msg.sender, stakePool, amount_);
     }
 
@@ -336,17 +344,12 @@ contract NSTBLHub is NSTBLHUBStorage, VersionedInitializable {
         else{
             oldEq_ = 0;
         }
-        console.log("Old Balances: ", balances[0], balances[1], balances[2]);
-        console.log(cr[0], cr[1], cr[2]);
-        console.log("Old Eq = ", oldEq_);
 
         cr[0] = a1_ != 0 ? ((balances[0] + usdcAmt_ * 1e12) * tAlloc * precision) / (a1_ * tvlNew) : 0;
         cr[1] = a2_ != 0 ? ((balances[1] + usdtAmt_ * 1e12) * tAlloc * precision) / (a2_ * tvlNew) : 0;
         cr[2] = a3_ != 0 ? ((balances[2] + daiAmt_) * tAlloc * precision) / (a3_ * tvlNew) : 0;
 
         newEq_ = _calcEq(cr[0], cr[1], cr[2]);
-        console.log(cr[0], cr[1], cr[2]);
-        console.log("New Eq = ", newEq_);
     }
 
     /**
@@ -373,9 +376,9 @@ contract NSTBLHub is NSTBLHUBStorage, VersionedInitializable {
      */
     function _getAssetBalances() internal view returns (uint256[] memory balances_) {
         balances_ = new uint256[](3);
-        balances_[0] = ILoanManager(loanManager).getMaturedAssets() + stablesBalances[assets[0]] * 1e12;
-        balances_[1] = stablesBalances[assets[1]] * 1e12;
-        balances_[2] = stablesBalances[assets[2]];
+        balances_[0] = ILoanManager(loanManager).getMaturedAssets() + stablesBalances[USDC] * 1e12;
+        balances_[1] = stablesBalances[USDT] * 1e12;
+        balances_[2] = stablesBalances[DAI];
     }
 
     /**
@@ -385,7 +388,7 @@ contract NSTBLHub is NSTBLHUBStorage, VersionedInitializable {
     function _investUSDC(uint256 amt_) internal {
         usdcInvested += amt_;
         IERC20Helper(USDC).safeIncreaseAllowance(loanManager, amt_);
-        if(amt_ != 0){
+        if(amt_ > 0){
             ILoanManager(loanManager).deposit(amt_);
         }
     }
@@ -422,28 +425,27 @@ contract NSTBLHub is NSTBLHUBStorage, VersionedInitializable {
      * @param user_ The address of the user
      * @param trancheId_ The tranche id of the user
      * @param depeg_ The depeg status of the system
-     * @param lpOwner_ The address of the LP owner
      */
-    function unstakeNstbl(address user_, uint8 trancheId_, bool depeg_, address lpOwner_) internal {
-        uint256 tokensUnstaked = IStakePool(stakePool).unstake(user_, trancheId_, depeg_, lpOwner_);
+    function unstakeNstbl(address user_, uint8 trancheId_, bool depeg_) internal {
+        uint256 tokensUnstaked = IStakePool(stakePool).unstake(user_, trancheId_, depeg_);
         INSTBLToken(nstblToken).sendOrReturnPool(stakePool, msg.sender, tokensUnstaked);
     }
     /**
      * @dev Unstakes and redeems NSTBL for staker in depeg scenario
      * @param user_ The address of the user
      * @param trancheId_ The tranche id of the user
-     * @param lpOwner_ The address of the LP owner
      * @notice The NSTBL amount is redeemed till it covers the failing stablecoins, then the remaining NSTBL is unstaked and transferred to staker
      */
-    function unstakeAndRedeemNstbl(address user_, uint8 trancheId_, address lpOwner_) internal {
+    function unstakeAndRedeemNstbl(address user_, uint8 trancheId_) internal {
         (address[] memory failedAssets_, uint256[] memory failedAssetsPrice_) =
             _failedAssetsOrderWithPrice(_noOfFailedAssets());
         (address[] memory assets_, uint256[] memory _assetAmounts, uint256 unstakeBurnAmount_, uint256 burnAmount_) =
             _getStakerRedeemParams(user_, trancheId_, failedAssets_, failedAssetsPrice_);
-        _unstakeAndBurnNstbl(user_, trancheId_, lpOwner_, unstakeBurnAmount_);
+        _unstakeAndBurnNstbl(user_, trancheId_, unstakeBurnAmount_);
         _burnNstblFromAtvl(burnAmount_);
         for (uint256 i = 0; i < assets_.length; i++) {
             if (assets_[i] != address(0)) {
+                console.log("Transfer amounts: ", assets_[i], _assetAmounts[i]);
                 IERC20Helper(assets_[i]).safeTransfer(msg.sender, _assetAmounts[i]);
                 stablesBalances[assets_[i]] -= _assetAmounts[i];
             }
@@ -468,9 +470,10 @@ contract NSTBLHub is NSTBLHUBStorage, VersionedInitializable {
         assetAmount_ = new uint256[](failedAssets_.length);
         localVars2 memory vars;
         vars.assetsLeft = IStakePool(stakePool).getUserAvailableTokens(user_, trancheId_) * precision;
-        
+        console.log("User Available Tokens: ", vars.assetsLeft);
         for (uint256 i = 0; i < failedAssets_.length; i++) {
             if (failedAssetsPrice_[i] > ub) {
+                console.log("above ub");
                 vars.targetPrice = dt;
             } else {
                 vars.targetPrice = failedAssetsPrice_[i] + 4e6;
@@ -506,15 +509,16 @@ contract NSTBLHub is NSTBLHUBStorage, VersionedInitializable {
      * @dev Unstakes and burn NSTBL for stakers in depeg scenario
      * @param user_ The address of the user
      * @param trancheId_ The tranche id of the user
-     * @param lpOwner_ The address of the LP owner
      * @param unstakeBurnAmount_ The amount of NSTBL to be burned
      * @notice Unstaked the user's NSTBL and burns the required amount of NSTBL
      */
-    function _unstakeAndBurnNstbl(address user_, uint8 trancheId_, address lpOwner_, uint256 unstakeBurnAmount_)
+    function _unstakeAndBurnNstbl(address user_, uint8 trancheId_, uint256 unstakeBurnAmount_)
         internal
     {
-        uint256 unstakedTokens = IStakePool(stakePool).unstake(user_, trancheId_, true, lpOwner_);
+        uint256 unstakedTokens = IStakePool(stakePool).unstake(user_, trancheId_, true);
         IERC20Helper(nstblToken).burn(stakePool, unstakeBurnAmount_);
+        console.log("UNSTAKE BURN PARAMS", unstakedTokens, unstakeBurnAmount_);
+        console.log("DAI BALANCE: ", IERC20Helper(DAI).balanceOf(address(this)));
         INSTBLToken(nstblToken).sendOrReturnPool(stakePool, msg.sender, unstakedTokens - unstakeBurnAmount_);
     }
 
@@ -557,13 +561,12 @@ contract NSTBLHub is NSTBLHUBStorage, VersionedInitializable {
     function redeemForNonStaker(uint256 amount_, address destAddress_) internal {
         localVars memory vars;
         uint256 precisionAmount = amount_ * precision;
-        // uint256 redemptionAllocation;
 
         IERC20Helper(nstblToken).burn(msg.sender, amount_);
         (address[] memory sortedAssets, uint256[] memory sortedAssetsPrice) = _getSortedAssetsWithPrice();
         uint256[] memory redemptionAlloc = _calculateRedemptionAllocation(sortedAssets);
         for (uint256 i = 0; i < sortedAssets.length; i++) {
-            
+            console.log("ASSET", sortedAssets[i]);
             if (sortedAssetsPrice[i] <= dt) {
                 vars.belowDT = true;
                 if (sortedAssetsPrice[i] <= lb) {
@@ -579,6 +582,7 @@ contract NSTBLHub is NSTBLHUBStorage, VersionedInitializable {
             vars.adjustedDecimals = IERC20Helper(nstblToken).decimals() - IERC20Helper(sortedAssets[i]).decimals();
             if (!vars.belowDT) {
                 vars.assetRequired = (redemptionAlloc[i] * precisionAmount / 1e18) + vars.remainingNstbl;
+                console.log("transferring normal: ", vars.assetRequired, vars.assetBalance);
                 vars.remainingNstbl = _transferNormal(
                     destAddress_, sortedAssets[i], vars.assetRequired, vars.assetBalance, vars.adjustedDecimals
                 );
@@ -587,7 +591,7 @@ contract NSTBLHub is NSTBLHUBStorage, VersionedInitializable {
                     (redemptionAlloc[i] * precisionAmount / 1e18) + vars.remainingNstbl
                 ) / 10 ** vars.adjustedDecimals;
                 vars.assetRequired = vars.assetProportion * dt / sortedAssetsPrice[i];
-
+                console.log("transferring below depeg: ", vars.assetRequired, vars.assetBalance);
                 (vars.remainingNstbl, vars.burnAmount) = _transferBelowDepeg(
                     destAddress_,
                     sortedAssets[i],
@@ -625,22 +629,15 @@ contract NSTBLHub is NSTBLHUBStorage, VersionedInitializable {
         uint256 assetBalance_,
         uint256 adjustedDecimals_
     ) internal returns (uint256 remainingNstbl_) {
-        console.log("HEREEEE1");
         if (assetRequired_ <= assetBalance_ * 10 ** adjustedDecimals_) {
             IERC20Helper(asset_).safeTransfer(user_, assetRequired_ / (precision * 10 ** adjustedDecimals_));
             stablesBalances[asset_] -= (assetRequired_ / (precision * 10 ** adjustedDecimals_));
 
             remainingNstbl_ = 0;
         } else {
-            console.log("HEREEEE2");
-            console.log(asset_);
-            console.log(IERC20Helper(asset_).balanceOf(address(this)));
             IERC20Helper(asset_).safeTransfer(user_, assetBalance_ / precision);
-            console.log("HEREEEE12");
             stablesBalances[asset_] -= (assetBalance_ / precision);
-            console.log("HEREEEE22");
             remainingNstbl_ = (assetRequired_ - assetBalance_ * 10 ** adjustedDecimals_);
-            console.log("HEREEEE222");
         }
     }
 
@@ -667,24 +664,21 @@ contract NSTBLHub is NSTBLHUBStorage, VersionedInitializable {
     ) internal returns (uint256 remainingNstbl_, uint256 burnAmt_) {
         uint256 redeemableNstbl;
         burnAmt_ = burnAmount_;
-        console.log("HEREEEE3");
 
         if (assetRequired_ <= assetBalance_) {
-            console.log(asset_);
-            console.log(IERC20Helper(asset_).balanceOf(address(this)));
             IERC20Helper(asset_).safeTransfer(user_, assetRequired_ / precision);
             stablesBalances[asset_] -= (assetRequired_ / precision);
     
             remainingNstbl_ = 0;
             burnAmt_ += (assetRequired_ - assetProportion_) * 10 ** adjustedDecimals_ / precision;
         } else {
-            console.log("HEREEEE4");
             redeemableNstbl = assetBalance_ * assetPrice_ / dt;
+            console.log("redeemable nstbl: ", redeemableNstbl);
             burnAmt_ += (assetBalance_ - redeemableNstbl) * 10 ** adjustedDecimals_ / precision;
             remainingNstbl_ = (assetProportion_ - redeemableNstbl) * 10 ** adjustedDecimals_;
+            console.log("remaining nstbl");
             IERC20Helper(asset_).safeTransfer(user_, assetBalance_ / precision);
             stablesBalances[asset_] -= (assetBalance_ / precision);
-
         }
     }
 
@@ -737,7 +731,7 @@ contract NSTBLHub is NSTBLHUBStorage, VersionedInitializable {
      */
     function _noOfFailedAssets() internal view returns (uint256 count_) {
         for (uint256 i = 0; i < assetFeeds.length; i++) {
-            if (IChainlinkPriceFeed(chainLinkPriceFeed).getLatestPrice(assetFeeds[i]) < dt) {
+            if (IChainlinkPriceFeed(chainLinkPriceFeed).getLatestPrice(assetFeeds[i]) <= dt) {
                 count_ += 1;
             }
         }
@@ -801,7 +795,7 @@ contract NSTBLHub is NSTBLHUBStorage, VersionedInitializable {
         uint256 balBefore = IERC20Helper(USDC).balanceOf(address(this));
         ILoanManager(loanManager).redeem();
         uint256 balAfter = IERC20Helper(USDC).balanceOf(address(this));
-        stablesBalances[assets[0]] += (balAfter - balBefore);
+        stablesBalances[USDC] += (balAfter - balBefore);
         IStakePool(stakePool).updatePoolFromHub(true, balAfter - balBefore, 0);
         usdcReceived_ = (balAfter - balBefore);
     }

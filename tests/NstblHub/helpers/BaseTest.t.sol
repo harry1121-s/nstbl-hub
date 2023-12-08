@@ -11,6 +11,7 @@ import { ACLManager } from "@nstbl-acl-manager/contracts/ACLManager.sol";
 import { NSTBLHub } from "../../../contracts/NSTBLHub.sol";
 import { ATVL } from "../../../contracts/ATVL.sol";
 import { IPoolManager } from "../../../contracts/interfaces/maple/IPoolManager.sol";
+import { IPool } from "../../../contracts/interfaces/maple/IPool.sol";
 import { LoanManager } from "@nstbl-loan-manager/contracts/LoanManager.sol";
 import { ProxyAdmin } from "../../../contracts/upgradeable/ProxyAdmin.sol";
 import {
@@ -145,7 +146,7 @@ contract BaseTest is Test {
 
     
         atvl = new ATVL(
-            deployer
+            address(aclManager)
         );
 
         //LoanManager
@@ -195,7 +196,7 @@ contract BaseTest is Test {
         //LoanManager
         aclManager.setAuthorizedCallerLoanManager(address(nstblHub), true);
 
-        atvl.init(address(nstblToken));
+        atvl.init(address(nstblToken), 1200);
         atvl.setAuthorizedCaller(address(nstblHub), true);
         stakePool.setupStakePool([300, 200, 100], [700, 500, 300], [30, 90, 180]);
 
@@ -227,7 +228,7 @@ contract BaseTest is Test {
         // Action = Stake
         vm.startPrank(nealthyAddr);
         IERC20Helper(address(nstblToken)).safeIncreaseAllowance(address(nstblHub), _amount);
-        nstblHub.stake(_user, _amount, _trancheId, destinationAddress);
+        nstblHub.stake(_user, _amount, _trancheId);
         vm.stopPrank();
     }
 
@@ -282,6 +283,19 @@ contract BaseTest is Test {
 
     function _unstakeNSTBL(address _user, uint8 _trancheId) internal {
         vm.prank(nealthyAddr);
-        nstblHub.unstake(_user, _trancheId, destinationAddress);
+        nstblHub.unstake(_user, _trancheId);
+    }
+
+    function _getLiquidityCap(address _poolManager) internal view returns (uint256) {
+        (, bytes memory val) = address(_poolManager).staticcall(abi.encodeWithSignature("liquidityCap()"));
+        return uint256(bytes32(val));
+    }
+
+    function _getUpperBoundDeposit() internal view returns (uint256) {
+        uint256 upperBound = _getLiquidityCap(MAPLE_POOL_MANAGER_USDC);
+        uint256 totalAssets = IPool(MAPLE_USDC_CASH_POOL).totalAssets();
+        console.log("Upper bound", (upperBound - totalAssets));
+        return 100*(upperBound - totalAssets)/70;
+    
     }
 }
