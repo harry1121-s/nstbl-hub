@@ -72,13 +72,6 @@ contract ATVL {
         skimAmount_ = atvlBalance > thresholdBalance ? (atvlBalance-thresholdBalance) : 0;
         IERC20Helper(nstblToken).transfer(destinationAddress_, skimAmount_);
     }
-    /*//////////////////////////////////////////////////////////////
-    VIEWS
-    //////////////////////////////////////////////////////////////*/
-
-    function checkDeployedATVL() external view returns (uint256) {
-        return IERC20Helper(nstblToken).balanceOf(address(this));
-    }
 }
 
 

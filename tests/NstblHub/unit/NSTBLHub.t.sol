@@ -65,7 +65,6 @@ contract testATVL is BaseTest {
     }
 
     function test_init() external{
-        assertEq(atvl.checkDeployedATVL(), 0);
         vm.prank(deployer);
         atvl.init(vm.addr(345), 1000);
         assertEq(atvl.nstblToken(), vm.addr(345));
@@ -114,12 +113,11 @@ contract testSetters is BaseTest {
 
     function test_setSytemParams() external {
         vm.prank(deployer);
-        nstblHub.setSystemParams(99e6, 98e6, 97e6, 2e3, 4e3, 2*1e24);
+        nstblHub.setSystemParams(99e6, 98e6, 97e6, 8e3, 2*1e24);
         assertEq(nstblHub.dt(), 99e6);
         assertEq(nstblHub.ub(), 98e6);
         assertEq(nstblHub.lb(), 97e6);
-        assertEq(nstblHub.liquidPercent(), 2e3);
-        assertEq(nstblHub.tBillPercent(), 4e3);
+        assertEq(nstblHub.tBillPercent(), 8e3);
     }
     
     function test_updateAssetFeeds() external {

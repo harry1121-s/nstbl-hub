@@ -70,6 +70,12 @@ contract NSTBLHub is NSTBLHUBStorage, VersionedInitializable {
         address aclManager_,
         uint256 eqTh_
     ) external initializer {
+        _zeroAddressCheck(nstblToken_);
+        _zeroAddressCheck(stakePool_);
+        _zeroAddressCheck(chainLinkPriceFeed_);
+        _zeroAddressCheck(atvl_);
+        _zeroAddressCheck(loanManager_);
+        _zeroAddressCheck(aclManager_);
         nstblToken = nstblToken_;
         stakePool = stakePool_;
         chainLinkPriceFeed = chainLinkPriceFeed_;
@@ -114,9 +120,8 @@ contract NSTBLHub is NSTBLHUBStorage, VersionedInitializable {
 
     function _calculateTBillsAmount(uint256 usdcAmt_, uint256 usdtAmt_, uint256 daiAmt_) internal view returns (uint256 tBillsAmount_) {
         uint256 tBillAssets = ILoanManager(loanManager).getMaturedAssets();
-        uint256 oldSupply = (stablesBalances[USDC] + stablesBalances[USDT]) * 1e12 + stablesBalances[DAI] + tBillAssets;
         uint256 targetSupply = (stablesBalances[USDC] + stablesBalances[USDT]) * 1e12 + stablesBalances[DAI] + tBillAssets + (usdcAmt_ + usdtAmt_) * 1e12 + daiAmt_;
-        uint256 tBillsRequired = 7e3 * targetSupply / 1e4;
+        uint256 tBillsRequired = tBillPercent * targetSupply / 1e4;
         tBillsAmount_ = tBillsRequired > tBillAssets ? (tBillsRequired - tBillAssets) : 0; //case when there are already sufficient stables deposited in TBills
         tBillsAmount_ = (usdcAmt_ * 1e12) > tBillsAmount_ ? tBillsAmount_/1e12 : usdcAmt_; //hypothetical case when usdc deposit amount is extermely small
     }
@@ -148,23 +153,25 @@ contract NSTBLHub is NSTBLHUBStorage, VersionedInitializable {
     }
 
     function redeem(uint256 amount_, address destAddress_) external authorizedCaller nonReentrant {
+        _zeroAddressCheck(destAddress_);
         (uint256 p1, uint256 p2, uint256 p3) = IChainlinkPriceFeed(chainLinkPriceFeed).getLatestPrice(); 
         if (p1 > dt && p2 > dt && p3 > dt) {
-            redeemNormal(amount_, destAddress_);
+            _redeemNormal(amount_, destAddress_);
         } else {
-            redeemForNonStaker(amount_, destAddress_);
+            _redeemForNonStaker(amount_, destAddress_);
         }
     }
 
    
 
     function unstake(address user_, uint8 trancheId_) external authorizedCaller nonReentrant {
+        _zeroAddressCheck(user_);
         (uint256 p1, uint256 p2, uint256 p3) = IChainlinkPriceFeed(chainLinkPriceFeed).getLatestPrice();
 
         if (p1 > dt && p2 > dt && p3 > dt) {
-            unstakeNstbl(user_, trancheId_, false);
+            _unstakeNstbl(user_, trancheId_, false);
         } else {
-            unstakeAndRedeemNstbl(user_, trancheId_);
+            _unstakeAndRedeemNstbl(user_, trancheId_);
         }
     }
 
@@ -172,7 +179,8 @@ contract NSTBLHub is NSTBLHUBStorage, VersionedInitializable {
         external
         authorizedCaller
         nonReentrant
-    {
+    {   
+        _zeroAddressCheck(user_);
         require(
             amount_ + IERC20Helper(nstblToken).balanceOf(stakePool) <= 40 * IERC20Helper(nstblToken).totalSupply() / 100,
             "HUB: STAKE_LIMIT_EXCEEDED"
@@ -190,6 +198,9 @@ contract NSTBLHub is NSTBLHUBStorage, VersionedInitializable {
      * @param assetFeeds_ The array of asset feeds
      */
     function updateAssetFeeds(address[3] memory assetFeeds_) external onlyAdmin {
+        _zeroAddressCheck(assetFeeds_[0]);
+        _zeroAddressCheck(assetFeeds_[1]);
+        _zeroAddressCheck(assetFeeds_[2]);
         assetFeeds[0] = assetFeeds_[0];
         assetFeeds[1] = assetFeeds_[1];
         assetFeeds[2] = assetFeeds_[2];
@@ -200,19 +211,19 @@ contract NSTBLHub is NSTBLHUBStorage, VersionedInitializable {
      * @param dt_ The depeg threshold
      * @param ub_ The upper bound
      * @param lb_ The lower bound
-     * @param liquidPercent_ The liquid assets percent
      * @param tBillPercent_ The tBill assets percent
      * @param eqTh_ The equilibrium threshold
      */
      //updates TBD here
-    function setSystemParams(uint256 dt_, uint256 ub_, uint256 lb_, uint256 liquidPercent_, uint256 tBillPercent_, uint256 eqTh_)
+    function setSystemParams(uint256 dt_, uint256 ub_, uint256 lb_, uint256 tBillPercent_, uint256 eqTh_)
         external
         onlyAdmin
-    {
+    {   
+        require(tBillPercent_ >= 7e3, "HUB: Invalid T-Bill Percent");
+        require(eqTh_ >= 2e22, "HUB: Invalid Equilibrium Threshold");
         dt = dt_;
         ub = ub_;
         lb = lb_;
-        liquidPercent = liquidPercent_;
         tBillPercent = tBillPercent_;
         eqTh = eqTh_;
     }
@@ -393,7 +404,7 @@ contract NSTBLHub is NSTBLHUBStorage, VersionedInitializable {
      * @dev Redeems NSTBL for a non-staker in non-depeg scenario
      * @param amount_ The amount of NSTBL to be redeemed
      */
-    function redeemNormal(uint256 amount_, address destAddress_) internal {
+    function _redeemNormal(uint256 amount_, address destAddress_) internal {
         uint256 availAssets;
         uint256 adjustedDecimals;
         IERC20Helper(nstblToken).burn(msg.sender, amount_);
@@ -413,7 +424,7 @@ contract NSTBLHub is NSTBLHUBStorage, VersionedInitializable {
             IERC20Helper(assets[i]).safeTransfer(destAddress_, availAssets);
             stablesBalances[assets[i]] -= availAssets;
         }
-        requestTBillWithdraw(7e3 * amount_ / 1e4);
+        requestTBillWithdraw(tBillPercent * amount_ / 1e4);
     }
 
     /**
@@ -422,7 +433,7 @@ contract NSTBLHub is NSTBLHUBStorage, VersionedInitializable {
      * @param trancheId_ The tranche id of the user
      * @param depeg_ The depeg status of the system
      */
-    function unstakeNstbl(address user_, uint8 trancheId_, bool depeg_) internal {
+    function _unstakeNstbl(address user_, uint8 trancheId_, bool depeg_) internal {
         uint256 tokensUnstaked = IStakePool(stakePool).unstake(user_, trancheId_, depeg_);
         INSTBLToken(nstblToken).sendOrReturnPool(stakePool, msg.sender, tokensUnstaked);
     }
@@ -432,7 +443,7 @@ contract NSTBLHub is NSTBLHUBStorage, VersionedInitializable {
      * @param trancheId_ The tranche id of the user
      * @notice The NSTBL amount is redeemed till it covers the failing stablecoins, then the remaining NSTBL is unstaked and transferred to staker
      */
-    function unstakeAndRedeemNstbl(address user_, uint8 trancheId_) internal {
+    function _unstakeAndRedeemNstbl(address user_, uint8 trancheId_) internal {
         (address[] memory failedAssets_, uint256[] memory failedAssetsPrice_) =
             _failedAssetsOrderWithPrice(_noOfFailedAssets());
         (address[] memory assets_, uint256[] memory _assetAmounts, uint256 unstakeBurnAmount_, uint256 burnAmount_) =
@@ -549,7 +560,7 @@ contract NSTBLHub is NSTBLHUBStorage, VersionedInitializable {
      * @param amount_ The amount of NSTBL to be redeemed
      * @param destAddress_ The address of the user
      */
-    function redeemForNonStaker(uint256 amount_, address destAddress_) internal {
+    function _redeemForNonStaker(uint256 amount_, address destAddress_) internal {
         localVars memory vars;
         uint256 precisionAmount = amount_ * precision;
 
@@ -557,9 +568,9 @@ contract NSTBLHub is NSTBLHUBStorage, VersionedInitializable {
         (address[] memory sortedAssets, uint256[] memory sortedAssetsPrice) = _getSortedAssetsWithPrice();
         uint256[] memory redemptionAlloc = _calculateRedemptionAllocation(sortedAssets);
         for (uint256 i = 0; i < sortedAssets.length; i++) {
-            if (sortedAssetsPrice[i] <= dt) {
+            if (sortedAssetsPrice[i] < dt) {
                 vars.belowDT = true;
-                if (sortedAssetsPrice[i] <= lb) {
+                if (sortedAssetsPrice[i] < lb) {
                     vars.burnFromStakePool = true;
                 } else {
                     vars.burnFromStakePool = false;
@@ -678,7 +689,7 @@ contract NSTBLHub is NSTBLHUBStorage, VersionedInitializable {
         view
         returns (uint256 burnAmount_)
     {
-        burnAmount_ = (assetRequired_ - assetProportion_) - (assetProportion_ * dt / lb - assetProportion_);
+        burnAmount_ = (assetRequired_ - (assetProportion_ * dt / lb));
         burnAmount_ /= precision;
     }
 
@@ -764,7 +775,7 @@ contract NSTBLHub is NSTBLHUBStorage, VersionedInitializable {
      * @param amount_ The amount of USDC to be withdrawn
      */
     function requestTBillWithdraw(uint256 amount_) internal {
-           
+        require(!ILoanManager(loanManager).awaitingRedemption(), "HUB: Redemption already requested");
         uint256 lUSDCSupply = ILoanManager(loanManager).getLPTotalSupply();
         uint256 lmTokenAmount = ((amount_) / 1e12) * lUSDCSupply / ILoanManager(loanManager).getAssets(lUSDCSupply);
 
@@ -800,5 +811,9 @@ contract NSTBLHub is NSTBLHUBStorage, VersionedInitializable {
      */
     function getVersion() public pure returns(uint256 version_) {
         version_ = getRevision();
+    }
+
+    function _zeroAddressCheck(address address_) internal pure {
+        require(address_ != address(0), "HUB: INVALID_ADDRESS");
     }
 }

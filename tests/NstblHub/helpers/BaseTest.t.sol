@@ -198,9 +198,9 @@ contract BaseTest is Test {
 
         atvl.init(address(nstblToken), 1200);
         atvl.setAuthorizedCaller(address(nstblHub), true);
-        stakePool.setupStakePool([300, 200, 100], [700, 500, 300], [30, 90, 180]);
+        stakePool.setupStakePool([300, 200, 100], [500, 500, 300], [30, 90, 180]);
 
-        nstblHub.setSystemParams(dt, ub, lb, 1e3, 7e3, 2e22);
+        nstblHub.setSystemParams(dt, ub, lb, 7e3, 2e22);
         nstblHub.updateAssetFeeds([address(usdcPriceFeedMock), address(usdtPriceFeedMock), address(daiPriceFeedMock)]);
 
         aclManager.setAuthorizedCallerHub(nealthyAddr, true);

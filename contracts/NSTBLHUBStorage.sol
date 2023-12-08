@@ -26,13 +26,7 @@ contract NSTBLHUBStorage {
     uint256 public atvlBurnAmount;
     uint256 public burnedFromStakePool;
 
-    uint256 public usdcDeposited; // to be removed
-    uint256 public usdtDeposited; // to be removed
-    uint256 public daiDeposited; // to be removed
     uint256 public usdcInvested;
-
-    uint256 public usdcRedeemed;
-    uint256 public pendingUsdcRedemption;
 
     mapping(address => uint256) public stablesBalances;
 
@@ -56,8 +50,7 @@ contract NSTBLHUBStorage {
     uint256 public eqTh;
     uint256 public precision;
 
-    uint256 public liquidPercent; // to be removed
-    uint256 public tBillPercent; // to be removed
+    uint256 public tBillPercent; // to be removed: TBD
 
     uint256 [20] __gap;
 }
