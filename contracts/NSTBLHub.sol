@@ -185,8 +185,9 @@ contract NSTBLHub is NSTBLHUBStorage, VersionedInitializable {
             amount_ + IERC20Helper(nstblToken).balanceOf(stakePool) <= 40 * IERC20Helper(nstblToken).totalSupply() / 100,
             "HUB: STAKE_LIMIT_EXCEEDED"
         );
+        IERC20Helper(nstblToken).safeTransferFrom(msg.sender, address(this), amount_);
+        IERC20Helper(nstblToken).safeIncreaseAllowance(stakePool, amount_);
         IStakePool(stakePool).stake(user_, amount_, trancheId_);
-        INSTBLToken(nstblToken).sendOrReturnPool(msg.sender, stakePool, amount_);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -435,7 +436,7 @@ contract NSTBLHub is NSTBLHUBStorage, VersionedInitializable {
      */
     function _unstakeNstbl(address user_, uint8 trancheId_, bool depeg_) internal {
         uint256 tokensUnstaked = IStakePool(stakePool).unstake(user_, trancheId_, depeg_);
-        INSTBLToken(nstblToken).sendOrReturnPool(stakePool, msg.sender, tokensUnstaked);
+        IERC20Helper(nstblToken).safeTransfer(msg.sender, tokensUnstaked);
     }
     /**
      * @dev Unstakes and redeems NSTBL for staker in depeg scenario
@@ -520,8 +521,8 @@ contract NSTBLHub is NSTBLHUBStorage, VersionedInitializable {
         internal
     {
         uint256 unstakedTokens = IStakePool(stakePool).unstake(user_, trancheId_, true);
-        IERC20Helper(nstblToken).burn(stakePool, unstakeBurnAmount_);
-        INSTBLToken(nstblToken).sendOrReturnPool(stakePool, msg.sender, unstakedTokens - unstakeBurnAmount_);
+        IERC20Helper(nstblToken).burn(address(this), unstakeBurnAmount_);
+        IERC20Helper(nstblToken).safeTransfer(msg.sender, unstakedTokens - unstakeBurnAmount_);
     }
 
     /**
@@ -563,7 +564,7 @@ contract NSTBLHub is NSTBLHUBStorage, VersionedInitializable {
     function _redeemForNonStaker(uint256 amount_, address destAddress_) internal {
         localVars memory vars;
         uint256 precisionAmount = amount_ * precision;
-
+        console.log("Precision amount: ", precisionAmount);
         IERC20Helper(nstblToken).burn(msg.sender, amount_);
         (address[] memory sortedAssets, uint256[] memory sortedAssetsPrice) = _getSortedAssetsWithPrice();
         uint256[] memory redemptionAlloc = _calculateRedemptionAllocation(sortedAssets);
@@ -587,10 +588,12 @@ contract NSTBLHub is NSTBLHUBStorage, VersionedInitializable {
                     destAddress_, sortedAssets[i], vars.assetRequired, vars.assetBalance, vars.adjustedDecimals
                 );
             } else {
+                console.log("Transfer below depeg");
                 vars.assetProportion = (
                     (redemptionAlloc[i] * precisionAmount / 1e18) + vars.remainingNstbl
                 ) / 10 ** vars.adjustedDecimals;
                 vars.assetRequired = vars.assetProportion * dt / sortedAssetsPrice[i];
+                console.log("Values: ", vars.assetProportion, vars.assetRequired);
                 (vars.remainingNstbl, vars.burnAmount) = _transferBelowDepeg(
                     destAddress_,
                     sortedAssets[i],
@@ -601,9 +604,9 @@ contract NSTBLHub is NSTBLHUBStorage, VersionedInitializable {
                     vars.burnAmount,
                     sortedAssetsPrice[i]
                 );
-
+                console.log("Burn Amount: ", sortedAssets[i], vars.burnAmount);
                 vars.stakePoolBurnAmount += vars.burnFromStakePool
-                    ? _stakePoolBurnAmount(vars.assetRequired, vars.assetProportion)
+                    ? _stakePoolBurnAmount(vars.assetRequired, vars.assetProportion, vars.adjustedDecimals)
                     : 0;
                 console.log("stake pool burn ", sortedAssets[i], vars.stakePoolBurnAmount);
             }
@@ -683,13 +686,14 @@ contract NSTBLHub is NSTBLHUBStorage, VersionedInitializable {
      * @dev Calculates the amount of NSTBL to be burned from stake pool in case asset is below lowerBound
      * @param assetRequired_ The amount of asset required
      * @param assetProportion_ The proportion of asset required
+     * @param adjustedDecimals_ The adjusted decimals of the asset
      */
-    function _stakePoolBurnAmount(uint256 assetRequired_, uint256 assetProportion_)
+    function _stakePoolBurnAmount(uint256 assetRequired_, uint256 assetProportion_, uint256 adjustedDecimals_)
         internal
         view
         returns (uint256 burnAmount_)
     {
-        burnAmount_ = (assetRequired_ - (assetProportion_ * dt / lb));
+        burnAmount_ = (assetRequired_ - (assetProportion_ * dt / lb)) * 10 ** adjustedDecimals_;
         burnAmount_ /= precision;
     }
 
