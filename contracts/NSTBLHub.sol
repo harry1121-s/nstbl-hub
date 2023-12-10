@@ -164,14 +164,15 @@ contract NSTBLHub is NSTBLHUBStorage, VersionedInitializable {
 
    
 
-    function unstake(address user_, uint8 trancheId_) external authorizedCaller nonReentrant {
+    function unstake(address user_, uint8 trancheId_, address destAddress_) external authorizedCaller nonReentrant {
         _zeroAddressCheck(user_);
+        _zeroAddressCheck(destAddress_);
         (uint256 p1, uint256 p2, uint256 p3) = IChainlinkPriceFeed(chainLinkPriceFeed).getLatestPrice();
 
         if (p1 > dt && p2 > dt && p3 > dt) {
-            _unstakeNstbl(user_, trancheId_, false);
+            _unstakeNstbl(user_, trancheId_, false, destAddress_);
         } else {
-            _unstakeAndRedeemNstbl(user_, trancheId_);
+            _unstakeAndRedeemNstbl(user_, trancheId_, destAddress_);
         }
     }
 
@@ -433,23 +434,24 @@ contract NSTBLHub is NSTBLHUBStorage, VersionedInitializable {
      * @param user_ The address of the user
      * @param trancheId_ The tranche id of the user
      * @param depeg_ The depeg status of the system
+     * @param destAddress_ receiver address
      */
-    function _unstakeNstbl(address user_, uint8 trancheId_, bool depeg_) internal {
-        uint256 tokensUnstaked = IStakePool(stakePool).unstake(user_, trancheId_, depeg_);
-        IERC20Helper(nstblToken).safeTransfer(msg.sender, tokensUnstaked);
+    function _unstakeNstbl(address user_, uint8 trancheId_, bool depeg_, address destAddress_) internal {
+        uint256 tokensUnstaked = IStakePool(stakePool).unstake(user_, trancheId_, depeg_, destAddress_);
     }
     /**
      * @dev Unstakes and redeems NSTBL for staker in depeg scenario
      * @param user_ The address of the user
      * @param trancheId_ The tranche id of the user
+     * @param destAddress_ receiver address
      * @notice The NSTBL amount is redeemed till it covers the failing stablecoins, then the remaining NSTBL is unstaked and transferred to staker
      */
-    function _unstakeAndRedeemNstbl(address user_, uint8 trancheId_) internal {
+    function _unstakeAndRedeemNstbl(address user_, uint8 trancheId_, address destAddress_) internal {
         (address[] memory failedAssets_, uint256[] memory failedAssetsPrice_) =
             _failedAssetsOrderWithPrice(_noOfFailedAssets());
         (address[] memory assets_, uint256[] memory _assetAmounts, uint256 unstakeBurnAmount_, uint256 burnAmount_) =
             _getStakerRedeemParams(user_, trancheId_, failedAssets_, failedAssetsPrice_);
-        _unstakeAndBurnNstbl(user_, trancheId_, unstakeBurnAmount_);
+        _unstakeAndBurnNstbl(user_, trancheId_, unstakeBurnAmount_, destAddress_);
         _burnNstblFromAtvl(burnAmount_);
         for (uint256 i = 0; i < assets_.length; i++) {
             if (assets_[i] != address(0)) {
@@ -515,14 +517,15 @@ contract NSTBLHub is NSTBLHUBStorage, VersionedInitializable {
      * @param user_ The address of the user
      * @param trancheId_ The tranche id of the user
      * @param unstakeBurnAmount_ The amount of NSTBL to be burned
+     * @param destAddress_ receiver address
      * @notice Unstaked the user's NSTBL and burns the required amount of NSTBL
      */
-    function _unstakeAndBurnNstbl(address user_, uint8 trancheId_, uint256 unstakeBurnAmount_)
+    function _unstakeAndBurnNstbl(address user_, uint8 trancheId_, uint256 unstakeBurnAmount_, address destAddress_)
         internal
-    {
-        uint256 unstakedTokens = IStakePool(stakePool).unstake(user_, trancheId_, true);
+    {   
+        uint256 unstakedTokens = IStakePool(stakePool).unstake(user_, trancheId_, true, address(this));
         IERC20Helper(nstblToken).burn(address(this), unstakeBurnAmount_);
-        IERC20Helper(nstblToken).safeTransfer(msg.sender, unstakedTokens - unstakeBurnAmount_);
+        IERC20Helper(nstblToken).safeTransfer(destAddress_, unstakedTokens - unstakeBurnAmount_);
     }
 
     /**

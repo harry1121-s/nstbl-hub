@@ -706,18 +706,18 @@ contract NSTBLHubTestStakePool is BaseTest {
         _stakeNSTBL(user1, 1e6 * 1e18, 0);
 
         uint256 atvlBalBefore = nstblToken.balanceOf(address(atvl));
-        uint256 nealthyBalBefore = nstblToken.balanceOf(nealthyAddr);
+        uint256 balBefore = nstblToken.balanceOf(destinationAddress);
         (amount,,,) = stakePool.getStakerInfo(user1, 0);
 
         //action
         _unstakeNSTBL(user1, 0);
         (uint256 amount2,,,) = stakePool.getStakerInfo(user1, 0);
-        uint256 nealthyBalAfter = nstblToken.balanceOf(nealthyAddr);
+        uint256 balAfter = nstblToken.balanceOf(destinationAddress);
         uint256 atvlBalAfter = nstblToken.balanceOf(address(atvl));
 
         //postConditions
         assertEq(amount2, 0);
-        assertEq(nealthyBalAfter - nealthyBalBefore + (atvlBalAfter - atvlBalBefore), amount);
+        assertEq(balAfter - balBefore + (atvlBalAfter - atvlBalBefore), amount);
     }
 
     function test_unstake_noDepeg_fuzz(uint256 _amount, uint256 _time) external {
@@ -747,7 +747,7 @@ contract NSTBLHubTestStakePool is BaseTest {
         //restaking
         _stakeNSTBL(user1, maxStakeAmount / 4, 0);
 
-        uint256 nealthyBalBefore = nstblToken.balanceOf(nealthyAddr);
+        uint256 balBefore = nstblToken.balanceOf(destinationAddress);
 
         //action
         _unstakeNSTBL(user1, 0);
@@ -755,20 +755,20 @@ contract NSTBLHubTestStakePool is BaseTest {
 
         //postConditions
         (uint256 amount2,,,) = stakePool.getStakerInfo(user1, 0);
-        uint256 nealthyBalAfter = nstblToken.balanceOf(nealthyAddr);
+        uint256 balAfter = nstblToken.balanceOf(destinationAddress);
         uint256 atvlBalAfter = nstblToken.balanceOf(address(atvl));
 
         assertEq(amount2, 0);
         if ((loanManager.getMaturedAssets() - oldMaturityVal) > 1e18) {
             assertApproxEqAbs(
-                nealthyBalAfter - nealthyBalBefore + (atvlBalAfter - atvlBalBefore),
+                balAfter - balBefore + (atvlBalAfter - atvlBalBefore),
                 maxStakeAmount + (loanManager.getMaturedAssets() - oldMaturityVal),
                 1e12,
                 "with yield"
             );
         } else {
             assertEq(
-                nealthyBalAfter - nealthyBalBefore + (atvlBalAfter - atvlBalBefore), maxStakeAmount, "without yield"
+                balAfter - balBefore + (atvlBalAfter - atvlBalBefore), maxStakeAmount, "without yield"
             );
         }
     }

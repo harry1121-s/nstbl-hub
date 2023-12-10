@@ -283,7 +283,7 @@ contract BaseTest is Test {
 
     function _unstakeNSTBL(address _user, uint8 _trancheId) internal {
         vm.prank(nealthyAddr);
-        nstblHub.unstake(_user, _trancheId);
+        nstblHub.unstake(_user, _trancheId, destinationAddress);
 
     }
 

@@ -24,7 +24,7 @@ interface IStakePool {
     function getUserAvailableTokens(address _user, uint8 _trancheId) external view returns (uint256 availableTokens);
     function burnNSTBL(uint256 amount) external;
     function stake(address user, uint256 stakeAmount, uint8 trancheId) external;
-    function unstake(address user, uint8 trancheId, bool depeg)
+    function unstake(address user, uint8 trancheId, bool depeg, address )
         external
         returns (uint256 tokensUnstaked);
     function getStakerInfo(address user, uint8 trancheId) external view returns (uint256, uint256, uint256, uint256);
