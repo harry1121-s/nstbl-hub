@@ -222,7 +222,7 @@ contract NSTBLHub is NSTBLHUBStorage, VersionedInitializable {
         onlyAdmin
     {   
         require(tBillPercent_ >= 7e3, "HUB: Invalid T-Bill Percent");
-        require(eqTh_ >= 2e22, "HUB: Invalid Equilibrium Threshold");
+        require(eqTh_ <= 5e22, "HUB: Invalid Equilibrium Threshold");
         dt = dt_;
         ub = ub_;
         lb = lb_;
@@ -397,9 +397,7 @@ contract NSTBLHub is NSTBLHUBStorage, VersionedInitializable {
     function _investUSDC(uint256 amt_) internal {
         usdcInvested += amt_;
         IERC20Helper(USDC).safeIncreaseAllowance(loanManager, amt_);
-        if(amt_ > 0){
-            ILoanManager(loanManager).deposit(amt_);
-        }
+        ILoanManager(loanManager).deposit(amt_);
     }
 
     /**

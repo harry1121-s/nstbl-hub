@@ -5,6 +5,8 @@ import { IACLManager } from "@nstbl-acl-manager/contracts/IACLManager.sol";
 import "./interfaces/IERC20Helper.sol";
 
 contract ATVL {
+    using SafeERC20 for IERC20Helper;
+    
     mapping(address => bool) public authorizedCallers;
     address public aclManager;
     address public nstblToken;
@@ -70,7 +72,7 @@ contract ATVL {
         uint256 atvlBalance = IERC20Helper(nstblToken).balanceOf(address(this));
         uint256 thresholdBalance = atvlThreshold * IERC20Helper(nstblToken).totalSupply() / 1e5;
         skimAmount_ = atvlBalance > thresholdBalance ? (atvlBalance-thresholdBalance) : 0;
-        IERC20Helper(nstblToken).transfer(destinationAddress_, skimAmount_);
+        IERC20Helper(nstblToken).safeTransfer(destinationAddress_, skimAmount_);
     }
 }
 
