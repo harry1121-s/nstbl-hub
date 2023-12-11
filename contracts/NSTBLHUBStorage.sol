@@ -3,9 +3,10 @@ pragma solidity ^0.8.21;
 import "./interfaces/IERC20Helper.sol";
 import "./interfaces/IChainlinkPriceFeed.sol";
 import "./interfaces/ILoanManager.sol";
-import "@nstbl-stake-pool/contracts/IStakePool.sol";
+import "@nstbl-stake-pool/contracts/interfaces/IStakePool.sol";
 import "./interfaces/IATVL.sol";
 import "./interfaces/INSTBLToken.sol";
+import "./interfaces/INSTBLHub.sol";
 
 contract NSTBLHUBStorage {
 
