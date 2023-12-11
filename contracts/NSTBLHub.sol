@@ -3,7 +3,7 @@ pragma solidity 0.8.21;
 import { IACLManager } from "@nstbl-acl-manager/contracts/IACLManager.sol";
 import { Test, console } from "forge-std/Test.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "./upgradeable/VersionedInitializable.sol";
+import "@nstbl-loan-manager/contracts/upgradeable/VersionedInitializable.sol";
 import "./NSTBLHUBStorage.sol";
 
 contract NSTBLHub is NSTBLHUBStorage, VersionedInitializable {
@@ -395,9 +395,11 @@ contract NSTBLHub is NSTBLHUBStorage, VersionedInitializable {
      * @param amt_ The amount of USDC to be invested
      */
     function _investUSDC(uint256 amt_) internal {
-        usdcInvested += amt_;
-        IERC20Helper(USDC).safeIncreaseAllowance(loanManager, amt_);
-        ILoanManager(loanManager).deposit(amt_);
+        if(amt_ > 0){
+            usdcInvested += amt_;
+            IERC20Helper(USDC).safeIncreaseAllowance(loanManager, amt_);
+            ILoanManager(loanManager).deposit(amt_);
+        }
     }
 
     /**

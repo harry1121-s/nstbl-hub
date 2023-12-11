@@ -498,8 +498,6 @@ contract NSTBLHubTestDeposit is BaseTest {
 
         //randomizing 1% deviation here
         (uint256 usdcAmt, uint256 usdtAmt, uint256 daiAmt) = _randomizeDepositAmounts(_amount2);
-        console.log("Randomized Vals: ");
-        console.log(_amount2, usdcAmt, usdtAmt, daiAmt);
         deal(USDC, nealthyAddr, usdcAmt);
         deal(USDT, nealthyAddr, usdtAmt);
         deal(DAI, nealthyAddr, daiAmt);

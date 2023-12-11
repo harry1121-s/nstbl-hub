@@ -2,6 +2,7 @@
 cache
 forge-cache/
 out/
+.env
 
 docs/
 coverage/

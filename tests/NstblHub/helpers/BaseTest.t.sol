@@ -13,11 +13,11 @@ import { ATVL } from "../../../contracts/ATVL.sol";
 import { IPoolManager } from "../../../contracts/interfaces/maple/IPoolManager.sol";
 import { IPool } from "../../../contracts/interfaces/maple/IPool.sol";
 import { LoanManager } from "@nstbl-loan-manager/contracts/LoanManager.sol";
-import { ProxyAdmin } from "../../../contracts/upgradeable/ProxyAdmin.sol";
+import { ProxyAdmin } from "@nstbl-loan-manager/contracts/upgradeable/ProxyAdmin.sol";
 import {
     TransparentUpgradeableProxy,
     ITransparentUpgradeableProxy
-} from "../../../contracts/upgradeable/TransparentUpgradeableProxy.sol";
+} from "@nstbl-loan-manager/contracts/upgradeable/TransparentUpgradeableProxy.sol";
 import { IERC20, IERC20Helper } from "../../../contracts/interfaces/IERC20Helper.sol";
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import { ERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
@@ -110,7 +110,7 @@ contract BaseTest is Test {
     Setup
     //////////////////////////////////////////////////////////////*/
     function setUp() public virtual {
-        uint256 mainnetFork = vm.createFork("https://eth-mainnet.g.alchemy.com/v2/CFhLkcCEs1dFGgg0n7wu3idxcdcJEgbW");
+        uint256 mainnetFork = vm.createFork(vm.envString("DEV_RPC_URL"));
         vm.selectFork(mainnetFork);
 
         // Deploy mock LZEndpoints
