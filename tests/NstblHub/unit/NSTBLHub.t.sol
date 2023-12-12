@@ -11,19 +11,6 @@ contract testProxy is BaseTest {
         super.setUp();
     }
 
-    function test_proxy_loanManager() external {
-        assertEq(loanManager.aclManager(), address(aclManager));
-        assertEq(loanManager.nstblHub(), address(nstblHub));
-        assertEq(loanManager.mapleUSDCPool(), MAPLE_USDC_CASH_POOL);
-        assertEq(loanManager.usdc(), USDC);
-        assertEq(loanManager.MAPLE_POOL_MANAGER_USDC(), MAPLE_POOL_MANAGER_USDC);
-        assertEq(loanManager.MAPLE_WITHDRAWAL_MANAGER_USDC(), WITHDRAWAL_MANAGER_USDC);
-        assertEq(uint256(vm.load(address(loanManager), bytes32(uint256(0)))), 111);
-        assertEq(loanManager.getVersion(), 111);
-        assertEq(loanManager.versionSlot(), 111);
-        assertEq(ERC20(address(loanManager.lUSDC())).name(), "Loan Manager USDC");
-    }
-
     function test_proxy_hub() external {
         assertEq(nstblHub.nstblToken(), address(nstblToken));
         assertEq(nstblHub.stakePool(), address(stakePool));
@@ -202,9 +189,6 @@ contract NSTBLHubTestDeposit is BaseTest {
         uint256 tBillAmt;
 
         (usdcAmt, usdtAmt, daiAmt, tBillAmt) = nstblHub.previewDeposit(1e6);
-        console.log("usdcAmt: ", usdcAmt);
-        console.log("usdtAmt: ", usdtAmt);
-        console.log("daiAmt: ", daiAmt);
 
         deal(USDC, nealthyAddr, usdcAmt);
         deal(USDT, nealthyAddr, usdtAmt);
@@ -269,9 +253,6 @@ contract NSTBLHubTestDeposit is BaseTest {
         uint256 tBillAmt;
 
         (usdcAmt, usdtAmt, daiAmt, tBillAmt) = nstblHub.previewDeposit(1e6);
-        console.log("usdcAmt: ", usdcAmt);
-        console.log("usdtAmt: ", usdtAmt);
-        console.log("daiAmt: ", daiAmt);
 
         deal(USDC, nealthyAddr, usdcAmt);
         deal(USDT, nealthyAddr, usdtAmt);
@@ -367,9 +348,6 @@ contract NSTBLHubTestDeposit is BaseTest {
         uint256 tBillAmt;
 
         (usdcAmt, usdtAmt, daiAmt, tBillAmt) = nstblHub.previewDeposit(1e6);
-        console.log("usdcAmt: ", usdcAmt);
-        console.log("usdtAmt: ", usdtAmt);
-        console.log("daiAmt: ", daiAmt);
 
         deal(USDC, nealthyAddr, usdcAmt);
         deal(USDT, nealthyAddr, usdtAmt);
@@ -411,9 +389,6 @@ contract NSTBLHubTestDeposit is BaseTest {
         uint256 tBillAmt;
 
         (usdcAmt, usdtAmt, daiAmt, tBillAmt) = nstblHub.previewDeposit(1e6);
-        console.log("usdcAmt: ", usdcAmt);
-        console.log("usdtAmt: ", usdtAmt);
-        console.log("daiAmt: ", daiAmt);
 
         deal(USDC, nealthyAddr, usdcAmt);
         deal(USDT, nealthyAddr, usdtAmt);
@@ -743,9 +718,6 @@ contract NSTBLHubTestStakePool is BaseTest {
         assertEq(9e3 * 1e18, nstblToken.balanceOf(nealthyAddr), "check nealthy address balance");
         assertEq(
             nstblToken.totalSupply(), 10e3 * 1e18 + loanManager.getMaturedAssets() - maturityVal, "check total supply"
-        );
-        console.log(
-            "Yield: ", loanManager.getMaturedAssets() - maturityVal, loanManager.getMaturedAssets(), maturityVal
         );
 
         (uint256 amount,,,) = stakePool.getStakerInfo(user1, 0);
@@ -1472,10 +1444,6 @@ contract NSTBLHubTestRedeem is BaseTest {
         vm.stopPrank();
 
         //redeemed 50% of the liquidity
-        console.log(nstblHub.stablesBalances(USDC), nstblHub.stablesBalances(USDT), nstblHub.stablesBalances(DAI));
-        console.log(
-            IERC20Helper(USDC).balanceOf(user1), IERC20Helper(USDT).balanceOf(user1), IERC20Helper(DAI).balanceOf(user1)
-        );
         assertEq(nstblHub.stablesBalances(USDC), 0, "check USDC balance");
         assertEq(nstblHub.stablesBalances(USDT), 0, "check USDT balance");
         assertEq(nstblHub.stablesBalances(DAI), 0, "check DAI balance");

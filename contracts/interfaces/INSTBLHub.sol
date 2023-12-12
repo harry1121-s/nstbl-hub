@@ -2,6 +2,26 @@ pragma solidity 0.8.21;
 
 interface INSTBLHub {
     /**
+     * @dev Emitted when NSTBLHub contract is initialized
+     * @param nstblToken_ Address of NSTBL Token
+     * @param stakePool_ Address of Stake Pool
+     * @param chainLinkPriceFeed_ Address of ChainLink Price Feed contract
+     * @param atvl_ Address of ATVL
+     * @param loanManager_ Address of Loan Manager
+     * @param aclManager_ Address of ACL Manager
+     * @param eqTh_ Equilibrium Threshold Value
+     */
+    event InitializedHub(
+        address nstblToken_,
+        address stakePool_,
+        address chainLinkPriceFeed_,
+        address atvl_,
+        address loanManager_,
+        address aclManager_,
+        uint256 eqTh_
+    );
+
+    /**
      * @dev Emitted when stable tokens are deposited and NSTBL token is minted
      * @param usdcAmt_ The amount of USDC to be deposited
      * @param usdtAmt_ The amount of USDT to be deposited

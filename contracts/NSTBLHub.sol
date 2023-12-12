@@ -85,6 +85,7 @@ contract NSTBLHub is INSTBLHub, NSTBLHUBStorage, VersionedInitializable {
         ];
         _locked = 1;
         precision = 1e24;
+        emit InitializedHub(nstblToken, stakePool, chainLinkPriceFeed, atvl, loanManager, aclManager, eqTh);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -768,7 +769,7 @@ contract NSTBLHub is INSTBLHub, NSTBLHUBStorage, VersionedInitializable {
         uint256 price;
         for (uint256 i = 0; i < assetFeeds.length; i++) {
             price = IChainlinkPriceFeed(chainLinkPriceFeed).getLatestPrice(assetFeeds[i]);
-            if (price <= dt) {
+            if (price < dt) {
                 assetsList_[count] = (assets[i]);
                 assetsPrice_[count] = (price);
                 count += 1;
@@ -792,7 +793,7 @@ contract NSTBLHub is INSTBLHub, NSTBLHUBStorage, VersionedInitializable {
      */
     function _noOfFailedAssets() internal view returns (uint256 count_) {
         for (uint256 i = 0; i < assetFeeds.length; i++) {
-            if (IChainlinkPriceFeed(chainLinkPriceFeed).getLatestPrice(assetFeeds[i]) <= dt) {
+            if (IChainlinkPriceFeed(chainLinkPriceFeed).getLatestPrice(assetFeeds[i]) < dt) {
                 count_ += 1;
             }
         }
