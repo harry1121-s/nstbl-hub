@@ -3,8 +3,9 @@ pragma solidity 0.8.21;
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import { IACLManager } from "@nstbl-acl-manager/contracts/IACLManager.sol";
 import "./interfaces/IERC20Helper.sol";
+import "./interfaces/IATVL.sol";
 
-contract ATVL {
+contract ATVL is IATVL{
     using SafeERC20 for IERC20Helper;
 
     mapping(address => bool) public authorizedCallers;
@@ -49,20 +50,20 @@ contract ATVL {
         atvlThreshold = atvlThreshold_;
     }
 
-    function setAuthorizedCaller(address _caller, bool _isAuthorized) external onlyAdmin {
-        authorizedCallers[_caller] = _isAuthorized;
+    function setAuthorizedCaller(address caller_, bool isAuthorized_) external onlyAdmin {
+        authorizedCallers[caller_] = isAuthorized_;
     }
 
     /*//////////////////////////////////////////////////////////////
     DEPEG BURNS
     //////////////////////////////////////////////////////////////*/
 
-    function burnNstbl(uint256 _burnAmount) external authorizedCaller {
-        uint256 burnAmount = _burnAmount + pendingNstblBurn <= IERC20Helper(nstblToken).balanceOf(address(this))
-            ? _burnAmount + pendingNstblBurn
+    function burnNstbl(uint256 burnAmount_) external authorizedCaller {
+        uint256 burnAmount = burnAmount_ + pendingNstblBurn <= IERC20Helper(nstblToken).balanceOf(address(this))
+            ? burnAmount_ + pendingNstblBurn
             : IERC20Helper(nstblToken).balanceOf(address(this));
         totalNstblBurned += burnAmount;
-        pendingNstblBurn = _burnAmount + pendingNstblBurn - burnAmount;
+        pendingNstblBurn = burnAmount_ + pendingNstblBurn - burnAmount;
         IERC20Helper(nstblToken).burn(address(this), burnAmount);
     }
 
