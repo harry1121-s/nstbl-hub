@@ -70,6 +70,12 @@ contract testATVL is BaseTest {
         assertEq(atvl.nstblToken(), vm.addr(345));
         assertEq(atvl.atvlThreshold(), 1000);
 
+        vm.startPrank(deployer);
+        vm.expectRevert("ATVL: invalid Address");
+        atvl.init(address(0), 1000);
+        vm.expectRevert("ATVL: invalid Threshold");
+        atvl.init(vm.addr(1234), 0);
+        vm.stopPrank();
     }
 
     function test_setAuthorizedCaller() external {
@@ -1408,6 +1414,47 @@ contract NSTBLHubTestRedeem is BaseTest {
         assertEq(nealthyBal - nstblToken.balanceOf(nealthyAddr), _amount/10);
 
       
+    }
+
+    // such a case is prevented by backend. 
+    // It always makes sure that input redeem amount never exceeds the available liquidity
+    function test_redeem_usdcDepeg_insuffLiquidity() external {
+
+        uint256 _amount = 1e6 * 1e18;
+
+        //noDepeg at the time of depeg
+        usdcPriceFeedMock.updateAnswer(982e5);
+        usdtPriceFeedMock.updateAnswer(99e6);
+        daiPriceFeedMock.updateAnswer(981e5);
+
+        //first making a deposit
+        _depositNSTBL(_amount);
+
+        uint256 usdcBalBefore = nstblHub.stablesBalances(USDC);
+        uint256 usdtBalBefore = nstblHub.stablesBalances(USDT);
+        uint256 daiBalBefore = nstblHub.stablesBalances(DAI);
+        vm.startPrank(nealthyAddr);
+
+        //depeg at the time of redemption
+        usdcPriceFeedMock.updateAnswer(971e5);
+        usdtPriceFeedMock.updateAnswer(983e5);
+        daiPriceFeedMock.updateAnswer(981e5);
+
+        //redeeming 10% of the liquidity
+        uint256 nstblBalBefore = nstblToken.balanceOf(nealthyAddr);
+        nstblHub.redeem(_amount / 2, user1);
+        vm.stopPrank();
+
+        //redeemed 50% of the liquidity
+        console.log(nstblHub.stablesBalances(USDC), nstblHub.stablesBalances(USDT), nstblHub.stablesBalances(DAI));
+        console.log(IERC20Helper(USDC).balanceOf(user1), IERC20Helper(USDT).balanceOf(user1), IERC20Helper(DAI).balanceOf(user1));
+        assertEq(nstblHub.stablesBalances(USDC), 0, "check USDC balance");
+        assertEq(nstblHub.stablesBalances(USDT), 0, "check USDT balance");
+        assertEq(nstblHub.stablesBalances(DAI), 0, "check DAI balance");
+        assertEq(IERC20Helper(USDC).balanceOf(user1), usdcBalBefore);
+        assertEq(IERC20Helper(USDT).balanceOf(user1), usdtBalBefore);
+        assertEq(IERC20Helper(DAI).balanceOf(user1), daiBalBefore);
+        assertEq(nstblBalBefore - nstblToken.balanceOf(nealthyAddr), _amount / 2, "check NSTBL balance");
     }
 
 }

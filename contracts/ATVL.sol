@@ -6,7 +6,7 @@ import "./interfaces/IERC20Helper.sol";
 
 contract ATVL {
     using SafeERC20 for IERC20Helper;
-    
+
     mapping(address => bool) public authorizedCallers;
     address public aclManager;
     address public nstblToken;
@@ -44,6 +44,7 @@ contract ATVL {
 
     function init(address nstblToken_, uint256 atvlThreshold_) external onlyAdmin {
         require(nstblToken_ != address(0), "ATVL: invalid Address");
+        require(atvlThreshold_ > 0, "ATVL: invalid Threshold");
         nstblToken = nstblToken_;
         atvlThreshold = atvlThreshold_;
     }
