@@ -88,48 +88,8 @@ contract NSTBLHub is INSTBLHub, NSTBLHUBStorage, VersionedInitializable {
     }
 
     /*//////////////////////////////////////////////////////////////
-    USER ENDPOINTS
+    EXTERNALS
     //////////////////////////////////////////////////////////////*/
-
-    /**
-     * @inheritdoc INSTBLHub
-     */
-    function previewDeposit(uint256 depositAmount_)
-        external
-        view
-        returns (uint256 amt1_, uint256 amt2_, uint256 amt3_, uint256 tBillAmt_)
-    {
-        (uint256 a1_, uint256 a2_, uint256 a3_) = _getSystemAllocation();
-        uint256 tAlloc = a1_ + a2_ + a3_;
-        amt1_ = a1_ * depositAmount_ * 10 ** IERC20Helper(USDC).decimals() / tAlloc;
-        amt2_ = a2_ * depositAmount_ * 10 ** IERC20Helper(USDT).decimals() / tAlloc;
-        amt3_ = a3_ * depositAmount_ * 10 ** IERC20Helper(DAI).decimals() / tAlloc;
-        tBillAmt_ = _calculateTBillsAmount(amt1_, amt2_, amt3_);
-        if (tBillAmt_ > 0) {
-            require(ILoanManager(loanManager).isValidDepositAmount(tBillAmt_), "HUB: Invalid Investment Amount");
-        }
-    }
-
-    /**
-     * @inheritdoc INSTBLHub
-     */
-    function validateDepositEquilibrium(uint256 usdcAmt_, uint256 usdtAmt_, uint256 daiAmt_)
-        external
-        view
-        returns (bool result_)
-    {
-        (uint256 a1_, uint256 a2_, uint256 a3_) = _validateSystemAllocation(usdcAmt_, usdtAmt_, daiAmt_);
-        (uint256 oldEq, uint256 newEq) = _calculateEquilibrium(a1_, a2_, a3_, usdcAmt_, usdtAmt_, daiAmt_);
-        if (oldEq == 0) {
-            if (newEq < eqTh) {
-                result_ = true;
-            }
-        } else {
-            if (newEq <= oldEq || newEq < eqTh) {
-                result_ = true;
-            }
-        }
-    }
 
     /**
      * @inheritdoc INSTBLHub
@@ -241,6 +201,50 @@ contract NSTBLHub is INSTBLHub, NSTBLHUBStorage, VersionedInitializable {
     function processTBillWithdraw() external authorizedCaller returns (uint256 usdcReceived_) {
         require(ILoanManager(loanManager).awaitingRedemption(), "HUB: No redemption requested");
         usdcReceived_ = _redeemTBill();
+    }
+
+    /*//////////////////////////////////////////////////////////////
+    VIEWS
+    //////////////////////////////////////////////////////////////*/
+
+    /**
+     * @inheritdoc INSTBLHub
+     */
+    function previewDeposit(uint256 depositAmount_)
+        external
+        view
+        returns (uint256 amt1_, uint256 amt2_, uint256 amt3_, uint256 tBillAmt_)
+    {
+        (uint256 a1_, uint256 a2_, uint256 a3_) = _getSystemAllocation();
+        uint256 tAlloc = a1_ + a2_ + a3_;
+        amt1_ = a1_ * depositAmount_ * 10 ** IERC20Helper(USDC).decimals() / tAlloc;
+        amt2_ = a2_ * depositAmount_ * 10 ** IERC20Helper(USDT).decimals() / tAlloc;
+        amt3_ = a3_ * depositAmount_ * 10 ** IERC20Helper(DAI).decimals() / tAlloc;
+        tBillAmt_ = _calculateTBillsAmount(amt1_, amt2_, amt3_);
+        if (tBillAmt_ > 0) {
+            require(ILoanManager(loanManager).isValidDepositAmount(tBillAmt_), "HUB: Invalid Investment Amount");
+        }
+    }
+
+    /**
+     * @inheritdoc INSTBLHub
+     */
+    function validateDepositEquilibrium(uint256 usdcAmt_, uint256 usdtAmt_, uint256 daiAmt_)
+        external
+        view
+        returns (bool result_)
+    {
+        (uint256 a1_, uint256 a2_, uint256 a3_) = _validateSystemAllocation(usdcAmt_, usdtAmt_, daiAmt_);
+        (uint256 oldEq, uint256 newEq) = _calculateEquilibrium(a1_, a2_, a3_, usdcAmt_, usdtAmt_, daiAmt_);
+        if (oldEq == 0) {
+            if (newEq < eqTh) {
+                result_ = true;
+            }
+        } else {
+            if (newEq <= oldEq || newEq < eqTh) {
+                result_ = true;
+            }
+        }
     }
 
     /*//////////////////////////////////////////////////////////////
