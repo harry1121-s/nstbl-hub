@@ -1072,6 +1072,15 @@ contract NSTBLHubTestRedeem is BaseTest {
         super.setUp();
     }
 
+    function test_processTbillWithdraw_AwaitingRedemption() external {
+        vm.startPrank(nealthyAddr);
+        vm.store(address(loanManager), bytes32(uint256(5)), bytes32(uint256(type(uint256).max)));
+        assertEq(loanManager.awaitingRedemption(), true);
+        vm.expectRevert();
+        nstblHub.processTBillWithdraw();
+        vm.stopPrank();
+    }
+
     function test_redeem_noDepeg_suffLiquidity() external {
         uint256 _amount = 1e6 * 1e18;
 
