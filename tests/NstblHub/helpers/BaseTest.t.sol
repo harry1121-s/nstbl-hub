@@ -2,7 +2,7 @@
 pragma solidity 0.8.21;
 
 import { Test, console } from "forge-std/Test.sol";
-import { MockV3Aggregator } from "../../../modules/chainlink/contracts/src/v0.8/tests/MockV3Aggregator.sol";
+import { MockV3Aggregator } from "@chainlink/contracts/src/v0.8/tests/MockV3Aggregator.sol";
 import { NSTBLStakePool } from "@nstbl-stake-pool/contracts/StakePool.sol";
 import { NSTBLToken } from "@nstbl-token/contracts/NSTBLToken.sol";
 import { LZEndpointMock } from "@layerzerolabs/contracts/lzApp/mocks/LZEndpointMock.sol";
@@ -10,8 +10,8 @@ import { ChainLinkPriceFeed } from "../../../contracts/chainlink/ChainlinkPriceF
 import { ACLManager } from "@nstbl-acl-manager/contracts/ACLManager.sol";
 import { NSTBLHub } from "../../../contracts/NSTBLHub.sol";
 import { ATVL } from "../../../contracts/ATVL.sol";
-import { IPoolManager } from "../../../contracts/interfaces/maple/IPoolManager.sol";
-import { IPool } from "../../../contracts/interfaces/maple/IPool.sol";
+import { IPoolManager } from "@nstbl-loan-manager/contracts/interfaces/maple/IPoolManager.sol";
+import { IPool } from "@nstbl-loan-manager/contracts/interfaces/maple/IPool.sol";
 import { LoanManager } from "@nstbl-loan-manager/contracts/LoanManager.sol";
 import { ProxyAdmin } from "@nstbl-loan-manager/contracts/upgradeable/ProxyAdmin.sol";
 import {

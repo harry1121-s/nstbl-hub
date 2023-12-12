@@ -4,8 +4,8 @@ import "./interfaces/IERC20Helper.sol";
 import "./interfaces/IChainlinkPriceFeed.sol";
 import "./interfaces/ILoanManager.sol";
 import "@nstbl-stake-pool/contracts/interfaces/IStakePool.sol";
+import "@nstbl-token/contracts/INSTBLToken.sol";
 import "./interfaces/IATVL.sol";
-import "./interfaces/INSTBLToken.sol";
 import "./interfaces/INSTBLHub.sol";
 
 contract NSTBLHUBStorage {

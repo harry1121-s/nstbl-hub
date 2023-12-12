@@ -98,18 +98,17 @@ contract NSTBLHub is INSTBLHub, NSTBLHUBStorage, VersionedInitializable {
     function previewDeposit(uint256 depositAmount_)
         external
         view
-        returns (uint256 _amt1, uint256 _amt2, uint256 _amt3, uint256 _tBillAmt)
+        returns (uint256 amt1_, uint256 amt2_, uint256 amt3_, uint256 tBillAmt_)
     {
         (uint256 a1_, uint256 a2_, uint256 a3_) = _getSystemAllocation();
         uint256 tAlloc = a1_ + a2_ + a3_;
-        _amt1 = a1_ * depositAmount_ * 10 ** IERC20Helper(USDC).decimals() / tAlloc;
-        _amt2 = a2_ * depositAmount_ * 10 ** IERC20Helper(USDT).decimals() / tAlloc;
-        _amt3 = a3_ * depositAmount_ * 10 ** IERC20Helper(DAI).decimals() / tAlloc;
-        _tBillAmt = _calculateTBillsAmount(_amt1, _amt2, _amt3);
-        if(_tBillAmt > 0){
-            require(ILoanManager(loanManager).isValidDepositAmount(_tBillAmt), "HUB: Invalid Investment Amount");
+        amt1_ = a1_ * depositAmount_ * 10 ** IERC20Helper(USDC).decimals() / tAlloc;
+        amt2_ = a2_ * depositAmount_ * 10 ** IERC20Helper(USDT).decimals() / tAlloc;
+        amt3_ = a3_ * depositAmount_ * 10 ** IERC20Helper(DAI).decimals() / tAlloc;
+        tBillAmt_ = _calculateTBillsAmount(amt1_, amt2_, amt3_);
+        if(tBillAmt_ > 0){
+            require(ILoanManager(loanManager).isValidDepositAmount(tBillAmt_), "HUB: Invalid Investment Amount");
         }
-        
     }
 
     /**

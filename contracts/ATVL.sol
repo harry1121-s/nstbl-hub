@@ -34,8 +34,8 @@ contract ATVL {
     //////////////////////////////////////////////////////////////*/
 
     constructor(address aclManager_) {
+        require(aclManager_ != address(0), "ATVL: invalid Address");
         aclManager = aclManager_;
-
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -43,6 +43,7 @@ contract ATVL {
     //////////////////////////////////////////////////////////////*/
 
     function init(address nstblToken_, uint256 atvlThreshold_) external onlyAdmin {
+        require(nstblToken_ != address(0), "ATVL: invalid Address");
         nstblToken = nstblToken_;
         atvlThreshold = atvlThreshold_;
     }

@@ -13,7 +13,7 @@ install:
 
 update:
 	cd modules && \
-	git submodule update --remote --recursive nSTBL_V1_ACLManager nSTBL_V1_LoanManager nSTBL_V1_nSTBLToken nSTBL_V1_StakePool && \
+	git submodule update --remote --recursive nstbl-acl-manager nstbl-loan-manager nstbl-token nstbl-stake-pool && \
 	cd ..
 
 build:
