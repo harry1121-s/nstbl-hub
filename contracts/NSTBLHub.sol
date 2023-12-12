@@ -222,7 +222,6 @@ contract NSTBLHub is INSTBLHub, NSTBLHUBStorage, VersionedInitializable {
     /**
      * @inheritdoc INSTBLHub
      */
-    //updates TBD here
     function setSystemParams(uint256 dt_, uint256 ub_, uint256 lb_, uint256 tBillPercent_, uint256 eqTh_)
         external
         onlyAdmin
