@@ -1,7 +1,6 @@
 pragma solidity 0.8.21;
 
 interface IChainlinkPriceFeed {
-
     /**
      * @notice get latest price of assets
      * @return price1 price of asset 1
@@ -16,5 +15,4 @@ interface IChainlinkPriceFeed {
      * @return price_ price of asset
      */
     function getLatestPrice(address dataFeed_) external view returns (uint256 price_);
-
 }

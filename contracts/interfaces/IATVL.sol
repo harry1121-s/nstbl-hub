@@ -1,8 +1,6 @@
 pragma solidity 0.8.21;
 
 interface IATVL {
-    
-
     /**
      * @notice only admin can call this function
      * @dev initializes ATVL contract
@@ -11,7 +9,7 @@ interface IATVL {
      */
     function init(address nstblToken_, uint256 atvlThreshold_) external;
 
-     /**
+    /**
      * @notice only admin can call this function
      * @dev Sets authorized callers for ATVL contract
      * @param caller_ address of the caller
@@ -32,6 +30,5 @@ interface IATVL {
      * @param destinationAddress_ Address to receive the skimmed NSTBL tokens
      * @return skimAmount_ Amount of tokens skimmed from ATVL
      */
-    function skimProfits(address destinationAddress_) external returns(uint256 skimAmount_);
-
+    function skimProfits(address destinationAddress_) external returns (uint256 skimAmount_);
 }

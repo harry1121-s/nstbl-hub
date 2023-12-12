@@ -5,7 +5,7 @@ import { IACLManager } from "@nstbl-acl-manager/contracts/IACLManager.sol";
 import "./interfaces/IERC20Helper.sol";
 import "./interfaces/IATVL.sol";
 
-contract ATVL is IATVL{
+contract ATVL is IATVL {
     using SafeERC20 for IERC20Helper;
 
     mapping(address => bool) public authorizedCallers;
@@ -71,12 +71,10 @@ contract ATVL is IATVL{
     SKIM PROFITS
     //////////////////////////////////////////////////////////////*/
 
-    function skimProfits(address destinationAddress_) external onlyAdmin returns(uint256 skimAmount_){
+    function skimProfits(address destinationAddress_) external onlyAdmin returns (uint256 skimAmount_) {
         uint256 atvlBalance = IERC20Helper(nstblToken).balanceOf(address(this));
         uint256 thresholdBalance = atvlThreshold * IERC20Helper(nstblToken).totalSupply() / 1e5;
-        skimAmount_ = atvlBalance > thresholdBalance ? (atvlBalance-thresholdBalance) : 0;
+        skimAmount_ = atvlBalance > thresholdBalance ? (atvlBalance - thresholdBalance) : 0;
         IERC20Helper(nstblToken).safeTransfer(destinationAddress_, skimAmount_);
     }
 }
-
-

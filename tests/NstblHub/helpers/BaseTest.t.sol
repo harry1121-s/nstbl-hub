@@ -59,7 +59,6 @@ contract BaseTest is Test {
     LZEndpointMock public LZEndpoint_src;
     LZEndpointMock public LZEndpoint_dst;
 
-
     MockV3Aggregator public usdcPriceFeedMock;
     MockV3Aggregator public usdtPriceFeedMock;
     MockV3Aggregator public daiPriceFeedMock;
@@ -144,10 +143,7 @@ contract BaseTest is Test {
 
         token_src.setAuthorizedChain(block.chainid, true);
 
-    
-        atvl = new ATVL(
-            address(aclManager)
-        );
+        atvl = new ATVL(address(aclManager));
 
         //LoanManager
         proxyAdmin = new ProxyAdmin(owner);
@@ -175,12 +171,11 @@ contract BaseTest is Test {
                 address(atvl),
                 address(loanManager),
                 address(aclManager),
-                2*1e24
+                2 * 1e24
             )
         );
         hubProxy = new TransparentUpgradeableProxy(address(nstblHubImpl), address(proxyAdmin), data);
         nstblHub = NSTBLHub(address(hubProxy));
-
 
         loanManager.updateNSTBLHUB(address(nstblHub));
 
@@ -246,45 +241,43 @@ contract BaseTest is Test {
         IERC20Helper(USDC).safeIncreaseAllowance(address(nstblHub), usdcAmt);
         IERC20Helper(USDT).safeIncreaseAllowance(address(nstblHub), usdtAmt);
         IERC20Helper(DAI).safeIncreaseAllowance(address(nstblHub), daiAmt);
-        if(usdcAmt + usdtAmt + daiAmt == 0) {
+        if (usdcAmt + usdtAmt + daiAmt == 0) {
             vm.expectRevert("HUB: Invalid Deposit");
         }
         nstblHub.deposit(usdcAmt, usdtAmt, daiAmt);
         vm.stopPrank();
     }
 
-    function _randomizeDepositAmounts(uint256 _amount) internal view returns(uint256 usdcAmt, uint256 usdtAmt, uint256 daiAmt) {
-
-        uint256 _randAmount = _amount*314159265358979323846; // multiplying with pi(without decimal)
+    function _randomizeDepositAmounts(uint256 _amount)
+        internal
+        view
+        returns (uint256 usdcAmt, uint256 usdtAmt, uint256 daiAmt)
+    {
+        uint256 _randAmount = _amount * 314_159_265_358_979_323_846; // multiplying with pi(without decimal)
         (usdcAmt, usdtAmt, daiAmt,) = nstblHub.previewDeposit(_amount / 1e18);
 
-        if(uint(keccak256(abi.encode(_randAmount)))%2 == 0){
-            usdcAmt += (1e3*usdcAmt/1e5);
-        }
-        else{
-            usdcAmt -= (1e3*usdcAmt/1e5);
-        }
-
-        if((uint(keccak256(abi.encode(_randAmount)))>>10*8)%2 == 0){
-            usdtAmt -= (1e3*usdtAmt/1e5);
-        }
-        else{
-            usdtAmt += (1e3*usdtAmt/1e5);
+        if (uint256(keccak256(abi.encode(_randAmount))) % 2 == 0) {
+            usdcAmt += (1e3 * usdcAmt / 1e5);
+        } else {
+            usdcAmt -= (1e3 * usdcAmt / 1e5);
         }
 
-        if((uint(keccak256(abi.encode(_randAmount)))>>20*8)%2 == 0){
-            daiAmt += (1e3*daiAmt/1e5);
-        }
-        else{
-            daiAmt -= (1e3*daiAmt/1e5);
+        if ((uint256(keccak256(abi.encode(_randAmount))) >> 10 * 8) % 2 == 0) {
+            usdtAmt -= (1e3 * usdtAmt / 1e5);
+        } else {
+            usdtAmt += (1e3 * usdtAmt / 1e5);
         }
 
+        if ((uint256(keccak256(abi.encode(_randAmount))) >> 20 * 8) % 2 == 0) {
+            daiAmt += (1e3 * daiAmt / 1e5);
+        } else {
+            daiAmt -= (1e3 * daiAmt / 1e5);
+        }
     }
 
     function _unstakeNSTBL(address _user, uint8 _trancheId) internal {
         vm.prank(nealthyAddr);
         nstblHub.unstake(_user, _trancheId, destinationAddress);
-
     }
 
     function _getLiquidityCap(address _poolManager) internal view returns (uint256) {
@@ -296,7 +289,6 @@ contract BaseTest is Test {
         uint256 upperBound = _getLiquidityCap(MAPLE_POOL_MANAGER_USDC);
         uint256 totalAssets = IPool(MAPLE_USDC_CASH_POOL).totalAssets();
         console.log("Upper bound", (upperBound - totalAssets));
-        return 100*(upperBound - totalAssets)/70;
-    
+        return 100 * (upperBound - totalAssets) / 70;
     }
 }

@@ -9,8 +9,7 @@ import "./interfaces/IATVL.sol";
 import "./interfaces/INSTBLHub.sol";
 
 contract NSTBLHUBStorage {
-
-     /*//////////////////////////////////////////////////////////////
+    /*//////////////////////////////////////////////////////////////
     IMMUTABLES & CONSTANTS
     //////////////////////////////////////////////////////////////*/
 
@@ -19,7 +18,6 @@ contract NSTBLHUBStorage {
     address public immutable USDC = address(0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48);
     address public immutable USDT = address(0xdAC17F958D2ee523a2206206994597C13D831ec7);
     address public immutable DAI = address(0x6B175474E89094C44Da98b954EedeAC495271d0F);
-
 
     /*//////////////////////////////////////////////////////////////
     State Variables
@@ -53,5 +51,5 @@ contract NSTBLHUBStorage {
 
     //add new variables here to extended the storage
     //reduce the gap size equal the size of new variables: to maintain original layout and prevent collision
-    uint256 [26] __gap;
+    uint256[26] __gap;
 }

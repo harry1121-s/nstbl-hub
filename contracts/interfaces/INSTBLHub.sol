@@ -1,7 +1,6 @@
 pragma solidity 0.8.21;
 
 interface INSTBLHub {
-
     /**
      * @dev Emitted when stable tokens are deposited and NSTBL token is minted
      * @param usdcAmt_ The amount of USDC to be deposited
@@ -11,7 +10,14 @@ interface INSTBLHub {
      * @param nstblMinted_ NSTBL tokens minted
      * @param receiver_ Address receiving minted NSTBL
      */
-    event Deposited(uint256 usdcAmt_, uint256 usdtAmt_, uint256 daiAmt_, uint256 tBillAmt_, uint256 nstblMinted_, address indexed receiver_);
+    event Deposited(
+        uint256 usdcAmt_,
+        uint256 usdtAmt_,
+        uint256 daiAmt_,
+        uint256 tBillAmt_,
+        uint256 nstblMinted_,
+        address indexed receiver_
+    );
 
     /**
      * @dev Emitted when NSTBL tokens are redeemed in a non-depeg scenario
@@ -36,7 +42,7 @@ interface INSTBLHub {
      * @param burnAmt_ NSTBL tokens burnt from ATVL
      */
     event UnstakedAndRedeemed(address indexed destAddress_, uint256 unstakeBurnAmt_, uint256 burnAmt_);
-    
+
     /**
      * @dev Calculates the amount of USDC, USDT and DAI that will be deposited
      * @param depositAmount_ The amount of tokens to be deposited
@@ -57,7 +63,10 @@ interface INSTBLHub {
      * @param daiAmt_ The amount of DAI to be deposited
      * @return result_ boolean value indicating the deposit input amounts will maintain equilbrium or not
      */
-    function validateDepositEquilibrium(uint256 usdcAmt_, uint256 usdtAmt_, uint256 daiAmt_) external view returns (bool result_);
+    function validateDepositEquilibrium(uint256 usdcAmt_, uint256 usdtAmt_, uint256 daiAmt_)
+        external
+        view
+        returns (bool result_);
 
     /**
      * @dev Calculates the amount of tokens that will be deposited according to the equilibrium ratio
@@ -104,13 +113,11 @@ interface INSTBLHub {
      * @param tBillPercent_ The tBill assets percent
      * @param eqTh_ The equilibrium threshold
      */
-    function setSystemParams(uint256 dt_, uint256 ub_, uint256 lb_, uint256 tBillPercent_, uint256 eqTh_)
-        external;
+    function setSystemParams(uint256 dt_, uint256 ub_, uint256 lb_, uint256 tBillPercent_, uint256 eqTh_) external;
 
     /**
      * @dev The process to redeem the TBills from loan manager and update the balance
      * @return usdcRedeemed_ The amount of USDC redeemed
      */
     function processTBillWithdraw() external returns (uint256 usdcRedeemed_);
-
 }
