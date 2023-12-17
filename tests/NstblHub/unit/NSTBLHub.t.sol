@@ -725,6 +725,25 @@ contract NSTBLHubTestStakePool is BaseTest {
         assertEq(stakePool.poolBalance(), 1e3 * 1e18);
     }
 
+    function test_stake_tokenomia_problem() external {
+        // nodepeg
+        usdcPriceFeedMock.updateAnswer(982e5);
+        usdtPriceFeedMock.updateAnswer(99e6);
+        daiPriceFeedMock.updateAnswer(985e5);
+        _depositNSTBL(97e5*1e18);
+        assertEq(nstblToken.totalSupply(), 97e5*1e18);
+        _stakeNSTBL(user1, 1e6 * 1e18, 0);
+        
+        vm.warp(block.timestamp + 365 days);
+        console.log("NSTBL SUPPLY before : ", nstblToken.totalSupply());
+        _stakeNSTBL(user1, 1e6 * 1e18, 0);
+        console.log("NSTBL SUPPLY after : ", nstblToken.totalSupply());
+
+
+
+
+    }
+
     function test_stake_fuzz(uint256 _amount) external {
         //preConditions
         // nodepeg
