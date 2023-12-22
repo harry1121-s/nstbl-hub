@@ -25,6 +25,12 @@ test:
 testHub:
 	forge test --match-path ./tests/NstblHub/unit/NSTBLHub.t.sol -vvv --gas-report 
 
+simulateDeploy: 
+	forge script script/DeployContracts.s.sol:DeployContracts --rpc-url https://eth-goerli.g.alchemy.com/v2/CFhLkcCEs1dFGgg0n7wu3idxcdcJEgbW
+
+deployContract: 
+	forge script ./scripts/DeployContracts.s.sol:DeployContracts --rpc-url "$r"
+
 debug: 
 	forge test -vvvvv
 

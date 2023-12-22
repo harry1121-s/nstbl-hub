@@ -136,6 +136,7 @@ contract BaseTest is Test {
         LZEndpoint_src.setDestLzEndpoint(address(token_dst), address(LZEndpoint_dst));
         LZEndpoint_dst.setDestLzEndpoint(address(token_src), address(LZEndpoint_src));
 
+        //token cross-chain configuration
         bytes memory path_dst = abi.encodePacked(address(token_dst), address(token_src));
         bytes memory path_src = abi.encodePacked(address(token_src), address(token_dst));
         token_src.setTrustedRemote(chainId_dst, path_dst);
@@ -171,7 +172,7 @@ contract BaseTest is Test {
                 address(atvl),
                 address(loanManager),
                 address(aclManager),
-                2 * 1e24
+                2 * 1e22
             )
         );
         hubProxy = new TransparentUpgradeableProxy(address(nstblHubImpl), address(proxyAdmin), data);
