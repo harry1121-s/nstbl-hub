@@ -78,10 +78,15 @@ contract NSTBLHub is INSTBLHub, NSTBLHUBStorage, VersionedInitializable {
         loanManager = loanManager_;
         aclManager = aclManager_;
         eqTh = eqTh_;
-        assets = [
-            0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48,
-            0xdAC17F958D2ee523a2206206994597C13D831ec7,
-            0x6B175474E89094C44Da98b954EedeAC495271d0F
+        // assets = [
+        //     0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48,
+        //     0xdAC17F958D2ee523a2206206994597C13D831ec7,
+        //     0x6B175474E89094C44Da98b954EedeAC495271d0F
+        // ];
+         assets = [
+            0x94A4DC7C451Db157cd64E017CDF726501432b7e7,
+            0x6fa19Db493Ca53FB2E6Bc7b7Cee7ecC107DA3753,
+            0xf864EeC64EcD77E24d46aE841bf6fae855e61514
         ];
         _locked = 1;
         precision = 1e24;

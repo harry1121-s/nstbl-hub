@@ -22,3 +22,6 @@
 [submodule "modules/nstbl-token"]
 	path = modules/nstbl-token
 	url = https://github.com/harry1121-s/nstbl-token.git
+[submodule "modules/maple-mocks"]
+	path = modules/maple-mocks
+	url = https://github.com/harry1121-s/maple-mocks.git

@@ -23,9 +23,9 @@ contract LoanManagerDeployer {
         _;
     }
 
-    function deployLoanManager(address proxyAdmin_, address mapleCashPool_) external onlyAdmin returns(address lmImplementation_, address lmProxy_){
-        LoanManager lmImplementation = new LoanManager();
-        bytes memory data = abi.encodeCall(lmImplementation.initialize, (aclManager, mapleCashPool_));
+    function deployLoanManager(address proxyAdmin_, address pool_, address usdc_) external onlyAdmin returns(address lmImplementation_, address lmProxy_){
+        LoanManager lmImplementation = new LoanManager(pool_, usdc_);
+        bytes memory data = abi.encodeCall(lmImplementation.initialize, (aclManager, pool_));
         TransparentUpgradeableProxy loanManagerProxy = new TransparentUpgradeableProxy(address(lmImplementation), proxyAdmin_, data);
         lmImplementation_ = address(lmImplementation);
         lmProxy_ = address(loanManagerProxy);

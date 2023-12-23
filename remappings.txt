@@ -7,3 +7,4 @@ forge-std/=modules/forge-std/src/
 @nstbl-acl-manager/=modules/nstbl-acl-manager
 @nstbl-token/=modules/nstbl-token
 @nstbl-stake-pool/=modules/nstbl-stake-pool
+@maple-mocks/=modules/maple-mocks

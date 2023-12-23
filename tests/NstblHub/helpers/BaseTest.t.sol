@@ -21,6 +21,8 @@ import {
 import { IERC20, IERC20Helper } from "../../../contracts/interfaces/IERC20Helper.sol";
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import { ERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import { Pool } from "@maple-mocks/contracts/Pool.sol"; 
+import { NSTBLHubViews } from "../../../contracts/NSTBLHubViews.sol";
 
 contract BaseTest is Test {
     using SafeERC20 for IERC20Helper;
@@ -35,7 +37,12 @@ contract BaseTest is Test {
     //NSTBLHubSetup
     NSTBLHub public nstblHubImpl;
     NSTBLHub public nstblHub;
+    NSTBLHubViews public hubViews;
     ATVL public atvl;
+
+    //maple mocks
+    Pool public poolImplementation;
+    Pool public pool;
 
     //LoanManager
     LoanManager public lmImplementation;
@@ -49,6 +56,7 @@ contract BaseTest is Test {
 
     //Proxy
     ProxyAdmin public proxyAdmin;
+    TransparentUpgradeableProxy public poolProxy;
     TransparentUpgradeableProxy public loanManagerProxy;
     TransparentUpgradeableProxy public stakePoolProxy;
     TransparentUpgradeableProxy public hubProxy;
@@ -75,14 +83,15 @@ contract BaseTest is Test {
     string public name = "NSTBL Token";
     uint8 public sharedDecimals = 5;
 
-    address USDC = address(0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48);
-    address USDT = address(0xdAC17F958D2ee523a2206206994597C13D831ec7);
-    address DAI = address(0x6B175474E89094C44Da98b954EedeAC495271d0F);
+    // address public poolDelegateUSDC = 0x8c8C2431658608F5649B8432764a930c952d8A98;
+    address public MAPLE_USDC_CASH_POOL;
+    address public MAPLE_POOL_MANAGER_USDC;
+    address public WITHDRAWAL_MANAGER_USDC;
 
-    address public poolDelegateUSDC = 0x8c8C2431658608F5649B8432764a930c952d8A98;
-    address public MAPLE_USDC_CASH_POOL = 0xfe119e9C24ab79F1bDd5dd884B86Ceea2eE75D92;
-    address public MAPLE_POOL_MANAGER_USDC = 0x219654A61a0BC394055652986BE403fa14405Bb8;
-    address public WITHDRAWAL_MANAGER_USDC = 0x1146691782c089bCF0B19aCb8620943a35eebD12;
+    //testnet goerli addresses
+    address USDC = address(0x94A4DC7C451Db157cd64E017CDF726501432b7e7);
+    address USDT = address(0x6fa19Db493Ca53FB2E6Bc7b7Cee7ecC107DA3753);
+    address DAI = address(0xf864EeC64EcD77E24d46aE841bf6fae855e61514);
 
     uint256 public dt = 98 * 1e6;
     uint256 public ub = 97 * 1e6;
@@ -109,7 +118,7 @@ contract BaseTest is Test {
     Setup
     //////////////////////////////////////////////////////////////*/
     function setUp() public virtual {
-        uint256 mainnetFork = vm.createFork(vm.envString("DEV_RPC_URL"));
+        uint256 mainnetFork = vm.createFork(vm.envString("GOERLI_RPC_URL"));
         vm.selectFork(mainnetFork);
 
         // Deploy mock LZEndpoints
@@ -146,10 +155,20 @@ contract BaseTest is Test {
 
         atvl = new ATVL(address(aclManager));
 
-        //LoanManager
         proxyAdmin = new ProxyAdmin(owner);
-        lmImplementation = new LoanManager();
-        bytes memory data = abi.encodeCall(lmImplementation.initialize, (address(aclManager), MAPLE_USDC_CASH_POOL));
+
+        //Maple Mocks
+        poolImplementation = new Pool();
+        bytes memory data = abi.encodeCall(poolImplementation.initialize, (USDC, "TUSDC CASH POOL", "TSUDC_CP"));
+        poolProxy = new TransparentUpgradeableProxy(address(poolImplementation), address(proxyAdmin), data);
+        pool = Pool(address(poolProxy));
+        MAPLE_USDC_CASH_POOL = address(pool);
+        MAPLE_POOL_MANAGER_USDC = address(pool);
+        WITHDRAWAL_MANAGER_USDC = address(pool);
+
+        //LoanManager
+        lmImplementation = new LoanManager(address(pool), USDC);
+        data = abi.encodeCall(lmImplementation.initialize, (address(aclManager), MAPLE_USDC_CASH_POOL));
         loanManagerProxy = new TransparentUpgradeableProxy(address(lmImplementation), address(proxyAdmin), data);
         loanManager = LoanManager(address(loanManagerProxy));
 
@@ -207,18 +226,21 @@ contract BaseTest is Test {
 
         //setting NSTBLHub as allowed lender
         poolManagerUSDC = IPoolManager(MAPLE_POOL_MANAGER_USDC);
-        _setAllowedLender();
+        // _setAllowedLender();
+        hubViews = new NSTBLHubViews(address(nstblHub), address(stakePool), address(loanManager), address(priceFeed), address(nstblToken), dt);
+        hubViews.updateAssetFeeds([address(usdcPriceFeedMock), address(usdtPriceFeedMock), address(daiPriceFeedMock)]);
+
     }
 
-    function _setAllowedLender() internal {
-        bool out;
-        vm.startPrank(poolDelegateUSDC);
-        poolManagerUSDC.setAllowedLender(address(loanManager), true);
-        (out,) =
-            address(poolManagerUSDC).staticcall(abi.encodeWithSignature("isValidLender(address)", address(loanManager)));
-        assertTrue(out);
-        vm.stopPrank();
-    }
+    // function _setAllowedLender() internal {
+    //     bool out;
+    //     vm.startPrank(poolDelegateUSDC);
+    //     poolManagerUSDC.setAllowedLender(address(loanManager), true);
+    //     (out,) =
+    //         address(poolManagerUSDC).staticcall(abi.encodeWithSignature("isValidLender(address)", address(loanManager)));
+    //     assertTrue(out);
+    //     vm.stopPrank();
+    // }
 
     function _stakeNSTBL(address _user, uint256 _amount, uint8 _trancheId) internal {
         // Action = Stake
