@@ -227,7 +227,7 @@ contract BaseTest is Test {
         //setting NSTBLHub as allowed lender
         poolManagerUSDC = IPoolManager(MAPLE_POOL_MANAGER_USDC);
         // _setAllowedLender();
-        hubViews = new NSTBLHubViews(address(nstblHub), address(stakePool), address(loanManager), address(priceFeed), address(nstblToken), dt);
+        hubViews = new NSTBLHubViews(address(nstblHub), address(stakePool), address(loanManager), address(priceFeed), address(nstblToken), dt, ub, lb);
         hubViews.updateAssetFeeds([address(usdcPriceFeedMock), address(usdtPriceFeedMock), address(daiPriceFeedMock)]);
 
     }

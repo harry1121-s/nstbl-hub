@@ -1092,15 +1092,6 @@ contract NSTBLHubTestRedeem is BaseTest {
         super.setUp();
     }
 
-    // function test_processTbillWithdraw_AwaitingRedemption() external {
-    //     vm.startPrank(nealthyAddr);
-    //     vm.store(address(loanManager), bytes32(uint256(5)), bytes32(uint256(type(uint256).max)));
-    //     assertEq(loanManager.awaitingRedemption(), true);
-    //     vm.expectRevert();
-    //     nstblHub.processTBillWithdraw();
-    //     vm.stopPrank();
-    // }
-
     function test_redeem_noDepeg_suffLiquidity() external {
         uint256 _amount = 1e6 * 1e18;
 
@@ -1129,6 +1120,7 @@ contract NSTBLHubTestRedeem is BaseTest {
         uint256 nstblBalBefore = nstblToken.balanceOf(nealthyAddr);
         vm.startPrank(nealthyAddr);
         nstblToken.approve(address(nstblHub), _amount);
+        (address[] memory stables_, uint256[] memory stablesAmounts_,,,,) = hubViews.previewRedeem(125e3 * 1e18);
         //can redeem only 12.5% of the liquidity
         nstblHub.redeem(125e3 * 1e18, user1);
         vm.stopPrank();
@@ -1136,6 +1128,19 @@ contract NSTBLHubTestRedeem is BaseTest {
         uint256 nstblBalAfter = nstblToken.balanceOf(nealthyAddr);
         //redeemed only 12.5% of the liquidity
 
+        assertEq(
+            stablesAmounts_[0],
+            usdcBalBefore - nstblHub.stablesBalances(USDC),
+            "check usdc transferred"
+        );
+         assertEq(
+            stablesAmounts_[1],
+            usdtBalBefore - nstblHub.stablesBalances(USDT),
+            "check usdt transferred"
+        );
+        assertEq(
+            stablesAmounts_[2], daiBalBefore - nstblHub.stablesBalances(DAI), "check dai transferred"
+        );
         assertEq(
             ((125e3 * 1e6) * usdcAlloc) / (1e18),
             usdcBalBefore - nstblHub.stablesBalances(USDC),
@@ -1198,12 +1203,35 @@ contract NSTBLHubTestRedeem is BaseTest {
         daiPriceFeedMock.updateAnswer(975e5);
 
         console.log("NSTBL Price: ", hubViews.getNSTBLPrice());
+        console.log("AMOUNTS: ", hubViews.getMaxRedeemAmount(), _amount/10);
 
         //redeeming 10% of the liquidity
-
+        (address[] memory stables_, uint256[] memory stablesAmounts_,uint256[] memory extraStablesAmounts_,,uint256 burnAmt_,) = hubViews.previewRedeem(10 * _amount / 100);
+        assertEq(stables_[0], DAI);
+        assertEq(stables_[1], USDC);
+        assertEq(stables_[2], USDT);
         nstblHub.redeem(10 * _amount / 100, user1);
         vm.stopPrank();
         //redeemed only 10% of the liquidity
+
+        assertApproxEqAbs(
+            stablesAmounts_[1], usdcBalBefore - nstblHub.stablesBalances(USDC), 1, "check USDC balance"
+        );
+        assertApproxEqAbs(
+            stablesAmounts_[2], usdtBalBefore - nstblHub.stablesBalances(USDT), 1, "check USDT balance"
+        );
+        assertApproxEqAbs(
+            stablesAmounts_[0], daiBalBefore - nstblHub.stablesBalances(DAI), 1e12, "check DAI balance"
+        );
+        assertApproxEqAbs(
+            atvlBalBefore - nstblToken.balanceOf(address(atvl)),
+            burnAmt_,
+            1e12,
+            "check ATVL balance"
+        );
+
+
+
         assertApproxEqAbs(
             (_amount * 8 / 100) / 10 ** 12, usdcBalBefore - nstblHub.stablesBalances(USDC), 1, "check USDC balance"
         );
@@ -1219,6 +1247,7 @@ contract NSTBLHubTestRedeem is BaseTest {
             1e12,
             "check ATVL balance"
         );
+        assertEq(extraStablesAmounts_[0], ((_amount * 1 / 100) * 980e5 / 975e5) - (_amount * 1 / 100));
     }
 
     // function test_redeem_usdtDepeg_suffLiquidity() external {
@@ -1414,57 +1443,106 @@ contract NSTBLHubTestRedeem is BaseTest {
     //     );
     // }
 
-    // function test_redeem_daiUsdtUsdcDepeg_suffLiquidity_burnFromStakePool() external {
-    //     uint256 _amount = 1e6 * 1e18;
+    function test_redeem_daiUsdtUsdcDepeg_suffLiquidity_burnFromStakePool() external {
+        uint256 _amount = 1e6 * 1e18;
 
-    //     //noDepeg at the time of depeg
-    //     usdcPriceFeedMock.updateAnswer(982e5);
-    //     usdtPriceFeedMock.updateAnswer(99e6);
-    //     daiPriceFeedMock.updateAnswer(981e5);
+        // noDepeg
+        usdcPriceFeedMock.updateAnswer(982e5);
+        usdtPriceFeedMock.updateAnswer(99e6);
+        daiPriceFeedMock.updateAnswer(981e5);
 
-    //     //first making a deposit
-    //     _depositNSTBL(_amount);
+        //first making a deposit
+        _depositNSTBL(_amount);
 
-    //     _stakeNSTBL(user1, _amount / 4, 0);
-    //     deal(address(nstblToken), address(atvl), _amount * 50 / 1000); //5% of the total supply
+        _stakeNSTBL(user1, _amount / 4, 0);
+        deal(address(nstblToken), address(atvl), _amount * 50 / 1000); //5% of the total supply
 
-    //     uint256 usdcBalBefore = IERC20Helper(USDC).balanceOf(address(nstblHub));
-    //     uint256 usdtBalBefore = IERC20Helper(USDT).balanceOf(address(nstblHub));
-    //     uint256 daiBalBefore = IERC20Helper(DAI).balanceOf(address(nstblHub));
-    //     uint256 nealthyBal = nstblToken.balanceOf(nealthyAddr);
+        uint256 usdcBalBefore = IERC20Helper(USDC).balanceOf(address(nstblHub));
+        uint256 usdtBalBefore = IERC20Helper(USDT).balanceOf(address(nstblHub));
+        uint256 daiBalBefore = IERC20Helper(DAI).balanceOf(address(nstblHub));
+        uint256 nealthyBal = nstblToken.balanceOf(nealthyAddr);
+        uint256 atvlBalBefore = nstblToken.balanceOf(address(atvl));
+        uint256 spBalBefore = nstblToken.balanceOf(address(stakePool));
 
-    //     vm.startPrank(nealthyAddr);
+        vm.startPrank(nealthyAddr);
 
-    //     //depeg at the time of redemption
-    //     usdcPriceFeedMock.updateAnswer(958e5); //usdc below lb
-    //     usdtPriceFeedMock.updateAnswer(973e5); //usdt below depeg
-    //     daiPriceFeedMock.updateAnswer(953e5); //dai below lb
+        //depeg at the time of redemption
+        usdcPriceFeedMock.updateAnswer(958e5); //usdc below lb
+        usdtPriceFeedMock.updateAnswer(973e5); //usdt below depeg
+        daiPriceFeedMock.updateAnswer(953e5); //dai below lb
+        // (address[] memory stables_, uint256[] memory stablesAmounts_,uint256[] memory extraStablesAmounts_,,uint256 burnAmt_, uint256 spBurnAmt_) = hubViews.previewRedeem(10 * _amount / 100);
+        (,,uint256[] memory extraStablesAmounts_,,uint256 burnAmt_, uint256 spBurnAmt_) = hubViews.previewRedeem(10 * _amount / 100);
+        // assertEq(stables_[0], DAI);
+        // assertEq(stables_[1], USDC);
+        // assertEq(stables_[2], USDT);
+        //redeeming 10% of the liquidity
+        nstblHub.redeem(10 * _amount / 100, user1);
+        vm.stopPrank();
 
-    //     //redeeming 10% of the liquidity
-    //     nstblHub.redeem(10 * _amount / 100, user1);
-    //     vm.stopPrank();
+        // assertApproxEqAbs(
+        //     stablesAmounts_[1], usdcBalBefore - nstblHub.stablesBalances(USDC), 1, "check USDC balance"
+        // );
+        // assertApproxEqAbs(
+        //     stablesAmounts_[2], usdtBalBefore - nstblHub.stablesBalances(USDT), 1, "check USDT balance"
+        // );
+        // assertApproxEqAbs(
+        //     stablesAmounts_[0], daiBalBefore - nstblHub.stablesBalances(DAI), 1e12, "check DAI balance"
+        // );
+        // assertApproxEqAbs(
+        //     atvlBalBefore - nstblToken.balanceOf(address(atvl)),
+        //     burnAmt_-spBurnAmt_,
+        //     1e12,
+        //     "check ATVL balance"
+        // );
+        // assertApproxEqAbs(
+        //     spBalBefore - nstblToken.balanceOf(address(stakePool)),
+        //     spBurnAmt_,
+        //     1e12,
+        //     "check SP balance"
+        // );
 
-    //     //redeemed only 10% of the liquidity
-    //     assertApproxEqAbs(
-    //         ((_amount * 8 / 100) * 980 / 958) / 10 ** 12,
-    //         usdcBalBefore - IERC20Helper(USDC).balanceOf(address(nstblHub)),
-    //         1,
-    //         "check USDC balance"
-    //     );
-    //     assertApproxEqAbs(
-    //         ((_amount * 1 / 100) * 980 / 973) / 10 ** 12,
-    //         usdtBalBefore - IERC20Helper(USDT).balanceOf(address(nstblHub)),
-    //         1,
-    //         "check USDT balance"
-    //     );
-    //     assertApproxEqAbs(
-    //         ((_amount * 1 / 100) * 980 / 953),
-    //         daiBalBefore - IERC20Helper(DAI).balanceOf(address(nstblHub)),
-    //         1e12,
-    //         "check DAI balance"
-    //     );
-    //     assertEq(nealthyBal - nstblToken.balanceOf(nealthyAddr), _amount / 10);
-    // }
+
+        //redeemed only 10% of the liquidity
+        // assertApproxEqAbs(
+        //     ((_amount * 8 / 100) * 980 / 958) / 10 ** 12,
+        //     usdcBalBefore - IERC20Helper(USDC).balanceOf(address(nstblHub)),
+        //     1,
+        //     "check USDC balance"
+        // );
+        // assertApproxEqAbs(
+        //     ((_amount * 1 / 100) * 980 / 973) / 10 ** 12,
+        //     usdtBalBefore - IERC20Helper(USDT).balanceOf(address(nstblHub)),
+        //     1,
+        //     "check USDT balance"
+        // );
+        // assertApproxEqAbs(
+        //     ((_amount * 1 / 100) * 980 / 953),
+        //     daiBalBefore - IERC20Helper(DAI).balanceOf(address(nstblHub)),
+        //     1e12,
+        //     "check DAI balance"
+        // );
+        console.log("EXTRA STABLES");
+        console.log(extraStablesAmounts_[0], extraStablesAmounts_[1], extraStablesAmounts_[2]);
+        assertApproxEqAbs(
+            (((_amount * 8 / 100) * 980 / 958) / 10 ** 12) - ((_amount * 8 / 100) / 10 ** 12),
+            extraStablesAmounts_[1],
+            1,
+            "check USDC balance"
+        );
+        assertApproxEqAbs(
+            (((_amount * 1 / 100) * 980 / 973) / 10 ** 12) - ((_amount * 1 / 100) / 10 ** 12),
+            extraStablesAmounts_[2],
+            1,
+            "check USDT balance"
+        );
+        assertApproxEqAbs(
+            ((_amount * 1 / 100) * 980 / 953) - (_amount * 1 / 100),
+            extraStablesAmounts_[0],
+            1e12,
+            "check DAI balance"
+        );
+        // assertEq(nealthyBal - nstblToken.balanceOf(nealthyAddr), _amount / 10);
+    }
 
     // // such a case is prevented by backend.
     // // It always makes sure that input redeem amount never exceeds the available liquidity

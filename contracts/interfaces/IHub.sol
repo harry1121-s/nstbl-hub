@@ -142,4 +142,6 @@ interface IHub {
     function processTBillWithdraw() external returns (uint256 usdcRedeemed_);
 
     function stablesBalances(address asset_) external view returns(uint256 balance_);
+
+    function tBillPercent() external view returns(uint256);
 }
