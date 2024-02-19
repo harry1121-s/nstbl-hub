@@ -11,9 +11,11 @@ import { ACLManager } from "@nstbl-acl-manager/contracts/ACLManager.sol";
 import { NSTBLHub } from "../../../contracts/NSTBLHub.sol";
 import { ATVL } from "../../../contracts/ATVL.sol";
 import { IPoolManager } from "@nstbl-loan-manager/contracts/interfaces/maple/IPoolManager.sol";
+import { IPoolPermissionManager } from "@nstbl-loan-manager/contracts/interfaces/maple/IPoolPermissionManager.sol";
 import { IPool } from "@nstbl-loan-manager/contracts/interfaces/maple/IPool.sol";
 import { LoanManager } from "@nstbl-loan-manager/contracts/LoanManager.sol";
 import { ProxyAdmin } from "@nstbl-loan-manager/contracts/upgradeable/ProxyAdmin.sol";
+import { IWithdrawalManager } from "@nstbl-loan-manager/contracts/interfaces/maple/IWithdrawalManager.sol";
 import {
     TransparentUpgradeableProxy,
     ITransparentUpgradeableProxy
@@ -41,6 +43,8 @@ contract BaseTest is Test {
     LoanManager public lmImplementation;
     LoanManager public loanManager;
     IPoolManager public poolManagerUSDC;
+    IPoolPermissionManager public poolPermissionManagerUSDC;
+    IWithdrawalManager public withdrawalManagerUSDC;
     address public lmLPToken;
 
     //StakePool
@@ -82,7 +86,8 @@ contract BaseTest is Test {
     address public poolDelegateUSDC = 0x8c8C2431658608F5649B8432764a930c952d8A98;
     address public MAPLE_USDC_CASH_POOL = 0xfe119e9C24ab79F1bDd5dd884B86Ceea2eE75D92;
     address public MAPLE_POOL_MANAGER_USDC = 0x219654A61a0BC394055652986BE403fa14405Bb8;
-    address public WITHDRAWAL_MANAGER_USDC = 0x1146691782c089bCF0B19aCb8620943a35eebD12;
+    address public MAPLE_POOL_PERMISSION_MANAGER = 0xBe10aDcE8B6E3E02Db384E7FaDA5395DD113D8b3;
+    address public WITHDRAWAL_MANAGER_USDC = 0x447dcEa1d616f792645ed6E71bC32955A0dBcbAa; 
 
     uint256 public dt = 98 * 1e6;
     uint256 public ub = 97 * 1e6;
@@ -206,16 +211,25 @@ contract BaseTest is Test {
 
         //setting NSTBLHub as allowed lender
         poolManagerUSDC = IPoolManager(MAPLE_POOL_MANAGER_USDC);
-        _setAllowedLender();
+        poolPermissionManagerUSDC = IPoolPermissionManager(MAPLE_POOL_PERMISSION_MANAGER);
+        _setAllowedLender(poolDelegateUSDC);
+
+        withdrawalManagerUSDC = IWithdrawalManager(WITHDRAWAL_MANAGER_USDC);
+
+        vm.prank(poolDelegateUSDC);
+        withdrawalManagerUSDC.setManualWithdrawal(address(loanManager), true);
     }
 
-    function _setAllowedLender() internal {
+
+    function _setAllowedLender(address _delegate) internal {
         bool out;
-        vm.startPrank(poolDelegateUSDC);
-        poolManagerUSDC.setAllowedLender(address(loanManager), true);
-        (out,) =
-            address(poolManagerUSDC).staticcall(abi.encodeWithSignature("isValidLender(address)", address(loanManager)));
-        assertTrue(out);
+        vm.startPrank(_delegate);
+
+        address[] memory lenders = new address[](1);
+        bool[] memory val = new bool[](1);
+        lenders[0] = address(loanManager);
+        val[0] = true;
+        poolPermissionManagerUSDC.setLenderAllowlist(MAPLE_POOL_MANAGER_USDC, lenders, val);
         vm.stopPrank();
     }
 
@@ -233,9 +247,9 @@ contract BaseTest is Test {
         uint256 daiAmt;
 
         (usdcAmt, usdtAmt, daiAmt,) = nstblHub.previewDeposit(_amount / 1e18);
-        deal(USDC, nealthyAddr, usdcAmt);
-        deal(USDT, nealthyAddr, usdtAmt);
-        deal(DAI, nealthyAddr, daiAmt);
+        _dealUSDC(nealthyAddr, usdcAmt);
+        deal(USDT, nealthyAddr, usdtAmt, true);
+        deal(DAI, nealthyAddr, daiAmt, true);
 
         vm.startPrank(nealthyAddr);
         IERC20Helper(USDC).safeIncreaseAllowance(address(nstblHub), usdcAmt);
@@ -290,5 +304,12 @@ contract BaseTest is Test {
         uint256 totalAssets = IPool(MAPLE_USDC_CASH_POOL).totalAssets();
         console.log("Upper bound", (upperBound - totalAssets));
         return 100 * (upperBound - totalAssets) / 70;
+    }
+    
+    function _dealUSDC(address to_, uint256 amount_) internal {
+        bytes32 location = keccak256(abi.encode(to_,uint256(9)));
+        vm.store(USDC, location, bytes32(uint256(amount_)));
+        uint256 supplyBefore = IERC20Helper(USDC).totalSupply();
+        vm.store(USDC, bytes32(uint256(11)), bytes32(uint256(supplyBefore+amount_)));
     }
 }

@@ -1,4 +1,3 @@
-pragma solidity 0.8.21;
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.21;
 
@@ -71,7 +70,6 @@ contract testATVL is BaseTest {
         atvl.setAuthorizedCaller(vm.addr(345), true);
         assertEq(atvl.authorizedCallers(vm.addr(345)), true);
     }
-
     function test_skimProfits() external {
         //precondition
         _depositNSTBL(1e6 * 1e18);
@@ -95,6 +93,13 @@ contract testATVL is BaseTest {
         assertEq(nstblAmt, 8000 * 1e18, "check skim amount");
         assertEq(nstblToken.balanceOf(vm.addr(123_456_789)) - balBefore, 8000 * 1e18, "check transferred amount");
         assertEq(nstblToken.balanceOf(address(atvl)), 12_000 * 1e18, "check remaining balance");
+    }
+
+    function test_deal() external {
+        uint256 supplyBefore = IERC20Helper(USDC).totalSupply();
+        _dealUSDC(vm.addr(12), 1e3);
+        assertEq(IERC20Helper(USDC).balanceOf(vm.addr(12)), 1e3);
+        assertEq(IERC20Helper(USDC).totalSupply() - supplyBefore, 1e3);
     }
 }
 
@@ -139,7 +144,7 @@ contract NSTBLHubTestDeposit is BaseTest {
         usdcPriceFeedMock.updateAnswer(982e5);
         usdtPriceFeedMock.updateAnswer(975e5);
         daiPriceFeedMock.updateAnswer(975e5);
-        deal(USDC, nealthyAddr, 1e6 * 1e6);
+        _dealUSDC(nealthyAddr, 1e6 * 1e6);
         deal(USDT, nealthyAddr, 1e6 * 1e6);
         deal(DAI, nealthyAddr, 1e6 * 1e18);
 
@@ -164,7 +169,7 @@ contract NSTBLHubTestDeposit is BaseTest {
 
         //usdt also depegs
         usdtPriceFeedMock.updateAnswer(971e5);
-        deal(USDC, nealthyAddr, 1e6 * 1e6);
+        _dealUSDC(nealthyAddr, 1e6 * 1e6);
         deal(USDT, nealthyAddr, 1e6 * 1e6);
         deal(DAI, nealthyAddr, 1e6 * 1e18);
 
@@ -190,7 +195,7 @@ contract NSTBLHubTestDeposit is BaseTest {
 
         (usdcAmt, usdtAmt, daiAmt, tBillAmt) = nstblHub.previewDeposit(1e6);
 
-        deal(USDC, nealthyAddr, usdcAmt);
+        _dealUSDC(nealthyAddr, usdcAmt);
         deal(USDT, nealthyAddr, usdtAmt);
         deal(DAI, nealthyAddr, daiAmt);
 
@@ -227,7 +232,7 @@ contract NSTBLHubTestDeposit is BaseTest {
         vm.expectRevert("HUB: Invalid Investment Amount");
         (usdcAmt, usdtAmt, daiAmt,) = nstblHub.previewDeposit(1e10);
         (usdcAmt, usdtAmt, daiAmt) = (8e9 * 1e6, 1e9 * 1e6, 1e9 * 1e18);
-        deal(USDC, nealthyAddr, usdcAmt);
+        _dealUSDC(nealthyAddr, usdcAmt);
         deal(USDT, nealthyAddr, usdtAmt);
         deal(DAI, nealthyAddr, daiAmt);
 
@@ -254,7 +259,7 @@ contract NSTBLHubTestDeposit is BaseTest {
 
         (usdcAmt, usdtAmt, daiAmt, tBillAmt) = nstblHub.previewDeposit(1e6);
 
-        deal(USDC, nealthyAddr, usdcAmt);
+        _dealUSDC(nealthyAddr, usdcAmt);
         deal(USDT, nealthyAddr, usdtAmt);
         deal(DAI, nealthyAddr, daiAmt);
 
@@ -293,7 +298,7 @@ contract NSTBLHubTestDeposit is BaseTest {
         uint256 usdcAmt = 798e3 * 1e6;
         uint256 usdtAmt = 100e3 * 1e6;
         uint256 daiAmt = 102e3 * 1e18;
-        deal(USDC, nealthyAddr, usdcAmt);
+        _dealUSDC(nealthyAddr, usdcAmt);
         deal(USDT, nealthyAddr, usdtAmt);
         deal(DAI, nealthyAddr, daiAmt);
 
@@ -323,7 +328,7 @@ contract NSTBLHubTestDeposit is BaseTest {
         vm.expectRevert("HUB: Invalid Deposit");
         (usdcAmt, usdtAmt, daiAmt, tBillAmt) = nstblHub.previewDeposit(1e6);
 
-        deal(USDC, nealthyAddr, usdcAmt);
+        _dealUSDC(nealthyAddr, usdcAmt);
         deal(USDT, nealthyAddr, usdtAmt);
         deal(DAI, nealthyAddr, daiAmt);
 
@@ -349,7 +354,7 @@ contract NSTBLHubTestDeposit is BaseTest {
 
         (usdcAmt, usdtAmt, daiAmt, tBillAmt) = nstblHub.previewDeposit(1e6);
 
-        deal(USDC, nealthyAddr, usdcAmt);
+        _dealUSDC(nealthyAddr, usdcAmt);
         deal(USDT, nealthyAddr, usdtAmt);
         deal(DAI, nealthyAddr, daiAmt);
 
@@ -390,7 +395,7 @@ contract NSTBLHubTestDeposit is BaseTest {
 
         (usdcAmt, usdtAmt, daiAmt, tBillAmt) = nstblHub.previewDeposit(1e6);
 
-        deal(USDC, nealthyAddr, usdcAmt);
+        _dealUSDC(nealthyAddr, usdcAmt);
         deal(USDT, nealthyAddr, usdtAmt);
         deal(DAI, nealthyAddr, daiAmt);
 
@@ -435,7 +440,7 @@ contract NSTBLHubTestDeposit is BaseTest {
         uint256 usdcAmt = 784e3 * 1e6;
         uint256 usdtAmt = 102e3 * 1e6;
         uint256 daiAmt = 100e3 * 1e18;
-        deal(USDC, nealthyAddr, usdcAmt);
+        _dealUSDC(nealthyAddr, usdcAmt);
         deal(USDT, nealthyAddr, usdtAmt);
         deal(DAI, nealthyAddr, daiAmt);
 
@@ -502,7 +507,7 @@ contract NSTBLHubTestDeposit is BaseTest {
 
         //randomizing 1% deviation here
         (uint256 usdcAmt, uint256 usdtAmt, uint256 daiAmt) = _randomizeDepositAmounts(_amount2);
-        deal(USDC, nealthyAddr, usdcAmt);
+        _dealUSDC(nealthyAddr, usdcAmt);
         deal(USDT, nealthyAddr, usdtAmt);
         deal(DAI, nealthyAddr, daiAmt);
 
@@ -540,7 +545,7 @@ contract NSTBLHubTestDeposit is BaseTest {
         }
         (usdcAmt, usdtAmt, daiAmt, tBillAmt) = nstblHub.previewDeposit(1e6);
 
-        deal(USDC, nealthyAddr, usdcAmt);
+        _dealUSDC(nealthyAddr, usdcAmt);
         deal(USDT, nealthyAddr, usdtAmt);
         deal(DAI, nealthyAddr, daiAmt);
 
@@ -595,7 +600,7 @@ contract NSTBLHubTestDeposit is BaseTest {
         }
         (usdcAmt, usdtAmt, daiAmt, tBillAmt) = nstblHub.previewDeposit(_amount);
 
-        deal(USDC, nealthyAddr, usdcAmt);
+        _dealUSDC(nealthyAddr, usdcAmt);
         deal(USDT, nealthyAddr, usdtAmt);
         deal(DAI, nealthyAddr, daiAmt);
 
@@ -1083,11 +1088,8 @@ contract NSTBLHubTestRedeem is BaseTest {
         //first making a deposit
         _depositNSTBL(_amount);
 
-        vm.startPrank(nealthyAddr);
-        vm.expectRevert("HUB: No redemption requested");
-        nstblHub.processTBillWithdraw();
-        vm.stopPrank();
-
+        uint256 lmUSDC = IERC20Helper(loanManager.mapleUSDCPool()).balanceOf(address(loanManager));
+       
         uint256 usdcTotal = nstblHub.stablesBalances(USDC) * 1e12 + loanManager.getMaturedAssets();
 
         uint256 usdcBalBefore = nstblHub.stablesBalances(USDC);
@@ -1098,6 +1100,7 @@ contract NSTBLHubTestRedeem is BaseTest {
         uint256 usdtAlloc = usdtBalBefore * 1e12 * 1e18 / tvl;
         uint256 daiAlloc = daiBalBefore * 1e18 / tvl;
         uint256 nstblBalBefore = nstblToken.balanceOf(nealthyAddr);
+
         vm.startPrank(nealthyAddr);
         nstblToken.approve(address(nstblHub), _amount);
         //can redeem only 12.5% of the liquidity
@@ -1126,15 +1129,15 @@ contract NSTBLHubTestRedeem is BaseTest {
         //checking for T-bill redemption status
         assertTrue(loanManager.awaitingRedemption());
 
+        vm.startPrank(poolDelegateUSDC);
+        withdrawalManagerUSDC.processRedemptions(lmUSDC-IERC20Helper(loanManager.mapleUSDCPool()).balanceOf(address(loanManager)));
+        vm.stopPrank();
+
         usdcBalBefore = nstblHub.stablesBalances(USDC);
-        vm.startPrank(nealthyAddr);
-        vm.expectRevert("LM: Not in Window");
+        vm.prank(nealthyAddr);
         uint256 stablesRedeemed = nstblHub.processTBillWithdraw();
 
-        (uint256 windowStart,) = loanManager.getRedemptionWindow();
-        vm.warp(windowStart);
-        stablesRedeemed = nstblHub.processTBillWithdraw();
-
+        console.log(stablesRedeemed, nstblHub.stablesBalances(USDC) - usdcBalBefore, "check stables redeemed");
         assertEq(stablesRedeemed, nstblHub.stablesBalances(USDC) - usdcBalBefore, "check stables redeemed");
 
         assertApproxEqRel(
