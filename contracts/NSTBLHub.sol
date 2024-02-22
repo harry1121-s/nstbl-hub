@@ -95,7 +95,8 @@ contract NSTBLHub is INSTBLHub, NSTBLHUBStorage, VersionedInitializable {
     /**
      * @inheritdoc INSTBLHub
      */
-    function deposit(uint256 usdcAmt_, uint256 usdtAmt_, uint256 daiAmt_) external authorizedCaller {
+    function deposit(uint256 usdcAmt_, uint256 usdtAmt_, uint256 daiAmt_, address destAddress_) external authorizedCaller {
+        _zeroAddressCheck(destAddress_);
         (uint256 a1_, uint256 a2_, uint256 a3_) = _validateSystemAllocation(usdcAmt_, usdtAmt_, daiAmt_);
         _checkEquilibrium(a1_, a2_, a3_, usdcAmt_, usdtAmt_, daiAmt_);
         uint256 tBillsAmount = _calculateTBillsAmount(usdcAmt_, usdtAmt_, daiAmt_);
@@ -118,7 +119,7 @@ contract NSTBLHub is INSTBLHub, NSTBLHUBStorage, VersionedInitializable {
         if (IERC20Helper(nstblToken).totalSupply() == 0) {
             IStakePool(stakePool).updateMaturityValue();
         }
-        IERC20Helper(nstblToken).mint(msg.sender, (usdcAmt_ + usdtAmt_) * 1e12 + daiAmt_);
+        IERC20Helper(nstblToken).mint(destAddress_, (usdcAmt_ + usdtAmt_) * 1e12 + daiAmt_);
         emit Deposited(usdcAmt_, usdtAmt_, daiAmt_, tBillsAmount, (usdcAmt_ + usdtAmt_) * 1e12 + daiAmt_, msg.sender);
     }
 

@@ -93,8 +93,9 @@ interface INSTBLHub {
      * @param usdcAmt_ The amount of USDC to be deposited
      * @param usdtAmt_ The amount of USDT to be deposited
      * @param daiAmt_ The amount of DAI to be deposited
+     * @param destAddress_ The address of the receiving account
      */
-    function deposit(uint256 usdcAmt_, uint256 usdtAmt_, uint256 daiAmt_) external;
+    function deposit(uint256 usdcAmt_, uint256 usdtAmt_, uint256 daiAmt_, address destAddress_) external;
 
     /**
      * @dev Calculates the amount of tokens that will be redeemed

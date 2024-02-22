@@ -153,7 +153,7 @@ contract NSTBLHubTestDeposit is BaseTest {
         IERC20Helper(USDT).safeIncreaseAllowance(address(nstblHub), 1e6 * 1e6);
         IERC20Helper(DAI).safeIncreaseAllowance(address(nstblHub), 1e6 * 1e18);
         vm.expectRevert("HUB: Invalid Deposit");
-        nstblHub.deposit(1e6 * 1e6, 1e6 * 1e6, 1e6 * 1e6);
+        nstblHub.deposit(1e6 * 1e6, 1e6 * 1e6, 1e6 * 1e6, nealthyAddr);
         vm.stopPrank();
 
         usdcPriceFeedMock.updateAnswer(982e5);
@@ -164,7 +164,7 @@ contract NSTBLHubTestDeposit is BaseTest {
         IERC20Helper(USDT).safeIncreaseAllowance(address(nstblHub), 1e6 * 1e6);
         IERC20Helper(DAI).safeIncreaseAllowance(address(nstblHub), 1e6 * 1e18);
         vm.expectRevert("HUB: Invalid Deposit");
-        nstblHub.deposit(1e6 * 1e6, 1e6 * 1e6, 1e6 * 1e6);
+        nstblHub.deposit(1e6 * 1e6, 1e6 * 1e6, 1e6 * 1e6, nealthyAddr);
         vm.stopPrank();
 
         //usdt also depegs
@@ -178,7 +178,7 @@ contract NSTBLHubTestDeposit is BaseTest {
         IERC20Helper(USDT).safeIncreaseAllowance(address(nstblHub), 1e6 * 1e6);
         IERC20Helper(DAI).safeIncreaseAllowance(address(nstblHub), 1e6 * 1e18);
         vm.expectRevert("HUB: Invalid Deposit");
-        nstblHub.deposit(0, 0, 0);
+        nstblHub.deposit(0, 0, 0, nealthyAddr);
         vm.stopPrank();
     }
 
@@ -204,7 +204,7 @@ contract NSTBLHubTestDeposit is BaseTest {
         IERC20Helper(USDT).safeIncreaseAllowance(address(nstblHub), usdtAmt);
         IERC20Helper(DAI).safeIncreaseAllowance(address(nstblHub), daiAmt);
         vm.expectRevert("HUB::Deposit Not Allowed");
-        nstblHub.deposit(usdcAmt * 110 / 100, usdtAmt * 105 / 100, daiAmt * 95 / 100); //over 2% deviation in deposit amounts
+        nstblHub.deposit(usdcAmt * 110 / 100, usdtAmt * 105 / 100, daiAmt * 95 / 100, nealthyAddr); //over 2% deviation in deposit amounts
 
         vm.stopPrank();
 
@@ -214,7 +214,7 @@ contract NSTBLHubTestDeposit is BaseTest {
         IERC20Helper(USDT).safeIncreaseAllowance(address(nstblHub), usdtAmt);
         IERC20Helper(DAI).safeIncreaseAllowance(address(nstblHub), daiAmt);
         vm.expectRevert("HUB::Deposit Not Allowed");
-        nstblHub.deposit(usdcAmt * 110 / 100, usdtAmt * 105 / 100, daiAmt * 95 / 100);
+        nstblHub.deposit(usdcAmt * 110 / 100, usdtAmt * 105 / 100, daiAmt * 95 / 100, nealthyAddr);
 
         _depositNSTBL(1e6 * 1e18);
 
@@ -242,7 +242,7 @@ contract NSTBLHubTestDeposit is BaseTest {
         IERC20Helper(DAI).safeIncreaseAllowance(address(nstblHub), daiAmt);
 
         vm.expectRevert("HUB: Invalid Investment");
-        nstblHub.deposit(usdcAmt, usdtAmt, daiAmt);
+        nstblHub.deposit(usdcAmt, usdtAmt, daiAmt, nealthyAddr);
         vm.stopPrank();
     }
 
@@ -268,7 +268,7 @@ contract NSTBLHubTestDeposit is BaseTest {
         IERC20Helper(USDC).safeIncreaseAllowance(address(nstblHub), usdcAmt);
         IERC20Helper(USDT).safeIncreaseAllowance(address(nstblHub), usdtAmt);
         IERC20Helper(DAI).safeIncreaseAllowance(address(nstblHub), daiAmt);
-        nstblHub.deposit(usdcAmt, usdtAmt, daiAmt);
+        nstblHub.deposit(usdcAmt, usdtAmt, daiAmt, nealthyAddr);
 
         uint256 nstblBalAfter = nstblToken.balanceOf(nealthyAddr);
         vm.stopPrank();
@@ -308,7 +308,7 @@ contract NSTBLHubTestDeposit is BaseTest {
         IERC20Helper(DAI).safeIncreaseAllowance(address(nstblHub), daiAmt);
 
         // vm.expectRevert("HUB::Deposit Not Allowed!");
-        nstblHub.deposit(usdcAmt, usdtAmt, daiAmt);
+        nstblHub.deposit(usdcAmt, usdtAmt, daiAmt, nealthyAddr);
         vm.stopPrank();
 
         assertFalse(nstblHub.validateDepositEquilibrium(900e3 * 1e6, 101e3 * 1e6, 102e3 * 1e18));
@@ -337,7 +337,7 @@ contract NSTBLHubTestDeposit is BaseTest {
         IERC20Helper(USDT).safeIncreaseAllowance(address(nstblHub), usdtAmt);
         IERC20Helper(DAI).safeIncreaseAllowance(address(nstblHub), daiAmt);
         vm.expectRevert("HUB: Invalid Deposit");
-        nstblHub.deposit(usdcAmt, usdtAmt, daiAmt);
+        nstblHub.deposit(usdcAmt, usdtAmt, daiAmt, nealthyAddr);
 
         vm.stopPrank();
     }
@@ -364,7 +364,7 @@ contract NSTBLHubTestDeposit is BaseTest {
         IERC20Helper(USDC).safeIncreaseAllowance(address(nstblHub), usdcAmt);
         IERC20Helper(USDT).safeIncreaseAllowance(address(nstblHub), usdtAmt);
         IERC20Helper(DAI).safeIncreaseAllowance(address(nstblHub), daiAmt);
-        nstblHub.deposit(usdcAmt, usdtAmt, daiAmt);
+        nstblHub.deposit(usdcAmt, usdtAmt, daiAmt, nealthyAddr);
         uint256 nstblBalAfter = nstblToken.balanceOf(nealthyAddr);
         vm.stopPrank();
 
@@ -405,7 +405,7 @@ contract NSTBLHubTestDeposit is BaseTest {
         IERC20Helper(USDC).safeIncreaseAllowance(address(nstblHub), usdcAmt);
         IERC20Helper(USDT).safeIncreaseAllowance(address(nstblHub), usdtAmt);
         IERC20Helper(DAI).safeIncreaseAllowance(address(nstblHub), daiAmt);
-        nstblHub.deposit(usdcAmt, usdtAmt, daiAmt);
+        nstblHub.deposit(usdcAmt, usdtAmt, daiAmt, nealthyAddr);
 
         uint256 nstblBalAfter = nstblToken.balanceOf(nealthyAddr);
         vm.stopPrank();
@@ -449,7 +449,7 @@ contract NSTBLHubTestDeposit is BaseTest {
         IERC20Helper(USDT).safeIncreaseAllowance(address(nstblHub), usdtAmt);
         IERC20Helper(DAI).safeIncreaseAllowance(address(nstblHub), daiAmt);
 
-        nstblHub.deposit(usdcAmt, usdtAmt, daiAmt);
+        nstblHub.deposit(usdcAmt, usdtAmt, daiAmt, nealthyAddr);
         vm.stopPrank();
 
         assertApproxEqRel(
@@ -516,7 +516,7 @@ contract NSTBLHubTestDeposit is BaseTest {
         IERC20Helper(USDT).safeIncreaseAllowance(address(nstblHub), usdtAmt);
         IERC20Helper(DAI).safeIncreaseAllowance(address(nstblHub), daiAmt);
 
-        nstblHub.deposit(usdcAmt, usdtAmt, daiAmt);
+        nstblHub.deposit(usdcAmt, usdtAmt, daiAmt, nealthyAddr);
         vm.stopPrank();
         assertApproxEqRel(
             loanManager.getMaturedAssets(),
@@ -559,7 +559,7 @@ contract NSTBLHubTestDeposit is BaseTest {
         if (usdcAmt + usdtAmt + daiAmt == 0) {
             vm.expectRevert("HUB: Invalid Deposit");
         }
-        nstblHub.deposit(usdcAmt, usdtAmt, daiAmt);
+        nstblHub.deposit(usdcAmt, usdtAmt, daiAmt, nealthyAddr);
 
         uint256 nstblBalAfter = nstblToken.balanceOf(nealthyAddr);
 
@@ -614,7 +614,7 @@ contract NSTBLHubTestDeposit is BaseTest {
         if (usdcAmt + usdtAmt + daiAmt == 0) {
             vm.expectRevert("HUB: Invalid Deposit");
         }
-        nstblHub.deposit(usdcAmt, usdtAmt, daiAmt);
+        nstblHub.deposit(usdcAmt, usdtAmt, daiAmt, nealthyAddr);
 
         uint256 nstblBalAfter = nstblToken.balanceOf(nealthyAddr);
 

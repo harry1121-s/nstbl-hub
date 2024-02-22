@@ -258,7 +258,7 @@ contract BaseTest is Test {
         if (usdcAmt + usdtAmt + daiAmt == 0) {
             vm.expectRevert("HUB: Invalid Deposit");
         }
-        nstblHub.deposit(usdcAmt, usdtAmt, daiAmt);
+        nstblHub.deposit(usdcAmt, usdtAmt, daiAmt, nealthyAddr);
         vm.stopPrank();
     }
 
