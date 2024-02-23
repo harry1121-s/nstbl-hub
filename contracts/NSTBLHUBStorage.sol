@@ -48,8 +48,9 @@ contract NSTBLHUBStorage {
     uint256 public precision;
 
     uint256 public tBillPercent;
+    uint256 public nstblDebt;
 
     //add new variables here to extended the storage
     //reduce the gap size equal the size of new variables: to maintain original layout and prevent collision
-    uint256[26] __gap;
+    uint256[25] __gap;
 }

@@ -40,21 +40,11 @@ interface INSTBLHub {
     );
 
     /**
-     * @dev Emitted when NSTBL tokens are redeemed in a non-depeg scenario
+     * @dev Emitted when NSTBL tokens are requested for redemption 
      * @param amount_ The amount of NSTBL to be redeemed
-     * @param destAddress_ Address receiving stable tokens
+     * @param tBillRedeemAmount_ The amount of TBills(in USDC) to be liquidated
      */
-    event RedeemedNormal(uint256 amount_, address indexed destAddress_);
-
-    /**
-     * @dev Emitted when NSTBL tokens are redeemed in a depeg scenario
-     * @param amount_ The amount of NSTBL to be redeemed
-     * @param destAddress_ Address receiving stable tokens
-     * @param burnAmt_ NSTBL tokens burnt from ATVL
-     * @param stakePoolBurnAmt_ NSTBL tokens burnt from Stake Pool
-     */
-    event RedeemedDepeg(uint256 amount_, address indexed destAddress_, uint256 burnAmt_, uint256 stakePoolBurnAmt_);
-
+    event RedemptionRequested(uint256 amount_, uint256 tBillRedeemAmount_);
     /**
      * @dev Emitted when NSTBL tokens are unstaked in a depeg scenario
      * @param destAddress_ Address receiving unstaked NSTBL and redeemed stables
@@ -97,12 +87,11 @@ interface INSTBLHub {
      */
     function deposit(uint256 usdcAmt_, uint256 usdtAmt_, uint256 daiAmt_, address destAddress_) external;
 
-    /**
-     * @dev Calculates the amount of tokens that will be redeemed
-     * @param amount_ The amount of tokens to be redeemed
-     * @param destinationAddress_ The address of the receiving account
-     */
-    function redeem(uint256 amount_, address destinationAddress_) external;
+    // /**
+    //  * @dev Function to request redemption of NSTBL tokens
+    //  * @param amount_ The amount of NSTBL tokens to be redeemed
+    //  */
+    function requestRedemption(uint256 amount_) external;
 
     /**
      * @dev The amount of tokens will be unstaked

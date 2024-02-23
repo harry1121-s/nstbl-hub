@@ -4,6 +4,7 @@ import { IACLManager } from "@nstbl-acl-manager/contracts/IACLManager.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@nstbl-loan-manager/contracts/upgradeable/VersionedInitializable.sol";
 import "./NSTBLHUBStorage.sol";
+import { console } from "forge-std/Test.sol";
 
 contract NSTBLHub is INSTBLHub, NSTBLHUBStorage, VersionedInitializable {
     using SafeERC20 for IERC20Helper;
@@ -126,15 +127,78 @@ contract NSTBLHub is INSTBLHub, NSTBLHUBStorage, VersionedInitializable {
     /**
      * @inheritdoc INSTBLHub
      */
-    function redeem(uint256 amount_, address destAddress_) external authorizedCaller nonReentrant {
-        _zeroAddressCheck(destAddress_);
-        (uint256 p1, uint256 p2, uint256 p3) = IChainlinkPriceFeed(chainLinkPriceFeed).getLatestPrice();
-        if (p1 > dt && p2 > dt && p3 > dt) {
-            _redeemNormal(amount_, destAddress_);
-        } else {
-            _redeemForNonStaker(amount_, destAddress_);
-        }
+     /**
+     function requestRedemption(uint256 amount_) external authorizedCaller nonReentrant {}
+        event: amount, tbills requested for redemption
+     function processRedemption(address dstAddress_) external authorizedCaller nonReentrant {}
+        event: dst address, nstbl redeemed, usdc,usdt,dai amounts
+        event: atvl burn amount, sp burn amount, excess USDC,USDT,DAI amounts
+     function getRedemptionStatus() external view returns (bool status_) {}
+     function previewProcessRedemption(uint256 amount_) external view returns(uint256[] memory assetAmounts_, uint256 tBillsRedeemed_) {}
+      */
+
+    function requestRedemption(uint256 amount_) external authorizedCaller nonReentrant {
+        require(amount_ > 0 && amount_ <= IERC20Helper(nstblToken).totalSupply(), "HUB: Invalid Redemption Amount");
+        IERC20Helper(nstblToken).safeTransferFrom(msg.sender, address(this), amount_);
+        nstblDebt += amount_;
+        uint256 newTVL = IERC20Helper(nstblToken).totalSupply() - amount_;
+        uint256 tBillsRedeemAmount = ILoanManager(loanManager).getMaturedAssets() - (tBillPercent * newTVL / 1e4);
+        _requestTBillWithdraw(tBillsRedeemAmount);
+        emit RedemptionRequested(amount_, tBillsRedeemAmount);
     }
+
+    function processRedemption(address dstAddress_) external authorizedCaller nonReentrant {
+        _zeroAddressCheck(dstAddress_);
+        require(ILoanManager(loanManager).awaitingRedemption(), "HUB: No redemption requested");
+        _redeemTBill();
+        uint256[] memory balances = _getAssetBalances();
+        uint256 tvl = balances[0] + balances[1] + balances[2];
+        uint256 redeemAmount = _getRedeemableNSTBL(balances, tvl);
+        uint256[] memory redemptionRatios = _getRedemptionRatios(balances, tvl);
+        uint256 adjustedDecimals;
+        uint256 availAssets;
+        IERC20Helper(nstblToken).burn(address(this), redeemAmount);
+        for (uint256 i = 0; i < assets.length; i++) {
+            adjustedDecimals = IERC20Helper(nstblToken).decimals() - IERC20Helper(assets[i]).decimals();
+            availAssets = (redeemAmount * redemptionRatios[i]) / (1e18 * 10 ** adjustedDecimals);
+            IERC20Helper(assets[i]).safeTransfer(dstAddress_, availAssets);
+            stablesBalances[assets[i]] -= availAssets;
+        }
+        IERC20Helper(nstblToken).safeTransfer(dstAddress_, nstblDebt-redeemAmount);
+        nstblDebt = 0;
+        // emit RedemptionProcessed(dstAddress_, tokensToRedeem);
+    }
+
+    function _getRedeemableNSTBL(uint256[] memory balances_, uint256 tvl_) internal view returns (uint256 redeemAmount_) {
+        (uint256 p1,,) = IChainlinkPriceFeed(chainLinkPriceFeed).getLatestPrice();
+        uint256 maxAmount;
+        if(p1>dt){
+            maxAmount = (stablesBalances[USDC] * 1e12) * tvl_ / balances_[0];
+        }
+        else if (p1<dt) { 
+            maxAmount = (stablesBalances[USDC] * 1e12) * tvl_ * p1 / (balances_[0] * dt);
+        }
+        redeemAmount_ = nstblDebt > maxAmount ? maxAmount : nstblDebt;
+    }
+
+    function _getRedemptionRatios(uint256[] memory balances_, uint256 tvl_) internal pure returns(uint256[] memory ratios_){
+        ratios_ = new uint256[](3);
+        ratios_[0] = balances_[0] * 1e18 / tvl_;
+        ratios_[1] = balances_[1] * 1e18 / tvl_;
+        ratios_[2] = balances_[2] * 1e18 / tvl_;
+    }
+
+    
+
+    // function redeem(uint256 amount_, address destAddress_) external authorizedCaller nonReentrant {
+    //     _zeroAddressCheck(destAddress_);
+    //     (uint256 p1, uint256 p2, uint256 p3) = IChainlinkPriceFeed(chainLinkPriceFeed).getLatestPrice();
+    //     if (p1 > dt && p2 > dt && p3 > dt) {
+    //         _redeemNormal(amount_, destAddress_);
+    //     } else {
+    //         _redeemForNonStaker(amount_, destAddress_);
+    //     }
+    // }
 
     /**
      * @inheritdoc INSTBLHub
@@ -437,32 +501,32 @@ contract NSTBLHub is INSTBLHub, NSTBLHUBStorage, VersionedInitializable {
         }
     }
 
-    /**
-     * @dev Redeems NSTBL for a non-staker in non-depeg scenario
-     * @param amount_ The amount of NSTBL to be redeemed
-     */
-    function _redeemNormal(uint256 amount_, address destAddress_) internal {
-        uint256 availAssets;
-        uint256 adjustedDecimals;
-        IERC20Helper(nstblToken).burn(msg.sender, amount_);
+    // /**
+    //  * @dev Redeems NSTBL for a non-staker in non-depeg scenario
+    //  * @param amount_ The amount of NSTBL to be redeemed
+    //  */
+    // function _redeemNormal(uint256 amount_, address destAddress_) internal {
+    //     uint256 availAssets;
+    //     uint256 adjustedDecimals;
+    //     IERC20Helper(nstblToken).burn(msg.sender, amount_);
 
-        uint256[] memory balances = _getAssetBalances();
-        uint256 tvl = balances[0] + balances[1] + balances[2];
-        uint256 redemptionAllocation;
+    //     uint256[] memory balances = _getAssetBalances();
+    //     uint256 tvl = balances[0] + balances[1] + balances[2];
+    //     uint256 redemptionAllocation;
 
-        for (uint256 i = 0; i < assets.length; i++) {
-            adjustedDecimals = IERC20Helper(nstblToken).decimals() - IERC20Helper(assets[i]).decimals();
-            redemptionAllocation = balances[i] * 1e18 / tvl;
-            availAssets = (amount_ * redemptionAllocation) / (1e18 * 10 ** adjustedDecimals)
-                <= stablesBalances[assets[i]]
-                ? (amount_ * redemptionAllocation) / (1e18 * 10 ** adjustedDecimals)
-                : stablesBalances[assets[i]];
-            IERC20Helper(assets[i]).safeTransfer(destAddress_, availAssets);
-            stablesBalances[assets[i]] -= availAssets;
-        }
-        _requestTBillWithdraw(tBillPercent * amount_ / 1e4);
-        emit RedeemedNormal(amount_, destAddress_);
-    }
+    //     for (uint256 i = 0; i < assets.length; i++) {
+    //         adjustedDecimals = IERC20Helper(nstblToken).decimals() - IERC20Helper(assets[i]).decimals();
+    //         redemptionAllocation = balances[i] * 1e18 / tvl;
+    //         availAssets = (amount_ * redemptionAllocation) / (1e18 * 10 ** adjustedDecimals)
+    //             <= stablesBalances[assets[i]]
+    //             ? (amount_ * redemptionAllocation) / (1e18 * 10 ** adjustedDecimals)
+    //             : stablesBalances[assets[i]];
+    //         IERC20Helper(assets[i]).safeTransfer(destAddress_, availAssets);
+    //         stablesBalances[assets[i]] -= availAssets;
+    //     }
+    //     _requestTBillWithdraw(tBillPercent * amount_ / 1e4);
+    //     emit RedeemedNormal(amount_, destAddress_);
+    // }
 
     /**
      * @dev Unstakes NSTBL for staker in non-depeg scenario
@@ -584,62 +648,62 @@ contract NSTBLHub is INSTBLHub, NSTBLHUBStorage, VersionedInitializable {
         IATVL(atvl).burnNstbl(burnAmount_);
     }
 
-    /**
-     * @dev Redeems NSTBL for non-stakers in depeg scenario
-     * @param amount_ The amount of NSTBL to be redeemed
-     * @param destAddress_ The address of the user
-     */
-    function _redeemForNonStaker(uint256 amount_, address destAddress_) internal {
-        localVars memory vars;
-        uint256 precisionAmount = amount_ * precision;
-        IERC20Helper(nstblToken).burn(msg.sender, amount_);
-        (address[] memory sortedAssets, uint256[] memory sortedAssetsPrice) = _getSortedAssetsWithPrice();
-        uint256[] memory redemptionAlloc = _calculateRedemptionAllocation(sortedAssets);
-        for (uint256 i = 0; i < sortedAssets.length; i++) {
-            if (sortedAssetsPrice[i] < dt) {
-                vars.belowDT = true;
-                if (sortedAssetsPrice[i] < lb) {
-                    vars.burnFromStakePool = true;
-                } else {
-                    vars.burnFromStakePool = false;
-                }
-            } else {
-                vars.belowDT = false;
-            }
+    // /**
+    //  * @dev Redeems NSTBL for non-stakers in depeg scenario
+    //  * @param amount_ The amount of NSTBL to be redeemed
+    //  * @param destAddress_ The address of the user
+    //  */
+    // function _redeemForNonStaker(uint256 amount_, address destAddress_) internal {
+    //     localVars memory vars;
+    //     uint256 precisionAmount = amount_ * precision;
+    //     IERC20Helper(nstblToken).burn(msg.sender, amount_);
+    //     (address[] memory sortedAssets, uint256[] memory sortedAssetsPrice) = _getSortedAssetsWithPrice();
+    //     uint256[] memory redemptionAlloc = _calculateRedemptionAllocation(sortedAssets);
+    //     for (uint256 i = 0; i < sortedAssets.length; i++) {
+    //         if (sortedAssetsPrice[i] < dt) {
+    //             vars.belowDT = true;
+    //             if (sortedAssetsPrice[i] < lb) {
+    //                 vars.burnFromStakePool = true;
+    //             } else {
+    //                 vars.burnFromStakePool = false;
+    //             }
+    //         } else {
+    //             vars.belowDT = false;
+    //         }
 
-            vars.assetBalance = stablesBalances[sortedAssets[i]] * precision;
-            vars.adjustedDecimals = IERC20Helper(nstblToken).decimals() - IERC20Helper(sortedAssets[i]).decimals();
-            if (!vars.belowDT) {
-                vars.assetRequired = (redemptionAlloc[i] * precisionAmount / 1e18) + vars.remainingNstbl;
-                vars.remainingNstbl = _transferNormal(
-                    destAddress_, sortedAssets[i], vars.assetRequired, vars.assetBalance, vars.adjustedDecimals
-                );
-            } else {
-                vars.assetProportion =
-                    ((redemptionAlloc[i] * precisionAmount / 1e18) + vars.remainingNstbl) / 10 ** vars.adjustedDecimals;
-                vars.assetRequired = vars.assetProportion * dt / sortedAssetsPrice[i];
-                (vars.remainingNstbl, vars.burnAmount) = _transferBelowDepeg(
-                    destAddress_,
-                    sortedAssets[i],
-                    vars.assetProportion,
-                    vars.assetRequired,
-                    vars.assetBalance,
-                    vars.adjustedDecimals,
-                    vars.burnAmount,
-                    sortedAssetsPrice[i]
-                );
-                vars.stakePoolBurnAmount += vars.burnFromStakePool
-                    ? _stakePoolBurnAmount(vars.assetRequired, vars.assetProportion, vars.adjustedDecimals)
-                    : 0;
-            }
-        }
-        _burnNstblFromAtvl((vars.burnAmount - vars.stakePoolBurnAmount));
-        _burnNstblFromStakePool(vars.stakePoolBurnAmount);
-        _requestTBillWithdraw(amount_ * tBillPercent / 1e4);
-        emit RedeemedDepeg(
-            amount_, destAddress_, (vars.burnAmount - vars.stakePoolBurnAmount), vars.stakePoolBurnAmount
-        );
-    }
+    //         vars.assetBalance = stablesBalances[sortedAssets[i]] * precision;
+    //         vars.adjustedDecimals = IERC20Helper(nstblToken).decimals() - IERC20Helper(sortedAssets[i]).decimals();
+    //         if (!vars.belowDT) {
+    //             vars.assetRequired = (redemptionAlloc[i] * precisionAmount / 1e18) + vars.remainingNstbl;
+    //             vars.remainingNstbl = _transferNormal(
+    //                 destAddress_, sortedAssets[i], vars.assetRequired, vars.assetBalance, vars.adjustedDecimals
+    //             );
+    //         } else {
+    //             vars.assetProportion =
+    //                 ((redemptionAlloc[i] * precisionAmount / 1e18) + vars.remainingNstbl) / 10 ** vars.adjustedDecimals;
+    //             vars.assetRequired = vars.assetProportion * dt / sortedAssetsPrice[i];
+    //             (vars.remainingNstbl, vars.burnAmount) = _transferBelowDepeg(
+    //                 destAddress_,
+    //                 sortedAssets[i],
+    //                 vars.assetProportion,
+    //                 vars.assetRequired,
+    //                 vars.assetBalance,
+    //                 vars.adjustedDecimals,
+    //                 vars.burnAmount,
+    //                 sortedAssetsPrice[i]
+    //             );
+    //             vars.stakePoolBurnAmount += vars.burnFromStakePool
+    //                 ? _stakePoolBurnAmount(vars.assetRequired, vars.assetProportion, vars.adjustedDecimals)
+    //                 : 0;
+    //         }
+    //     }
+    //     _burnNstblFromAtvl((vars.burnAmount - vars.stakePoolBurnAmount));
+    //     _burnNstblFromStakePool(vars.stakePoolBurnAmount);
+    //     _requestTBillWithdraw(amount_ * tBillPercent / 1e4);
+    //     emit RedeemedDepeg(
+    //         amount_, destAddress_, (vars.burnAmount - vars.stakePoolBurnAmount), vars.stakePoolBurnAmount
+    //     );
+    // }
 
     /**
      * @dev Caulculates the redemption allocation for system assets
