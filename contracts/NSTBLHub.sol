@@ -155,18 +155,66 @@ contract NSTBLHub is INSTBLHub, NSTBLHUBStorage, VersionedInitializable {
         uint256 tvl = balances[0] + balances[1] + balances[2];
         uint256 redeemAmount = _getRedeemableNSTBL(balances, tvl);
         uint256[] memory redemptionRatios = _getRedemptionRatios(balances, tvl);
+        (uint256 p1, uint256 p2, uint256 p3) = IChainlinkPriceFeed(chainLinkPriceFeed).getLatestPrice();
+    
+        IERC20Helper(nstblToken).burn(address(this), redeemAmount);
+        if(p1>dt && p2>dt && p3>dt){
+            _redeemNormal(redeemAmount, dstAddress_, redemptionRatios);
+        }
+        else {
+            _redeemAtDepeg(redeemAmount, dstAddress_, redemptionRatios, [p1, p2, p3]);
+        }
+        nstblDebt -= redeemAmount;
+    }
+    
+    function _redeemNormal(uint256 redeemAmount_, address dstAddress_, uint256[] memory redemptionRatios_) internal {
         uint256 adjustedDecimals;
         uint256 availAssets;
-        IERC20Helper(nstblToken).burn(address(this), redeemAmount);
         for (uint256 i = 0; i < assets.length; i++) {
             adjustedDecimals = IERC20Helper(nstblToken).decimals() - IERC20Helper(assets[i]).decimals();
-            availAssets = (redeemAmount * redemptionRatios[i]) / (1e18 * 10 ** adjustedDecimals);
+            availAssets = (redeemAmount_ * redemptionRatios_[i]) / (1e18 * 10 ** adjustedDecimals);
             IERC20Helper(assets[i]).safeTransfer(dstAddress_, availAssets);
             stablesBalances[assets[i]] -= availAssets;
         }
-        IERC20Helper(nstblToken).safeTransfer(dstAddress_, nstblDebt-redeemAmount);
-        nstblDebt = 0;
-        // emit RedemptionProcessed(dstAddress_, tokensToRedeem);
+    }
+
+    function _redeemAtDepeg(uint256 redeemAmount_, address dstAddress_, uint256[] memory redemptionRatios_, uint256[3] memory assetPrices_) internal {
+        localVars memory vars;
+        uint256 precisionAmount = redeemAmount_ * precision;
+        for (uint256 i = 0; i < assets.length; i++) {
+            if (assetPrices_[i] < dt) {
+                vars.belowDT = true;
+                if (assetPrices_[i] < lb) {
+                    vars.burnFromStakePool = true;
+                } else {
+                    vars.burnFromStakePool = false;
+                }
+            } else {
+                vars.belowDT = false;
+            }
+
+            vars.assetBalance = stablesBalances[assets[i]] * precision;
+            vars.adjustedDecimals = IERC20Helper(nstblToken).decimals() - IERC20Helper(assets[i]).decimals();
+            if (!vars.belowDT) {
+                vars.assetRequired = (redemptionRatios_[i] * precisionAmount / 1e18);
+                IERC20Helper(assets[i]).safeTransfer(dstAddress_, vars.assetRequired / (precision * 10 ** vars.adjustedDecimals));
+                stablesBalances[assets[i]] -= (vars.assetRequired / (precision * 10 ** vars.adjustedDecimals));
+            } else {
+                vars.assetProportion =
+                    (redemptionRatios_[i] * precisionAmount / 1e18);
+                vars.assetRequired = vars.assetProportion * dt / assetPrices_[i];
+                IERC20Helper(assets[i]).safeTransfer(dstAddress_, vars.assetRequired / (precision * 10 ** vars.adjustedDecimals));
+                stablesBalances[assets[i]] -= (vars.assetRequired / (precision * 10 ** vars.adjustedDecimals));
+
+                vars.burnAmount += (vars.assetRequired - vars.assetProportion) / precision;
+                vars.stakePoolBurnAmount += vars.burnFromStakePool
+                    ? _stakePoolBurnAmount(vars.assetRequired, vars.assetProportion)
+                    : 0;
+            }
+        }
+        console.log("Burn Amounts: ", vars.burnAmount, vars.stakePoolBurnAmount);
+        _burnNstblFromAtvl((vars.burnAmount - vars.stakePoolBurnAmount));
+        _burnNstblFromStakePool(vars.stakePoolBurnAmount);
     }
 
     function _getRedeemableNSTBL(uint256[] memory balances_, uint256 tvl_) internal view returns (uint256 redeemAmount_) {
@@ -805,15 +853,14 @@ contract NSTBLHub is INSTBLHub, NSTBLHUBStorage, VersionedInitializable {
      * @dev Calculates the amount of NSTBL to be burned from stake pool in case asset is below lowerBound
      * @param assetRequired_ The amount of asset required
      * @param assetProportion_ The proportion of asset required
-     * @param adjustedDecimals_ The adjusted decimals of the asset
      * @return burnAmount_ NSTBL tokens to be burnt from stake pool
      */
-    function _stakePoolBurnAmount(uint256 assetRequired_, uint256 assetProportion_, uint256 adjustedDecimals_)
+    function _stakePoolBurnAmount(uint256 assetRequired_, uint256 assetProportion_)
         internal
         view
         returns (uint256 burnAmount_)
     {
-        burnAmount_ = (assetRequired_ - (assetProportion_ * dt / lb)) * 10 ** adjustedDecimals_;
+        burnAmount_ = (assetRequired_ - (assetProportion_ * dt / lb));
         burnAmount_ /= precision;
     }
 
