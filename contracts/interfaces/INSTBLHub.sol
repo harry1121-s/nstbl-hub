@@ -109,11 +109,17 @@ interface INSTBLHub {
      */
     function deposit(uint256 usdcAmt_, uint256 usdtAmt_, uint256 daiAmt_, address destAddress_) external;
 
-    // /**
-    //  * @dev Function to request redemption of NSTBL tokens
-    //  * @param amount_ The amount of NSTBL tokens to be redeemed
-    //  */
+    /**
+     * @dev Function to request redemption of NSTBL tokens
+     * @param amount_ The amount of NSTBL tokens to be redeemed
+     */
     function requestRedemption(uint256 amount_) external;
+    /**
+     * @dev Function to process the redemption of requested NSTBL tokens 
+     * @param dstAddress_ The address receving funds
+     * @notice Only the amount of tokens requested for redemption are considered during processing
+     */
+    function processRedemption(address dstAddress_) external;
 
     /**
      * @dev The amount of tokens will be unstaked
