@@ -45,6 +45,28 @@ interface INSTBLHub {
      * @param tBillRedeemAmount_ The amount of TBills(in USDC) to be liquidated
      */
     event RedemptionRequested(uint256 amount_, uint256 tBillRedeemAmount_);
+    
+    /**
+     * @dev Emitted when NSTBL tokens are redeemed 
+     * @param dstAddress_ Address receiving redeemed stables
+     * @param nstblDebt_ Total number of NSTBL Tokens requested for redemption
+     * @param redeemAmount_ Total number of NSTBL Tokens redeemed
+     * @param usdcAmount_ amount of USDC tokens transferred
+     * @param usdtAmount_ amount of USDT tokens transferred
+     * @param daiAmount_ amount of DAI tokens transferred
+     */
+    event NSTBLRedeemed(address indexed dstAddress_, uint256 nstblDebt_, uint256 redeemAmount_, uint256 usdcAmount_, uint256 usdtAmount_, uint256 daiAmount_);
+    
+    /**
+     * @dev Emitted when NSTBL tokens are redeemed 
+     * @param totalBurnAmount_ Total number of NSTBL Tokens burned
+     * @param atvlBurnAmount_ Total number of NSTBL Tokens burned from ATVL
+     * @param spBurnAmount_ Total number of NSTBL Tokens burned from Stake Pool
+     * @param excessUSDCAmount_ excess amount of USDC tokens transferred
+     * @param excessUSDTAmount_ excess amount of USDT tokens transferred
+     * @param excessDAIAmount_ excess amount of DAI tokens transferred
+     */
+    event NSTBLBurnParams(uint256 totalBurnAmount_, uint256 atvlBurnAmount_, uint256 spBurnAmount_, uint256 excessUSDCAmount_, uint256 excessUSDTAmount_, uint256 excessDAIAmount_);
     /**
      * @dev Emitted when NSTBL tokens are unstaked in a depeg scenario
      * @param destAddress_ Address receiving unstaked NSTBL and redeemed stables

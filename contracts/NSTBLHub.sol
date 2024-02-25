@@ -19,7 +19,6 @@ contract NSTBLHub is INSTBLHub, NSTBLHUBStorage, VersionedInitializable {
         uint256 assetBalance;
         uint256 assetProportion;
         uint256 assetRequired;
-        uint256 remainingNstbl;
         uint256 adjustedDecimals;
     }
 
@@ -131,17 +130,16 @@ contract NSTBLHub is INSTBLHub, NSTBLHUBStorage, VersionedInitializable {
      function requestRedemption(uint256 amount_) external authorizedCaller nonReentrant {}
         event: amount, tbills requested for redemption
      function processRedemption(address dstAddress_) external authorizedCaller nonReentrant {}
-        event: dst address, nstbl redeemed, usdc,usdt,dai amounts
+        event: dst address, nstbl debt, nstbl redeemed, usdc,usdt,dai amounts
         event: atvl burn amount, sp burn amount, excess USDC,USDT,DAI amounts
      function getRedemptionStatus() external view returns (bool status_) {}
-     function previewProcessRedemption(uint256 amount_) external view returns(uint256[] memory assetAmounts_, uint256 tBillsRedeemed_) {}
       */
-
     function requestRedemption(uint256 amount_) external authorizedCaller nonReentrant {
-        require(amount_ > 0 && amount_ <= IERC20Helper(nstblToken).totalSupply(), "HUB: Invalid Redemption Amount");
+        uint256 supply = IERC20Helper(nstblToken).totalSupply();
+        require(amount_ > 0 && amount_ <= supply, "HUB: Invalid Redemption Amount");
         IERC20Helper(nstblToken).safeTransferFrom(msg.sender, address(this), amount_);
         nstblDebt += amount_;
-        uint256 newTVL = IERC20Helper(nstblToken).totalSupply() - amount_;
+        uint256 newTVL = supply - amount_;
         uint256 tBillsRedeemAmount = ILoanManager(loanManager).getMaturedAssets() - (tBillPercent * newTVL / 1e4);
         _requestTBillWithdraw(tBillsRedeemAmount);
         emit RedemptionRequested(amount_, tBillsRedeemAmount);
@@ -151,11 +149,11 @@ contract NSTBLHub is INSTBLHub, NSTBLHUBStorage, VersionedInitializable {
         _zeroAddressCheck(dstAddress_);
         require(ILoanManager(loanManager).awaitingRedemption(), "HUB: No redemption requested");
         _redeemTBill();
+        (uint256 p1, uint256 p2, uint256 p3) = IChainlinkPriceFeed(chainLinkPriceFeed).getLatestPrice();
         uint256[] memory balances = _getAssetBalances();
         uint256 tvl = balances[0] + balances[1] + balances[2];
-        uint256 redeemAmount = _getRedeemableNSTBL(balances, tvl);
+        uint256 redeemAmount = _getRedeemableNSTBL(balances, tvl, p1);
         uint256[] memory redemptionRatios = _getRedemptionRatios(balances, tvl);
-        (uint256 p1, uint256 p2, uint256 p3) = IChainlinkPriceFeed(chainLinkPriceFeed).getLatestPrice();
     
         IERC20Helper(nstblToken).burn(address(this), redeemAmount);
         if(p1>dt && p2>dt && p3>dt){
@@ -170,16 +168,20 @@ contract NSTBLHub is INSTBLHub, NSTBLHUBStorage, VersionedInitializable {
     function _redeemNormal(uint256 redeemAmount_, address dstAddress_, uint256[] memory redemptionRatios_) internal {
         uint256 adjustedDecimals;
         uint256 availAssets;
+        uint256[] memory assetAmounts = new uint256[](3);
         for (uint256 i = 0; i < assets.length; i++) {
             adjustedDecimals = IERC20Helper(nstblToken).decimals() - IERC20Helper(assets[i]).decimals();
             availAssets = (redeemAmount_ * redemptionRatios_[i]) / (1e18 * 10 ** adjustedDecimals);
             IERC20Helper(assets[i]).safeTransfer(dstAddress_, availAssets);
             stablesBalances[assets[i]] -= availAssets;
+            assetAmounts[i] = availAssets;
         }
+        emit NSTBLRedeemed(dstAddress_, nstblDebt, redeemAmount_, assetAmounts[0], assetAmounts[1], assetAmounts[2]);
     }
 
     function _redeemAtDepeg(uint256 redeemAmount_, address dstAddress_, uint256[] memory redemptionRatios_, uint256[3] memory assetPrices_) internal {
         localVars memory vars;
+        uint256[] memory assetAmounts = new uint256[](6);
         uint256 precisionAmount = redeemAmount_ * precision;
         for (uint256 i = 0; i < assets.length; i++) {
             if (assetPrices_[i] < dt) {
@@ -199,6 +201,7 @@ contract NSTBLHub is INSTBLHub, NSTBLHUBStorage, VersionedInitializable {
                 vars.assetRequired = (redemptionRatios_[i] * precisionAmount / 1e18);
                 IERC20Helper(assets[i]).safeTransfer(dstAddress_, vars.assetRequired / (precision * 10 ** vars.adjustedDecimals));
                 stablesBalances[assets[i]] -= (vars.assetRequired / (precision * 10 ** vars.adjustedDecimals));
+                assetAmounts[i] = vars.assetRequired / (precision * 10 ** vars.adjustedDecimals);
             } else {
                 vars.assetProportion =
                     (redemptionRatios_[i] * precisionAmount / 1e18);
@@ -210,21 +213,23 @@ contract NSTBLHub is INSTBLHub, NSTBLHUBStorage, VersionedInitializable {
                 vars.stakePoolBurnAmount += vars.burnFromStakePool
                     ? _stakePoolBurnAmount(vars.assetRequired, vars.assetProportion)
                     : 0;
+                assetAmounts[i] = vars.assetRequired / (precision * 10 ** vars.adjustedDecimals);
+                assetAmounts[i+3] = (vars.assetRequired - vars.assetProportion) / precision;
             }
         }
-        console.log("Burn Amounts: ", vars.burnAmount, vars.stakePoolBurnAmount);
         _burnNstblFromAtvl((vars.burnAmount - vars.stakePoolBurnAmount));
         _burnNstblFromStakePool(vars.stakePoolBurnAmount);
+        emit NSTBLRedeemed(dstAddress_, nstblDebt, redeemAmount_, assetAmounts[0], assetAmounts[1], assetAmounts[2]);
+        emit NSTBLBurnParams(vars.burnAmount, vars.burnAmount-vars.stakePoolBurnAmount, vars.stakePoolBurnAmount, assetAmounts[3], assetAmounts[4], assetAmounts[5]);
     }
 
-    function _getRedeemableNSTBL(uint256[] memory balances_, uint256 tvl_) internal view returns (uint256 redeemAmount_) {
-        (uint256 p1,,) = IChainlinkPriceFeed(chainLinkPriceFeed).getLatestPrice();
+    function _getRedeemableNSTBL(uint256[] memory balances_, uint256 tvl_, uint256 price_) internal view returns (uint256 redeemAmount_) {
         uint256 maxAmount;
-        if(p1>dt){
+        if(price_>dt){
             maxAmount = (stablesBalances[USDC] * 1e12) * tvl_ / balances_[0];
         }
-        else if (p1<dt) { 
-            maxAmount = (stablesBalances[USDC] * 1e12) * tvl_ * p1 / (balances_[0] * dt);
+        else if (price_<dt) { 
+            maxAmount = (stablesBalances[USDC] * 1e12) * tvl_ * price_ / (balances_[0] * dt);
         }
         redeemAmount_ = nstblDebt > maxAmount ? maxAmount : nstblDebt;
     }
@@ -234,6 +239,10 @@ contract NSTBLHub is INSTBLHub, NSTBLHUBStorage, VersionedInitializable {
         ratios_[0] = balances_[0] * 1e18 / tvl_;
         ratios_[1] = balances_[1] * 1e18 / tvl_;
         ratios_[2] = balances_[2] * 1e18 / tvl_;
+    }
+
+    function getRedemptionStatus() external view returns (bool status_) {
+
     }
 
     

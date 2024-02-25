@@ -1583,6 +1583,84 @@ contract NSTBLHubTestRedeem is BaseTest {
         );
     }
 
+    function test_redeem_depeg_usdc_usdt_dai() external {
+         uint256 _amount = 1e6 * 1e18;
+
+        //noDepeg
+        usdcPriceFeedMock.updateAnswer(982e5);
+        usdtPriceFeedMock.updateAnswer(99e6);
+        daiPriceFeedMock.updateAnswer(985e5);
+
+        //first making a deposit
+        _depositNSTBL(_amount);
+        deal(address(nstblToken), address(atvl), _amount * 2 / 100); //2% of the total supply
+        assertEq(nstblToken.balanceOf(address(atvl)), _amount * 2 / 100);
+
+        uint256 lmUSDC = IERC20Helper(loanManager.mapleUSDCPool()).balanceOf(address(loanManager));
+
+        vm.startPrank(nealthyAddr);
+        nstblToken.approve(address(nstblHub), _amount);
+        nstblHub.requestRedemption(40*_amount/100); //requesting 40% liquidity for redemption
+        vm.stopPrank();
+
+        assertEq(nstblToken.balanceOf(nealthyAddr), _amount*60/100);
+        assertEq(nstblToken.balanceOf(address(nstblHub)), _amount*40/100);
+        assertEq(nstblHub.nstblDebt(), _amount*40/100);
+
+        // checking for T-bill redemption status
+        assertTrue(loanManager.awaitingRedemption());
+
+        vm.startPrank(poolDelegateUSDC);
+        withdrawalManagerUSDC.processRedemptions(lmUSDC-IERC20Helper(loanManager.mapleUSDCPool()).balanceOf(address(loanManager)));
+        vm.stopPrank();
+
+        uint256 usdcTotal = nstblHub.stablesBalances(USDC) * 1e12 + loanManager.getMaturedAssets();
+
+        uint256 usdcBalBefore = IERC20Helper(USDC).balanceOf(vm.addr(123456));
+        uint256 usdtBalBefore = IERC20Helper(USDT).balanceOf(vm.addr(123456));
+        uint256 daiBalBefore = IERC20Helper(DAI).balanceOf(vm.addr(123456));
+        uint256 tvl = usdcTotal + nstblHub.stablesBalances(USDT) * 1e12 + nstblHub.stablesBalances(DAI);
+        uint256 usdcAlloc = usdcTotal * 1e18 / tvl;
+        uint256 usdtAlloc = nstblHub.stablesBalances(USDT) * 1e12 * 1e18 / tvl;
+        uint256 daiAlloc = nstblHub.stablesBalances(DAI) * 1e18 / tvl;
+        uint256 nstblSupplyBefore = nstblToken.totalSupply();
+        uint256 atvlBalBefore = nstblToken.balanceOf(address(atvl));
+
+        //usdc depegs just before process redemption
+        usdcPriceFeedMock.updateAnswer(972e5);
+        usdtPriceFeedMock.updateAnswer(970e5);
+        daiPriceFeedMock.updateAnswer(975e5);
+
+        vm.startPrank(nealthyAddr);
+        nstblHub.processRedemption(vm.addr(123456));
+        vm.stopPrank();
+
+        uint256 nstblRedeemed = nstblSupplyBefore - nstblToken.totalSupply() - (atvlBalBefore - nstblToken.balanceOf(address(atvl)));
+        assertEq(nstblHub.nstblDebt()+nstblRedeemed, 40*_amount/100, "check nstbl");
+        assertEq(
+            ((nstblRedeemed/1e12) * usdcAlloc * 980e5/972e5) / (1e18),
+            IERC20Helper(USDC).balanceOf(vm.addr(123456)) - usdcBalBefore,
+            "check usdc transferred"
+        );
+        assertEq(
+            ((nstblRedeemed/1e12) * usdtAlloc * 980e5/970e5) / (1e18),
+            IERC20Helper(USDT).balanceOf(vm.addr(123456)) - usdtBalBefore,
+            "check usdt transferred"
+        );
+        assertApproxEqRel(
+            (nstblRedeemed * daiAlloc * 980e5/975e5) / (1e18), IERC20Helper(DAI).balanceOf(vm.addr(123456)) - daiBalBefore, 1e15, "check dai transferred"
+        );
+
+        assertApproxEqAbs(
+            atvlBalBefore - nstblToken.balanceOf(address(atvl)),
+            (((nstblRedeemed * daiAlloc) / 1e18) * 980e5 / 975e5) - ((nstblRedeemed * daiAlloc) / 1e18) +
+            (((nstblRedeemed * usdtAlloc) / 1e18) * 980e5 / 970e5) - ((nstblRedeemed * usdtAlloc) / 1e18) +
+            (((nstblRedeemed * usdcAlloc) / 1e18) * 980e5 / 972e5) - ((nstblRedeemed * usdcAlloc) / 1e18),
+            1e12,
+            "check ATVL balance"
+        );
+    }
+
     function test_redeem_depeg_usdc_burnFromStakePool() external {
          uint256 _amount = 1e6 * 1e18;
 
@@ -1652,8 +1730,6 @@ contract NSTBLHubTestRedeem is BaseTest {
         );
 
     }
-
-    
 
 }
 // contract NSTBLHubTestRedeem is BaseTest {
