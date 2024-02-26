@@ -4,7 +4,6 @@ import { IACLManager } from "@nstbl-acl-manager/contracts/IACLManager.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@nstbl-loan-manager/contracts/upgradeable/VersionedInitializable.sol";
 import "./NSTBLHUBStorage.sol";
-import { console } from "forge-std/Test.sol";
 
 contract NSTBLHub is INSTBLHub, NSTBLHUBStorage, VersionedInitializable {
     using SafeERC20 for IERC20Helper;
@@ -160,10 +159,6 @@ contract NSTBLHub is INSTBLHub, NSTBLHUBStorage, VersionedInitializable {
         nstblDebt -= redeemAmount;
     }
 
-    function getRedemptionStatus() external view returns (bool status_) {
-
-    }
-
     /**
      * @inheritdoc INSTBLHub
      */
@@ -225,14 +220,6 @@ contract NSTBLHub is INSTBLHub, NSTBLHUBStorage, VersionedInitializable {
         eqTh = eqTh_;
     }
 
-    /**
-     * @inheritdoc INSTBLHub
-     */
-    function processTBillWithdraw() external authorizedCaller returns (uint256 usdcReceived_) {
-        require(ILoanManager(loanManager).awaitingRedemption(), "HUB: No redemption requested");
-        usdcReceived_ = _redeemTBill();
-    }
-
     /*//////////////////////////////////////////////////////////////
     VIEWS
     //////////////////////////////////////////////////////////////*/
@@ -275,6 +262,13 @@ contract NSTBLHub is INSTBLHub, NSTBLHUBStorage, VersionedInitializable {
                 result_ = true;
             }
         }
+    }
+
+    /**
+     * @inheritdoc INSTBLHub
+     */
+    function getRedemptionStatus() external view returns (bool status_) {
+        status_ = (ILoanManager(loanManager).getSharesAvailableForRedemption() > 0) ? true : false;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -494,7 +488,7 @@ contract NSTBLHub is INSTBLHub, NSTBLHUBStorage, VersionedInitializable {
      */
     function _redeemAtDepeg(uint256 redeemAmount_, address dstAddress_, uint256[] memory redemptionRatios_, uint256[3] memory assetPrices_) internal {
         localVars memory vars;
-        uint256[] memory assetAmounts = new uint256[](6);
+        uint256[] memory assetAmounts = new uint256[](6); // indexes 0-2 for asset amounts, indexes 3-5 for excess amounts
         uint256 precisionAmount = redeemAmount_ * precision;
         for (uint256 i = 0; i < assets.length; i++) {
             if (assetPrices_[i] < dt) {
@@ -588,16 +582,17 @@ contract NSTBLHub is INSTBLHub, NSTBLHUBStorage, VersionedInitializable {
     function _unstakeAndRedeemNstbl(address user_, uint8 trancheId_, address destAddress_) internal {
         (address[] memory failedAssets_, uint256[] memory failedAssetsPrice_) =
             _failedAssetsOrderWithPrice(_noOfFailedAssets());
-        (address[] memory assets_, uint256[] memory _assetAmounts, uint256 unstakeBurnAmount_, uint256 burnAmount_) =
+        (address[] memory assets_, uint256[] memory assetAmounts_, uint256 unstakeBurnAmount_, uint256 burnAmount_) =
             _getStakerRedeemParams(user_, trancheId_, failedAssets_, failedAssetsPrice_);
         _unstakeAndBurnNstbl(user_, trancheId_, unstakeBurnAmount_, destAddress_);
         _burnNstblFromAtvl(burnAmount_);
         for (uint256 i = 0; i < assets_.length; i++) {
             if (assets_[i] != address(0)) {
-                IERC20Helper(assets_[i]).safeTransfer(destAddress_, _assetAmounts[i]);
-                stablesBalances[assets_[i]] -= _assetAmounts[i];
+                IERC20Helper(assets_[i]).safeTransfer(destAddress_, assetAmounts_[i]);
+                stablesBalances[assets_[i]] -= assetAmounts_[i];
             }
         }
+        emit UnstakeAssetsInfo(assets_, assetAmounts_, failedAssetsPrice_);
         emit UnstakedAndRedeemed(destAddress_, unstakeBurnAmount_, burnAmount_);
     }
 

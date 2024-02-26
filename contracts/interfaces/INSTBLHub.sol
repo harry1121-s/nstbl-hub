@@ -67,6 +67,15 @@ interface INSTBLHub {
      * @param excessDAIAmount_ excess amount of DAI tokens transferred
      */
     event NSTBLBurnParams(uint256 totalBurnAmount_, uint256 atvlBurnAmount_, uint256 spBurnAmount_, uint256 excessUSDCAmount_, uint256 excessUSDTAmount_, uint256 excessDAIAmount_);
+    
+    /**
+     * @dev Emitted when NSTBL tokens are redeemed during unstaking
+     * @param failedAssets_ array containing the addresses of assets failed
+     * @param assetAmounts_ array containing the amount of each failed asset given out
+     * @param assetPrice_ array containing the price of the failed assets
+     */
+    event UnstakeAssetsInfo(address[] indexed failedAssets_, uint256[] assetAmounts_, uint256[] assetPrice_);
+    
     /**
      * @dev Emitted when NSTBL tokens are unstaked in a depeg scenario
      * @param destAddress_ Address receiving unstaked NSTBL and redeemed stables
@@ -154,8 +163,8 @@ interface INSTBLHub {
     function setSystemParams(uint256 dt_, uint256 ub_, uint256 lb_, uint256 tBillPercent_, uint256 eqTh_) external;
 
     /**
-     * @dev The process to redeem the TBills from loan manager and update the balance
-     * @return usdcRedeemed_ The amount of USDC redeemed
+     * @dev Gives the status of redemption of NSTBL tokens
+     * @return status_ bool value indicating status of redemption
      */
-    function processTBillWithdraw() external returns (uint256 usdcRedeemed_);
+    function getRedemptionStatus() external view returns (bool status_);
 }
